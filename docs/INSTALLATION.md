@@ -263,3 +263,10 @@ alembic downgrade -1
 - **RAM**: 16 GB
 - **Storage**: 50 GB SSD
 - **Network**: Stable internet connection
+
+---
+
+## Contact
+
+- **Email**: Amor5511@gmail.com
+- **GitHub**: https://github.com/yehielamor/orbis-ethica

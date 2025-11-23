@@ -2,7 +2,7 @@
 name = "orbis-ethica"
 version = "0.1.0"
 description = "A Moral Operating System for AGI"
-authors = ["Orbis Origin <research@orbis-origin.org>"]
+authors = ["Yehiel Amor <Amor5511@gmail.com>"]
 license = "CC-BY-SA-4.0"
 readme = "README.md"
 
