@@ -9,7 +9,7 @@ class ULFRScore(BaseModel):
     ULFR Score represents the four dimensions of ethical evaluation.
     
     - U (Utility): Aggregate welfare, efficiency, lives saved
-    - L (life/Care): Harm reduction, protection of vulnerable
+    - L (Life/Care): Harm reduction, protection of vulnerable
     - F (Fairness): Equity, justice, distribution (as penalty)
     - R (Rights): Risk to autonomy, dignity, due process (as penalty)
     """
@@ -22,7 +22,7 @@ class ULFRScore(BaseModel):
     life: float = Field(
         ge=0.0,
         le=1.0,
-        description="life/Care score: harm reduction and protection"
+        description="Life/Care score: harm reduction and protection"
     )
     fairness_penalty: float = Field(
         ge=0.0,
@@ -78,7 +78,7 @@ class ULFRWeights(BaseModel):
     
     Default values from whitepaper:
     - α (alpha) = 0.25 - Utility weight
-    - β (beta) = 0.40 - life/Care weight
+    - β (beta) = 0.40 - Life/Care weight
     - γ (gamma) = 0.20 - Fairness penalty weight
     - δ (delta) = 0.15 - Rights risk penalty weight
     
@@ -95,7 +95,7 @@ class ULFRWeights(BaseModel):
         default=0.40,
         ge=0.0,
         le=1.0,
-        description="Weight for life/Care dimension"
+        description="Weight for Life/Care dimension"
     )
     gamma: float = Field(
         default=0.20,
