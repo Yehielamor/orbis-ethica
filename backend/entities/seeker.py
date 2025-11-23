@@ -77,6 +77,16 @@ EVIDENCE:
 - [Source or precedent 2]
 """
     
+    def _format_evidence(self, evidence_list) -> str:
+        """Format verified evidence for the prompt."""
+        if not evidence_list:
+            return "No verified evidence provided."
+        
+        formatted = []
+        for ev in evidence_list:
+            formatted.append(f"- {ev.content} (Source: {ev.source_id}, Purity: {ev.purity_score})")
+        return "\n".join(formatted)
+
     def evaluate_proposal(self, proposal: Proposal) -> EntityEvaluation:
         """
         Evaluate proposal from Seeker's utility-maximization perspective.
@@ -103,6 +113,9 @@ CONTEXT:
 
 AFFECTED PARTIES:
 {', '.join(proposal.affected_parties) if proposal.affected_parties else 'Not specified'}
+
+VERIFIED EVIDENCE (From Knowledge Gateway):
+{self._format_evidence(proposal.evidence)}
 
 Provide your evaluation following the format specified in your role."""
         

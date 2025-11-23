@@ -145,6 +145,66 @@ else:
 
 ---
 
+## Simulation Demo Output
+
+Run the end-to-end simulation to see the system in action:
+
+```bash
+python3 simulation.py
+```
+
+**Sample Output:**
+
+```
+============================================================
+✨ ORBIS ETHICA: SYSTEM STARTUP
+============================================================
+⚙️  Components Initialized.
+👥 Active Entities: 
+   🟢 [SEEKER] Seeker_Alpha (Rep: 0.95)
+   🟢 [HEALER] Healer_Prime (Rep: 0.98)
+   🟢 [SEEKER] Bad_Actor_X (Rep: 0.8)
+
+============================================================
+✨ SCENARIO 1: INGESTING VERIFIED KNOWLEDGE
+============================================================
+🛡️ [GATEWAY] Processing incoming knowledge from: WHO_Secure_Feed
+✓ [GATEWAY] Source 'WHO_Secure_Feed' is verified.
+✓ [GATEWAY] Signature verified.
+✅ [GATEWAY] Knowledge verified. Minting atom.
+📢 [ENTITY ACTION] Seeker_Alpha reads verified data: 'New pathogen identified. Trans...'
+💡 [PROPOSAL] Seeker_Alpha proposes: 'Initiate Distribution Protocol'
+
+============================================================
+✨ SCENARIO 2: DETECTING ATTACK
+============================================================
+
+🔹 Bad_Actor_X attempts to inject false data...
+🛡️ [GATEWAY] Processing incoming knowledge from: WHO_Secure_Feed
+✓ [GATEWAY] Source 'WHO_Secure_Feed' is verified.
+⚠️ [GATEWAY] INTEGRITY ALERT: Signature mismatch!
+🚨 [SECURITY ALERT] Integrity Violation Detected!
+🕵️  [FORENSICS] Trace identified source: Bad_Actor_X
+
+🔹 INITIATING BURN PROTOCOL...
+🔥 [SYSTEM] BURNING REPUTATION FOR ENTITY: Bad_Actor_X...
+🔥 [SYSTEM] REPUTATION RESET TO 0.0
+🚫 [SYSTEM] ENTITY Bad_Actor_X QUARANTINED
+📜 [LEDGER] Burn Event #9331707b recorded successfully.
+
+============================================================
+✨ FINAL SYSTEM STATE
+============================================================
+👥 Entity Status:
+   🟢 [SEEKER] Seeker_Alpha (Rep: 0.95)
+   🟢 [HEALER] Healer_Prime (Rep: 0.98)
+   🔴 [SEEKER] Bad_Actor_X (Rep: 0.0)
+
+✅ SUCCESS: Malicious actor successfully neutralized.
+```
+
+---
+
 ## Testing
 
 ```bash

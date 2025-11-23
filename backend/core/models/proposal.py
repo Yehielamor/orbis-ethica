@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
+from ...knowledge.models import VerifiedKnowledge
 
 
 class ProposalStatus(str, Enum):
@@ -119,6 +120,12 @@ class Proposal(BaseModel):
     decision_rationale: Optional[str] = Field(
         None,
         description="Explanation of final decision"
+    )
+    
+    # Knowledge Layer Integration
+    evidence: List[VerifiedKnowledge] = Field(
+        default_factory=list,
+        description="Verified knowledge atoms supporting this proposal"
     )
     
     class Config:
