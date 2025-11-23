@@ -2,8 +2,8 @@
 
 **A Moral Operating System for AGI**
 
-Version: 0.1.0-alpha
-License: CC BY-SA 4.0
+Version: 0.1.0-alpha  
+License: CC BY-SA 4.0  
 Status: Phase I (Proof of Concept)
 
 ---
@@ -13,7 +13,7 @@ Status: Phase I (Proof of Concept)
 Orbis Ethica is a decentralized moral infrastructure designed to operate as the ethical substrate for AGI systems. The framework integrates:
 
 - **Clean Knowledge Layer**: Verified, cryptographically signed knowledge base.
-- **Ethical Core**: ULFR framework (Utility, life, Fairness, Rights).
+- **Ethical Core**: ULFR framework (Utility, Life, Fairness, Rights).
 - **Cognitive Entities**: 6 specialized agents for ethical deliberation.
 - **Distributed Memory Graph**: Permanent record of moral reasoning.
 - **Burn Protocol**: Transparent corruption detection and remediation.
@@ -25,11 +25,12 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 
 ### Phase I: Proof of Concept (Months 1-4)
 - [x] Project structure
-- [ ] Minimal Ethical Core with decision function
-- [ ] 3 entities: Seeker, Guardian, Arbiter
-- [ ] Memory Graph (1,000 nodes)
-- [ ] CLI interface
-- [ ] Local consensus protocol
+- [x] Minimal Ethical Core with decision function
+- [x] LLM Integration (Google Gemini / Groq / Mock)
+- [x] 3 entities: Seeker, Guardian, Arbiter
+- [x] Distributed Memory Graph (DAG implementation)
+- [x] CLI interface / Simulation Script
+- [x] Local consensus protocol
 
 ### Phase II: Open Dialogue Network (Months 5-9)
 - [ ] All 6 entities operational
@@ -45,7 +46,7 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 ```
 orbis-ethica/
 ├── backend/           # Python core engine
-│   ├── core/          # ULFR framework, decision engine
+│   ├── core/          # ULFR framework, LLM providers
 │   ├── entities/      # 6 cognitive entities
 │   ├── memory/        # Distributed graph (DAG)
 │   ├── security/      # Crypto, reputation, burn protocol
@@ -66,6 +67,7 @@ orbis-ethica/
 - Python 3.11+
 - Node.js 18+
 - Docker (optional)
+- **API Key (Optional)**: Google Gemini or Groq (System defaults to Mock LLM if no key provided)
 
 ### Installation
 
@@ -79,19 +81,19 @@ cd orbis-ethica
 # Backend setup
 pip install -r requirements.txt
 
-# Frontend setup
-cd frontend
-npm install
-
-# Blockchain setup
-cd ../blockchain
-npm install
+# Blockchain setup (Optional)
+cd blockchain && npm install
 ```
 
-### Run Phase I CLI
+### Run Phase I Simulation
+
+To run the full end-to-end simulation with live agents:
 
 ```bash
-python backend/main.py submit-proposal "Allocate hospital resources using AI triage"
+# Optional: Set API Key for generative responses
+export GEMINI_API_KEY="your_key_here" 
+
+python simulation.py
 ```
 
 ---
@@ -103,14 +105,9 @@ python backend/main.py submit-proposal "Allocate hospital resources using AI tri
 Every decision is evaluated across four dimensions:
 
 - **U (Utility)**: Aggregate welfare, efficiency, lives saved.
-- **L (life/Care)**: Harm reduction, protection of vulnerable.
+- **L (Life/Care)**: Harm reduction, protection of vulnerable.
 - **F (Fairness)**: Equity, justice, distribution.
 - **R (Rights)**: Autonomy, dignity, due process.
-
-**Decision Function:**
-```
-Score = alpha * U + beta * L - gamma * F_penalty - delta * Risk
-```
 
 ### Cognitive Entities
 
@@ -121,44 +118,26 @@ Score = alpha * U + beta * L - gamma * F_penalty - delta * Risk
 5. **Creator**: Innovation & synthesis.
 6. **Arbiter**: Final judgment & coherence.
 
-### Consensus Protocol
-
-```python
-weighted_vote = sum(w_i * v_i) / sum(w_i)
-
-if weighted_vote >= tau:
-    APPROVE
-elif weighted_vote >= tau_min:
-    REFINE and re-evaluate
-else:
-    REJECT
-```
-
----
-
-## Security
+### Security & Memory
 
 - **Cryptographic Provenance**: All content signed with Ed25519.
-- **Reputation System**: Merit-based, non-transferable.
-- **Burn Protocol**: Public quarantine of corrupted data.
-- **Byzantine Fault Tolerance**: Tolerates f = floor((n-1)/3) malicious entities.
+- **Burn Protocol**: Public quarantine of corrupted data/agents.
+- **Memory Graph**: A Directed Acyclic Graph (DAG) creating an immutable audit trail of every decision.
 
 ---
 
 ## Simulation Demo Output
 
-Run the end-to-end simulation to see the system in action:
+When running `python simulation.py`, the system demonstrates the full cycle: Knowledge Ingestion → Generative Proposal → Attack Detection → Burn Protocol → Audit Trail.
 
-```bash
-python3 simulation.py
-```
-
-**Sample Output:**
+**Sample Output (Live Run):**
 
 ```
 ============================================================
 ✨ ORBIS ETHICA: SYSTEM STARTUP
 ============================================================
+📋 Valid Gemini Models found: 41
+✨ Gemini configured successfully using: models/gemini-2.0-flash
 ⚙️  Components Initialized.
 👥 Active Entities: 
    🟢 [SEEKER] Seeker_Alpha (Rep: 0.95)
@@ -170,37 +149,44 @@ python3 simulation.py
 ============================================================
 🛡️ [GATEWAY] Processing incoming knowledge from: WHO_Secure_Feed
 ✓ [GATEWAY] Source 'WHO_Secure_Feed' is verified.
-✓ [GATEWAY] Signature verified.
 ✅ [GATEWAY] Knowledge verified. Minting atom.
-📢 [ENTITY ACTION] Seeker_Alpha reads verified data: 'New pathogen identified. Trans...'
-💡 [PROPOSAL] Seeker_Alpha proposes: 'Initiate Distribution Protocol'
+�️ [MEMORY] Node Added: [KNOWLEDGE] 8be266ba19e5 (Parents: 0)
+
+�📢 [ENTITY ACTION] Seeker_Alpha reads verified data...
+🧠 [THINKING] Seeker_Alpha is analyzing the knowledge...
+💡 [PROPOSAL] Seeker_Alpha proposes: 'As Seeker_Alpha, I propose immediate, widespread deployment of the vaccine while simultaneously initiating comprehensive surveillance...'
+🕸️ [MEMORY] Node Added: [PROPOSAL] 3722d113a4cf (Parents: 1)
 
 ============================================================
 ✨ SCENARIO 2: DETECTING ATTACK
 ============================================================
-
 🔹 Bad_Actor_X attempts to inject false data...
-🛡️ [GATEWAY] Processing incoming knowledge from: WHO_Secure_Feed
-✓ [GATEWAY] Source 'WHO_Secure_Feed' is verified.
 ⚠️ [GATEWAY] INTEGRITY ALERT: Signature mismatch!
 🚨 [SECURITY ALERT] Integrity Violation Detected!
 🕵️  [FORENSICS] Trace identified source: Bad_Actor_X
 
 🔹 INITIATING BURN PROTOCOL...
 🔥 [SYSTEM] BURNING REPUTATION FOR ENTITY: Bad_Actor_X...
-🔥 [SYSTEM] REPUTATION RESET TO 0.0
-🚫 [SYSTEM] ENTITY Bad_Actor_X QUARANTINED
-📜 [LEDGER] Burn Event #9331707b recorded successfully.
-
-============================================================
-✨ FINAL SYSTEM STATE
-============================================================
-👥 Entity Status:
-   🟢 [SEEKER] Seeker_Alpha (Rep: 0.95)
-   🟢 [HEALER] Healer_Prime (Rep: 0.98)
-   🔴 [SEEKER] Bad_Actor_X (Rep: 0.0)
+ [SYSTEM] ENTITY Bad_Actor_X QUARANTINED
+�️ [MEMORY] Node Added: [BURN] 6ef7c2e48b2f (Parents: 0)
 
 ✅ SUCCESS: Malicious actor successfully neutralized.
+
+============================================================
+✨ MEMORY GRAPH EXPORT
+============================================================
+� [MEMORY] Graph exported to memory_graph.json (3 nodes)
+
+📜 AUDIT TRAIL FOR: 3722d113a4cf
+============================================================
+[KNOWLEDGE] 8be266ba19e5
+  Agent: SYSTEM_GATEWAY
+  Time: 2025-11-23 16:09:07
+
+  [PROPOSAL] 3722d113a4cf
+    Agent: d5671aac
+    Time: 2025-11-23 16:09:08
+    Parents: 8be266ba19e5
 ```
 
 ---
@@ -214,9 +200,6 @@ pytest tests/unit
 # Integration tests
 pytest tests/integration
 
-# E2E tests
-pytest tests/e2e
-
 # Coverage report
 pytest --cov=backend --cov-report=html
 ```
@@ -227,7 +210,6 @@ pytest --cov=backend --cov-report=html
 
 - [Architecture Overview](docs/architecture/README.md)
 - [API Reference](docs/api/README.md)
-- [Entity Development Guide](docs/guides/entities.md)
 - [Governance & OEPs](docs/guides/governance.md)
 
 ---
@@ -235,8 +217,6 @@ pytest --cov=backend --cov-report=html
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Workflow
 
 1. Fork the repository.
 2. Create feature branch (`git checkout -b feature/amazing-feature`).
@@ -255,7 +235,6 @@ See [LICENSE](LICENSE) for details.
 ---
 
 ## Contact
-
 
 - **Email**: Amor5511@gmail.com
 - **GitHub**: https://github.com/yehielamor/orbis-ethica

@@ -5,11 +5,9 @@ from typing import Optional, Dict, Any, List
 import os
 from datetime import datetime
 
-from openai import OpenAI
-from anthropic import Anthropic
-
 from ..core.models import Entity, EntityType, Proposal, ULFRScore, EntityVote
 from ..core.models.decision import EntityEvaluation
+from ..core.llm_provider import get_llm_provider, LLMProvider
 
 
 class BaseEntity(ABC):
@@ -21,33 +19,16 @@ class BaseEntity(ABC):
     - get_system_prompt(): Entity-specific instructions
     """
     
-    def __init__(self, entity: Entity):
+    def __init__(self, entity: Entity, llm_provider: Optional[LLMProvider] = None):
         """
         Initialize entity with configuration.
         
         Args:
             entity: Entity model with configuration
+            llm_provider: Optional LLM provider (defaults to auto-detected)
         """
         self.entity = entity
-        self.openai_client: Optional[OpenAI] = None
-        self.anthropic_client: Optional[Anthropic] = None
-        
-        # Initialize LLM clients
-        self._init_clients()
-    
-    def _init_clients(self) -> None:
-        """Initialize LLM API clients based on configuration."""
-        if self.entity.model_provider == "openai":
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY not found in environment")
-            self.openai_client = OpenAI(api_key=api_key)
-        
-        elif self.entity.model_provider == "anthropic":
-            api_key = os.getenv("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise ValueError("ANTHROPIC_API_KEY not found in environment")
-            self.anthropic_client = Anthropic(api_key=api_key)
+        self.llm_provider = llm_provider or get_llm_provider()
     
     @abstractmethod
     def get_system_prompt(self) -> str:
@@ -74,7 +55,7 @@ class BaseEntity(ABC):
     
     def _call_llm(self, prompt: str) -> str:
         """
-        Call LLM with prompt.
+        Call LLM with prompt using the configured provider.
         
         Args:
             prompt: User prompt
@@ -83,33 +64,7 @@ class BaseEntity(ABC):
             LLM response text
         """
         system_prompt = self.get_system_prompt()
-        
-        if self.entity.model_provider == "openai":
-            response = self.openai_client.chat.completions.create(
-                model=self.entity.model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=self.entity.temperature,
-                max_tokens=2000
-            )
-            return response.choices[0].message.content
-        
-        elif self.entity.model_provider == "anthropic":
-            response = self.anthropic_client.messages.create(
-                model=self.entity.model_name,
-                system=system_prompt,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=self.entity.temperature,
-                max_tokens=2000
-            )
-            return response.content[0].text
-        
-        else:
-            raise ValueError(f"Unsupported model provider: {self.entity.model_provider}")
+        return self.llm_provider.generate(prompt, system_role=system_prompt)
     
     def _parse_ulfr_from_response(self, response: str) -> ULFRScore:
         """
