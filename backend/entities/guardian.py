@@ -53,7 +53,7 @@ Provide your evaluation in this exact format:
 
 ULFR SCORES:
 U: [0.0-1.0] - Utility score (aggregate welfare)
-L: [0.0-1.0] - Love/Care score (harm reduction)
+L: [0.0-1.0] - life/Care score (harm reduction)
 F_penalty: [0.0-1.0] - Fairness penalty (inequality, discrimination, higher = worse)
 R_risk: [0.0-1.0] - Rights risk (threat to autonomy, dignity, higher = worse)
 

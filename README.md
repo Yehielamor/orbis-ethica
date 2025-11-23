@@ -13,7 +13,7 @@ Status: Phase I (Proof of Concept)
 Orbis Ethica is a decentralized moral infrastructure designed to operate as the ethical substrate for AGI systems. The framework integrates:
 
 - **Clean Knowledge Layer**: Verified, cryptographically signed knowledge base.
-- **Ethical Core**: ULFR framework (Utility, Love, Fairness, Rights).
+- **Ethical Core**: ULFR framework (Utility, life, Fairness, Rights).
 - **Cognitive Entities**: 6 specialized agents for ethical deliberation.
 - **Distributed Memory Graph**: Permanent record of moral reasoning.
 - **Burn Protocol**: Transparent corruption detection and remediation.
@@ -103,7 +103,7 @@ python backend/main.py submit-proposal "Allocate hospital resources using AI tri
 Every decision is evaluated across four dimensions:
 
 - **U (Utility)**: Aggregate welfare, efficiency, lives saved.
-- **L (Love/Care)**: Harm reduction, protection of vulnerable.
+- **L (life/Care)**: Harm reduction, protection of vulnerable.
 - **F (Fairness)**: Equity, justice, distribution.
 - **R (Rights)**: Autonomy, dignity, due process.
 

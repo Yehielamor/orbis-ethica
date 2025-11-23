@@ -239,7 +239,7 @@ def test():
         console.print(f"  Vote: {evaluation.vote}")
         console.print(f"  Confidence: {evaluation.confidence:.2f}")
         console.print(f"  ULFR: U={evaluation.ulfr_score.utility:.2f}, "
-                     f"L={evaluation.ulfr_score.love:.2f}")
+                     f"L={evaluation.ulfr_score.life:.2f}")
         
     except Exception as e:
         console.print(f"[red]✗[/red] Failed: {e}")

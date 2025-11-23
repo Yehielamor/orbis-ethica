@@ -286,7 +286,7 @@ class DeliberationEngine:
             print(f"Confidence: {eval.confidence:.2f}")
             print(f"\nULFR Scores:")
             print(f"  U (Utility): {eval.ulfr_score.utility:.2f}")
-            print(f"  L (Love/Care): {eval.ulfr_score.love:.2f}")
+            print(f"  L (life/Care): {eval.ulfr_score.life:.2f}")
             print(f"  F (Fairness Penalty): {eval.ulfr_score.fairness_penalty:.2f}")
             print(f"  R (Rights Risk): {eval.ulfr_score.rights_risk:.2f}")
             

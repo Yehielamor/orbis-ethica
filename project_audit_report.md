@@ -17,7 +17,7 @@
 #### 📂 `core/` (הליבה הלוגית)
 *   **סטטוס:** ✅ **פעיל ומלא**
 *   **קבצים מרכזיים:**
-    *   `models/ulfr.py`: מימוש מלא של מודל ה-ULFR (Utility, Love, Fairness, Rights). כולל ולידציות Pydantic.
+    *   `models/ulfr.py`: מימוש מלא של מודל ה-ULFR (Utility, life, Fairness, Rights). כולל ולידציות Pydantic.
     *   `models/proposal.py`: מודל הצעה, כולל קטגוריות ודומיינים.
     *   `models/decision.py`: מודל החלטה, כולל הצבעות, ציונים ונימוקים.
     *   `protocols/consensus.py`: אלגוריתם הקונצנזוס (Weighted Voting).

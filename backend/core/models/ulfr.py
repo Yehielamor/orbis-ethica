@@ -9,7 +9,7 @@ class ULFRScore(BaseModel):
     ULFR Score represents the four dimensions of ethical evaluation.
     
     - U (Utility): Aggregate welfare, efficiency, lives saved
-    - L (Love/Care): Harm reduction, protection of vulnerable
+    - L (life/Care): Harm reduction, protection of vulnerable
     - F (Fairness): Equity, justice, distribution (as penalty)
     - R (Rights): Risk to autonomy, dignity, due process (as penalty)
     """
@@ -19,10 +19,10 @@ class ULFRScore(BaseModel):
         le=1.0,
         description="Utility score: aggregate welfare and efficiency"
     )
-    love: float = Field(
+    life: float = Field(
         ge=0.0,
         le=1.0,
-        description="Love/Care score: harm reduction and protection"
+        description="life/Care score: harm reduction and protection"
     )
     fairness_penalty: float = Field(
         ge=0.0,
@@ -35,7 +35,7 @@ class ULFRScore(BaseModel):
         description="Rights risk: threat to autonomy and dignity (higher = worse)"
     )
     
-    @field_validator('utility', 'love', 'fairness_penalty', 'rights_risk')
+    @field_validator('utility', 'life', 'fairness_penalty', 'rights_risk')
     @classmethod
     def validate_range(cls, v: float) -> float:
         """Ensure all scores are in [0, 1] range."""
@@ -56,7 +56,7 @@ class ULFRScore(BaseModel):
         """
         score = (
             weights.alpha * self.utility +
-            weights.beta * self.love -
+            weights.beta * self.life -
             weights.gamma * self.fairness_penalty -
             weights.delta * self.rights_risk
         )
@@ -66,7 +66,7 @@ class ULFRScore(BaseModel):
         """Convert to dictionary representation."""
         return {
             "U": self.utility,
-            "L": self.love,
+            "L": self.life,
             "F_penalty": self.fairness_penalty,
             "R_risk": self.rights_risk
         }
@@ -78,7 +78,7 @@ class ULFRWeights(BaseModel):
     
     Default values from whitepaper:
     - α (alpha) = 0.25 - Utility weight
-    - β (beta) = 0.40 - Love/Care weight
+    - β (beta) = 0.40 - life/Care weight
     - γ (gamma) = 0.20 - Fairness penalty weight
     - δ (delta) = 0.15 - Rights risk penalty weight
     
@@ -95,7 +95,7 @@ class ULFRWeights(BaseModel):
         default=0.40,
         ge=0.0,
         le=1.0,
-        description="Weight for Love/Care dimension"
+        description="Weight for life/Care dimension"
     )
     gamma: float = Field(
         default=0.20,

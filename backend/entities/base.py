@@ -135,7 +135,7 @@ class BaseEntity(ABC):
             if line.startswith('U:'):
                 scores['utility'] = float(line.split(':')[1].strip())
             elif line.startswith('L:'):
-                scores['love'] = float(line.split(':')[1].strip())
+                scores['life'] = float(line.split(':')[1].strip())
             elif line.startswith('F_penalty:') or line.startswith('F:'):
                 scores['fairness_penalty'] = float(line.split(':')[1].strip())
             elif line.startswith('R_risk:') or line.startswith('R:'):
@@ -144,7 +144,7 @@ class BaseEntity(ABC):
         # Defaults if not found
         return ULFRScore(
             utility=scores.get('utility', 0.5),
-            love=scores.get('love', 0.5),
+            life=scores.get('life', 0.5),
             fairness_penalty=scores.get('fairness_penalty', 0.5),
             rights_risk=scores.get('rights_risk', 0.5)
         )

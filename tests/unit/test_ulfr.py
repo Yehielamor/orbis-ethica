@@ -11,13 +11,13 @@ class TestULFRScore:
         """Test creating a valid ULFR score."""
         score = ULFRScore(
             utility=0.8,
-            love=0.7,
+            life=0.7,
             fairness_penalty=0.2,
             rights_risk=0.1
         )
         
         assert score.utility == 0.8
-        assert score.love == 0.7
+        assert score.life == 0.7
         assert score.fairness_penalty == 0.2
         assert score.rights_risk == 0.1
     
@@ -26,7 +26,7 @@ class TestULFRScore:
         with pytest.raises(ValueError):
             ULFRScore(
                 utility=1.5,  # Invalid
-                love=0.5,
+                life=0.5,
                 fairness_penalty=0.2,
                 rights_risk=0.1
             )
@@ -35,7 +35,7 @@ class TestULFRScore:
         """Test weighted score calculation."""
         score = ULFRScore(
             utility=0.8,
-            love=0.9,
+            life=0.9,
             fairness_penalty=0.1,
             rights_risk=0.2
         )
@@ -57,7 +57,7 @@ class TestULFRScore:
         """Test conversion to dictionary."""
         score = ULFRScore(
             utility=0.8,
-            love=0.7,
+            life=0.7,
             fairness_penalty=0.2,
             rights_risk=0.1
         )
