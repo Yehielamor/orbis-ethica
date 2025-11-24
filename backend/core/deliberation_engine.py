@@ -95,12 +95,12 @@ class DeliberationEngine:
         else:
             return DecisionOutcome.REJECTED
 
-    def deliberate(self, proposal: Proposal, submitter_id: str = "system") -> Decision:
+    def deliberate_generator(self, proposal: Proposal, submitter_id: str = "system"):
         """
-        Run the full deliberation protocol.
+        Generator that yields events during the deliberation process.
+        Useful for real-time streaming to the UI.
         """
-        print(f"\n🚀 STARTING DELIBERATION: {proposal.title}")
-        print(f"   Category: {proposal.category.value}")
+        yield {"type": "init", "message": f"Starting deliberation for: {proposal.title}"}
         
         # 1. Register Proposal in Memory
         proposal_node_id = self.memory_graph.add_node(
@@ -108,6 +108,7 @@ class DeliberationEngine:
             content=proposal.model_dump(mode='json'),
             agent_id=submitter_id
         )
+        yield {"type": "memory_added", "node_id": proposal_node_id, "node_type": "PROPOSAL"}
         
         current_round = 1
         final_outcome = DecisionOutcome.REJECTED
@@ -116,21 +117,48 @@ class DeliberationEngine:
         
         # Determine threshold
         threshold = self.threshold_high_impact if proposal.category.value == "high_impact" else self.threshold_routine
+        yield {"type": "config", "threshold": threshold, "category": proposal.category.value}
         
         while current_round <= self.max_rounds:
-            print(f"\n--- ROUND {current_round} ---")
+            yield {"type": "round_start", "round": current_round}
             
             # 2. Entity Evaluation
             proposal.deliberation_round = current_round
-            evaluations = self.entity_evaluator.evaluate_proposal(proposal)
+            round_evaluations = []
+            
+            # Evaluate one by one to stream results
+            for entity in self.entities:
+                yield {"type": "entity_thinking", "entity": entity.entity.name}
+                try:
+                    evaluation = entity.evaluate_proposal(proposal)
+                    round_evaluations.append(evaluation)
+                    yield {
+                        "type": "entity_vote", 
+                        "entity": entity.entity.name, 
+                        "vote": evaluation.vote,
+                        "confidence": evaluation.confidence,
+                        "ulfr": evaluation.ulfr_score.model_dump(),
+                        "reasoning": evaluation.reasoning
+                    }
+                except Exception as e:
+                    print(f"Error evaluating with {entity.entity.name}: {e}")
+                    yield {"type": "error", "message": f"Error with {entity.entity.name}: {str(e)}"}
+            
+            evaluations = round_evaluations
             
             # 3. Calculate Score
             weighted_score = self._calculate_weighted_score(evaluations)
-            print(f"   Weighted Score: {weighted_score:.3f} (Threshold: {threshold})")
             
             # 4. Determine Outcome
             outcome = self._determine_outcome(weighted_score, threshold, current_round)
-            print(f"   Outcome: {outcome.value.upper()}")
+            
+            yield {
+                "type": "round_result", 
+                "round": current_round, 
+                "score": weighted_score, 
+                "outcome": outcome.value,
+                "threshold": threshold
+            }
             
             # 5. Store Round in Memory
             round_node_id = self.memory_graph.add_node(
@@ -143,6 +171,7 @@ class DeliberationEngine:
                 agent_id="DeliberationEngine",
                 parent_ids=[proposal_node_id]
             )
+            yield {"type": "memory_added", "node_id": round_node_id, "node_type": f"ROUND_{current_round}"}
             
             if outcome == DecisionOutcome.APPROVED:
                 final_outcome = DecisionOutcome.APPROVED
@@ -154,22 +183,23 @@ class DeliberationEngine:
                 break
             else:
                 # Refinement needed
-                print("   ↻ Refinement needed...")
+                yield {"type": "refinement_needed", "round": current_round}
                 
-                # Trigger Mediator specifically if we are in Round 3 (or generally if configured)
-                # The user requested specific handling for Round 3 to break ties.
-                # We'll apply it whenever refinement is needed if a mediator is present.
                 if self.mediator and hasattr(self.mediator, 'refine_proposal'):
-                    print(f"   🤖 Mediator is refining the proposal (Round {current_round})...")
+                    yield {"type": "mediator_thinking", "message": "Mediator is refining the proposal..."}
+                    
                     refined_description = self.mediator.refine_proposal(proposal, evaluations)
                     
                     # Update proposal with refined description
                     proposal.description = refined_description
                     proposal.refinements_made.append(f"Round {current_round} Refinement: {refined_description[:100]}...")
-                    print(f"   ✨ Proposal refined: {len(refined_description)} chars")
-                    print(f"   📝 New Description Snippet: {refined_description[:100]}...")
+                    
+                    yield {
+                        "type": "proposal_refined", 
+                        "snippet": refined_description[:150] + "...",
+                        "full_text": refined_description
+                    }
                 else:
-                    # Fallback if no mediator
                     proposal.refinements_made.append(f"Refinement from Round {current_round}")
                 
                 current_round += 1
@@ -179,25 +209,126 @@ class DeliberationEngine:
             id=uuid4(),
             proposal_id=proposal.id,
             outcome=final_outcome,
-            weighted_vote=final_score, # Using score as vote
+            weighted_vote=final_score,
             threshold_required=threshold,
             deliberation_rounds=current_round,
             entity_evaluations=evaluations,
             rationale=f"Reached score {final_score:.3f} after {current_round} rounds.",
             weights_used=self.extended_ulfr.weights,
-            quorum_met=True # Assuming quorum is met for now
+            quorum_met=True
         )
         
+        # Add refinements to decision if possible, or just rely on proposal having them
+        # For the UI, we might want to pass them in the final event
+        
         # 7. Store Verdict in Memory
-        self.memory_graph.add_node(
+        verdict_node_id = self.memory_graph.add_node(
             type="VERDICT",
             content=decision.model_dump(mode='json'),
             agent_id="DeliberationEngine",
-            parent_ids=[proposal_node_id] # Should technically link to last round
+            parent_ids=[proposal_node_id]
         )
+        decision.graph_node_id = verdict_node_id
         
-        print(f"\n🏁 DELIBERATION COMPLETE: {final_outcome.value.upper()}")
+        yield {
+            "type": "final_decision", 
+            "outcome": final_outcome.value,
+            "decision": decision.model_dump(mode='json'),
+            "refinements_made": proposal.refinements_made
+        }
+        
         return decision
+
+    def deliberate(self, proposal: Proposal, submitter_id: str = "system") -> Decision:
+        """
+        Run the full deliberation protocol (Synchronous Wrapper).
+        Consumes the generator and prints output to stdout.
+        """
+        print(f"\n🚀 STARTING DELIBERATION: {proposal.title}")
+        print(f"   Category: {proposal.category.value}")
+        
+        generator = self.deliberate_generator(proposal, submitter_id)
+        last_decision = None
+        
+        try:
+            for event in generator:
+                event_type = event.get("type")
+                
+                if event_type == "round_start":
+                    print(f"\n--- ROUND {event['round']} ---")
+                
+                elif event_type == "round_result":
+                    print(f"   Weighted Score: {event['score']:.3f} (Threshold: {event['threshold']})")
+                    print(f"   Outcome: {event['outcome'].upper()}")
+                    
+                elif event_type == "memory_added":
+                    # Optional: print memory operations if needed, or keep silent like before
+                    pass
+                    
+                elif event_type == "refinement_needed":
+                    print("   ↻ Refinement needed...")
+                    
+                elif event_type == "mediator_thinking":
+                    print(f"   🤖 {event['message']}")
+                    
+                elif event_type == "proposal_refined":
+                    print(f"   ✨ Proposal refined: {len(event['full_text'])} chars")
+                    print(f"   📝 New Description Snippet: {event['snippet']}")
+                    
+                elif event_type == "final_decision":
+                    print(f"\n🏁 DELIBERATION COMPLETE: {event['outcome'].upper()}")
+                    # Reconstruct decision object from dict if needed, but the generator returns it at the end
+                    pass
+                    
+        except StopIteration as e:
+            last_decision = e.value
+            
+        # The generator return value is captured in StopIteration.value
+        # But iterating with a for loop doesn't give easy access to return value.
+        # However, we know the last event is 'final_decision' which contains the data.
+        # But we need the actual Decision object.
+        # Let's just re-run the logic? No, that would duplicate side effects.
+        # We need to capture the return value.
+        
+        # Actually, since we are inside the class, we can just return the decision object 
+        # that we created in the generator. But we can't access local variables of the generator.
+        # We will modify the generator to yield the decision object as the last item 
+        # OR we can just use the data from the 'final_decision' event to reconstruct it 
+        # or simply return the decision object from the generator and capture it properly.
+        
+        # Python generators: return value is in StopIteration.value.
+        # But `for event in generator` catches StopIteration.
+        # So we have to do:
+        
+        gen = self.deliberate_generator(proposal, submitter_id)
+        decision_data = None
+        while True:
+            try:
+                event = next(gen)
+                # ... print logic ...
+                event_type = event.get("type")
+                if event_type == "round_start":
+                    print(f"\n--- ROUND {event['round']} ---")
+                elif event_type == "round_result":
+                    print(f"   Weighted Score: {event['score']:.3f} (Threshold: {event['threshold']})")
+                    print(f"   Outcome: {event['outcome'].upper()}")
+                elif event_type == "refinement_needed":
+                    print("   ↻ Refinement needed...")
+                elif event_type == "mediator_thinking":
+                    print(f"   🤖 {event['message']}")
+                elif event_type == "proposal_refined":
+                    print(f"   ✨ Proposal refined: {len(event['full_text'])} chars")
+                    print(f"   📝 New Description Snippet: {event['snippet']}")
+                elif event_type == "final_decision":
+                    print(f"\n🏁 DELIBERATION COMPLETE: {event['outcome'].upper()}")
+                    decision_data = event['decision']
+                    
+            except StopIteration as e:
+                # The generator returned the Decision object
+                return e.value
+                
+        # Fallback if something weird happens (shouldn't reach here)
+        return Decision(**decision_data) if decision_data else None
 
     def print_detailed_report(self, decision: Decision) -> None:
         """

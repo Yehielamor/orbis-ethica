@@ -5,6 +5,8 @@ from .seeker import SeekerEntity
 from .guardian import GuardianEntity
 from .arbiter import ArbiterEntity
 from .mediator import MediatorEntity
+from .healer import HealerEntity
+from .creator import CreatorEntity
 
 __all__ = [
     "BaseEntity",
@@ -13,4 +15,6 @@ __all__ = [
     "GuardianEntity",
     "ArbiterEntity",
     "MediatorEntity",
+    "HealerEntity",
+    "CreatorEntity",
 ]

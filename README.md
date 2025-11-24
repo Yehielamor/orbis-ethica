@@ -2,7 +2,7 @@
 
 **A Moral Operating System for AGI**
 
-Version: 0.1.1-alpha  
+Version: 0.1.2-alpha  
 License: CC BY-SA 4.0  
 Status: Phase I (Proof of Concept)
 
@@ -93,6 +93,15 @@ To run the full end-to-end simulation with live agents:
 # Optional: Set API Key for generative responses
 export GEMINI_API_KEY="your_key_here" 
 
+# Option 1: Run Real-Time Dashboard (Recommended)
+# Terminal 1: Start Backend
+python -m uvicorn backend.api.app:app --reload --host 0.0.0.0 --port 6429
+
+# Terminal 2: Start Frontend
+cd frontend/public && python3 -m http.server 4930
+# Open http://localhost:4930 in your browser
+
+# Option 2: Run CLI Simulation
 python simulation.py
 ```
 
@@ -126,50 +135,19 @@ Every decision is evaluated across four dimensions:
 
 ---
 
-## Simulation Demo Output: Mediator Deadlock Resolution
+## Real-Time Deliberation Dashboard
 
-When running `python simulation.py`, the system demonstrates how the **Mediator Entity** resolves ethical deadlocks between Utility (Seeker) and Rights (Guardian).
+Experience the ethical reasoning process live with our new real-time dashboard.
 
-**Sample Output (Live Run with Gemini 2.0 Flash):**
+![Real-Time Dashboard](docs/images/dashboard_realtime.png)
 
-```text
-============================================================
-✨ ORBIS ETHICA: SYSTEM STARTUP
-============================================================
-📋 Valid Gemini Models found: 41
-✨ Gemini configured successfully using: models/gemini-2.0-flash
-👥 Active Entities: Seeker, Guardian, Arbiter, Mediator
+**Features:**
+- **Live Feed**: Watch the deliberation unfold step-by-step via Server-Sent Events (SSE).
+- **Entity Visualization**: See each cognitive entity (Seeker, Healer, Guardian, etc.) cast their vote and explain their reasoning in real-time.
+- **Mediator Timeline**: Track how the Mediator entity refines proposals across rounds to resolve ethical deadlocks.
+- **Transparent Scoring**: View detailed ULFR (Utility, Life, Fairness, Rights) scores for every decision.
 
-============================================================
-🚀 STARTING DELIBERATION
-============================================================
-Proposal: "Mandatory Biometric Surveillance for Crime Prevention"
-Category: HIGH_IMPACT (Threshold: 0.70)
 
---- ROUND 1 ---
-🟢 [SEEKER] Vote: APPROVE (Utility: 0.9) - "High potential for crime reduction."
-🔴 [GUARDIAN] Vote: REJECT (Rights: 0.1) - "Massive violation of privacy rights."
-   Weighted Score: 0.450 (Threshold: 0.70)
-   Outcome: REFINED (Deadlock detected)
-
---- ROUND 2 ---
-   ↻ Refinement needed...
-   🤖 Mediator is refining the proposal...
-   ✨ Proposal refined: Added "Sunset Clause" and "Independent Oversight"
-
---- ROUND 3 ---
-🟢 [SEEKER] Vote: APPROVE (Utility: 0.85) - "Still effective with oversight."
-🟢 [GUARDIAN] Vote: APPROVE (Rights: 0.6) - "Safeguards mitigate privacy risks."
-   Weighted Score: 0.725 (Threshold: 0.70)
-   Outcome: APPROVED
-
-============================================================
-🏁 DELIBERATION COMPLETE: APPROVED
-============================================================
-Refinements Made:
-- "The program will sunset after 18 months, requiring complete re-evaluation."
-- "A clear, easily accessible process for citizens to challenge inaccurate alerts."
-```
 
 ---
 

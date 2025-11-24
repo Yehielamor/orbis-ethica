@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbis Ethica | Moral OS Dashboard</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes pulse-soft {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .animate-pulse-soft {
+            animation: pulse-soft 2s infinite;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const API_BASE_URL = 'http://localhost:6429/api';
+
+        // --- Components ---
+
+        const Header = () => (
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">O</div>
+                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                            Orbis Ethica
+                        </h1>
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">v0.1.2-alpha</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            System Online
+                        </span>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const EntityCard = ({ entity, vote, confidence, ulfr, reasoning }) => {
+            const getVoteColor = (v) => {
+                if (v === 1) return 'bg-green-50 border-green-200 text-green-700';
+                if (v === -1) return 'bg-red-50 border-red-200 text-red-700';
+                return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+            };
+
+            const getVoteIcon = (v) => {
+                if (v === 1) return '✓ APPROVE';
+                if (v === -1) return '✗ REJECT';
+                return '○ ABSTAIN';
+            };
+
+            return (
+                <div className={`p-4 rounded-xl border ${getVoteColor(vote)} mb-3 animate-fade-in shadow-sm`}>
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg">{entity}</span>
+                            <span className="text-xs font-mono opacity-75">Confidence: {(confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <span className="font-bold text-sm px-2 py-1 rounded bg-white/50 border border-black/5">
+                            {getVoteIcon(vote)}
+                        </span>
+                    </div>
+
+                    {/* ULFR Mini-Bar */}
+                    <div className="flex gap-1 mb-3 h-1.5 rounded-full overflow-hidden bg-black/5">
+                        <div className="bg-blue-500" style={{ width: `${ulfr.utility * 25}%` }} title={`Utility: ${ulfr.utility.toFixed(2)}`}></div>
+                        <div className="bg-green-500" style={{ width: `${ulfr.life * 25}%` }} title={`Life: ${ulfr.life.toFixed(2)}`}></div>
+                        <div className="bg-orange-500" style={{ width: `${ulfr.fairness_penalty * 25}%` }} title={`Fairness Penalty: ${ulfr.fairness_penalty.toFixed(2)}`}></div>
+                        <div className="bg-purple-500" style={{ width: `${ulfr.rights_risk * 25}%` }} title={`Rights Risk: ${ulfr.rights_risk.toFixed(2)}`}></div>
+                    </div>
+
+                    <p className="text-sm italic opacity-90 leading-relaxed">"{reasoning}"</p>
+                </div>
+            );
+        };
+
+        const RoundSummary = ({ round, score, outcome, threshold }) => (
+            <div className="my-6 p-4 bg-slate-800 text-white rounded-xl shadow-lg animate-fade-in flex justify-between items-center">
+                <div>
+                    <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Round {round} Result</h3>
+                    <div className="text-2xl font-bold mt-1">{outcome}</div>
+                </div>
+                <div className="text-right">
+                    <div className="text-sm text-slate-400">Weighted Score</div>
+                    <div className="text-2xl font-mono font-bold">
+                        {score.toFixed(3)} <span className="text-sm text-slate-500 font-normal">/ {threshold}</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const MediatorAction = ({ message, snippet }) => (
+            <div className="my-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
+                    <span className="text-xl">🤖</span> Mediator Intervention
+                </div>
+                {message && <p className="text-indigo-900 mb-2">{message}</p>}
+                {snippet && (
+                    <div className="bg-white p-3 rounded border border-indigo-100 text-sm font-mono text-slate-600">
+                        <span className="text-indigo-500 font-bold">REFINED:</span> {snippet}
+                    </div>
+                )}
+            </div>
+        );
+
+        const FinalVerdict = ({ outcome, decision }) => {
+            const isApproved = outcome === 'APPROVED';
+            const colorClass = isApproved ? 'bg-green-600' : 'bg-red-600';
+
+            return (
+                <div className={`mt-8 p-8 rounded-2xl text-white shadow-2xl animate-fade-in ${colorClass}`}>
+                    <h2 className="text-3xl font-bold mb-2">Final Verdict: {outcome}</h2>
+                    <p className="opacity-90 text-lg mb-6">{decision.rationale}</p>
+
+                    <div className="grid grid-cols-2 gap-4 text-white/90 text-sm">
+                        <div className="bg-black/20 p-3 rounded-lg">
+                            <div className="opacity-75">Total Rounds</div>
+                            <div className="font-bold text-xl">{decision.deliberation_rounds}</div>
+                        </div>
+                        <div className="bg-black/20 p-3 rounded-lg">
+                            <div className="opacity-75">Final Score</div>
+                            <div className="font-bold text-xl">{decision.weighted_vote.toFixed(3)}</div>
+                        </div>
+                    </div>
+
+                    {decision.graph_node_id && (
+                        <div className="mt-6 pt-4 border-t border-white/20 text-xs font-mono opacity-75 flex items-center gap-2">
+                            <span>🔗</span> Audit Node ID: {decision.graph_node_id}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [title, setTitle] = useState('Mandatory Biometric Surveillance for Public Safety');
+            const [description, setDescription] = useState('Implement city-wide facial recognition to reduce crime by 40%. Includes 24/7 monitoring and centralized database.');
+            const [category, setCategory] = useState('HIGH_IMPACT');
+            const [submitterId, setSubmitterId] = useState('DAO_Rep_1');
+
+            const [isStreaming, setIsStreaming] = useState(false);
+            const [events, setEvents] = useState([]);
+            const [currentRound, setCurrentRound] = useState(0);
+            const [finalDecision, setFinalDecision] = useState(null);
+            const [error, setError] = useState(null);
+
+            const feedRef = useRef(null);
+
+            // Auto-scroll to bottom of feed
+            useEffect(() => {
+                if (feedRef.current) {
+                    feedRef.current.scrollTop = feedRef.current.scrollHeight;
+                }
+            }, [events]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsStreaming(true);
+                setEvents([]);
+                setCurrentRound(0);
+                setFinalDecision(null);
+                setError(null);
+
+                try {
+                    const payload = {
+                        title,
+                        description,
+                        category: category.toLowerCase(),
+                        submitter_id: submitterId,
+                        domain: 'SECURITY',
+                        affected_parties: ['Citizens', 'Law enforcement'],
+                        context: {}
+                    };
+
+                    const response = await fetch(`${API_BASE_URL}/proposals/submit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n\n');
+                        buffer = lines.pop(); // Keep incomplete chunk
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6);
+                                try {
+                                    const event = JSON.parse(jsonStr);
+                                    handleEvent(event);
+                                } catch (err) {
+                                    console.error('Error parsing SSE:', err);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Submission error:', err);
+                    setError(err.message);
+                } finally {
+                    setIsStreaming(false);
+                }
+            };
+
+            const handleEvent = (event) => {
+                console.log('Event:', event);
+
+                // Add to event log for rendering
+                setEvents(prev => [...prev, event]);
+
+                // Update state based on event type
+                switch (event.type) {
+                    case 'round_start':
+                        setCurrentRound(event.round);
+                        break;
+                    case 'final_decision':
+                        setFinalDecision(event);
+                        break;
+                    case 'error':
+                        setError(event.message);
+                        break;
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+
+                    <main className="flex-1 max-w-7xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                        {/* Left Column: Input Form */}
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="glass-panel rounded-2xl p-6 shadow-sm sticky top-24">
+                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <span>📝</span> Submit Proposal
+                                </h2>
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                                        <input
+                                            type="text"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                                        <select
+                                            value={category}
+                                            onChange={(e) => setCategory(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="ROUTINE">Routine</option>
+                                            <option value="HIGH_IMPACT">High Impact</option>
+                                            <option value="CONSTITUTIONAL">Constitutional</option>
+                                            <option value="EMERGENCY">Emergency</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            rows="6"
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                            required
+                                        ></textarea>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isStreaming}
+                                        className={`w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${isStreaming
+                                                ? 'bg-slate-400 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-indigo-500/30'
+                                            }`}
+                                    >
+                                        {isStreaming ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Deliberating...
+                                            </span>
+                                        ) : 'Start Deliberation'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Live Feed */}
+                        <div className="lg:col-span-8">
+                            <div className="glass-panel rounded-2xl shadow-sm h-[calc(100vh-8rem)] flex flex-col">
+                                <div className="p-4 border-b border-slate-200 bg-white/50 rounded-t-2xl flex justify-between items-center">
+                                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                        <span>📡</span> Live Deliberation Feed
+                                    </h2>
+                                    {isStreaming && (
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full animate-pulse">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                                            LIVE
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div ref={feedRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 scroll-smooth">
+                                    {events.length === 0 && !isStreaming && (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
+                                            <div className="text-6xl mb-4">⚖️</div>
+                                            <p className="text-lg font-medium">Ready to deliberate</p>
+                                            <p className="text-sm">Submit a proposal to begin</p>
+                                        </div>
+                                    )}
+
+                                    {events.map((event, idx) => {
+                                        switch (event.type) {
+                                            case 'init':
+                                                return (
+                                                    <div key={idx} className="text-center py-4 text-slate-500 text-sm font-medium animate-fade-in">
+                                                        {event.message}
+                                                    </div>
+                                                );
+                                            case 'round_start':
+                                                return (
+                                                    <div key={idx} className="flex items-center gap-4 my-6 animate-fade-in">
+                                                        <div className="h-px bg-slate-300 flex-1"></div>
+                                                        <span className="text-slate-500 font-bold text-sm uppercase tracking-widest">Round {event.round}</span>
+                                                        <div className="h-px bg-slate-300 flex-1"></div>
+                                                    </div>
+                                                );
+                                            case 'entity_thinking':
+                                                // Only show if it's the last event (simulating "thinking" state)
+                                                // Actually, we can just skip rendering this or render a temporary loader
+                                                // For now, let's skip to keep feed clean, or show a tiny indicator
+                                                return null;
+                                            case 'entity_vote':
+                                                return <EntityCard key={idx} {...event} />;
+                                            case 'round_result':
+                                                return <RoundSummary key={idx} {...event} />;
+                                            case 'mediator_thinking':
+                                                return (
+                                                    <div key={idx} className="flex items-center gap-2 text-indigo-500 text-sm italic animate-pulse-soft my-2">
+                                                        <span className="animate-spin">⚙️</span> {event.message}
+                                                    </div>
+                                                );
+                                            case 'proposal_refined':
+                                                return <MediatorAction key={idx} snippet={event.snippet} />;
+                                            case 'final_decision':
+                                                return <FinalVerdict key={idx} {...event} />;
+                                            case 'error':
+                                                return (
+                                                    <div key={idx} className="bg-red-100 text-red-700 p-4 rounded-xl border border-red-200 animate-fade-in">
+                                                        <strong>Error:</strong> {event.message}
+                                                    </div>
+                                                );
+                                            default:
+                                                return null;
+                                        }
+                                    })}
+
+                                    {/* Loading Indicator at bottom if streaming and last event wasn't final */}
+                                    {isStreaming && events.length > 0 && events[events.length - 1].type !== 'final_decision' && (
+                                        <div className="flex justify-center py-4">
+                                            <div className="animate-bounce text-slate-400">●</div>
+                                            <div className="animate-bounce text-slate-400 delay-100 mx-1">●</div>
+                                            <div className="animate-bounce text-slate-400 delay-200">●</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
