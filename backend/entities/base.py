@@ -53,129 +53,94 @@ class BaseEntity(ABC):
         """
         pass
     
-    def _call_llm(self, prompt: str) -> str:
+    def _call_llm(self, prompt: str, system_role: Optional[str] = None) -> str:
         """
-        Call LLM with prompt using the configured provider.
+        Call the LLM provider with the given prompt.
         
         Args:
-            prompt: User prompt
-            
-        Returns:
-            LLM response text
+            prompt: The user prompt to send.
+            system_role: Optional override for the system prompt. 
+                         If None, uses self.get_system_prompt().
         """
-        system_prompt = self.get_system_prompt()
+        if not self.llm_provider:
+            return "LLM Provider not configured."
+            
+        system_prompt = system_role if system_role is not None else self.get_system_prompt()
+            
         return self.llm_provider.generate(prompt, system_role=system_prompt)
     
-    def _parse_ulfr_from_response(self, response: str) -> ULFRScore:
+    def _get_json_format_instructions(self) -> str:
+        """Get instructions for JSON output format."""
+        return """
+RESPONSE FORMAT:
+You must return a valid JSON object. Do not include any text outside the JSON object.
+The JSON structure must be:
+{
+    "ulfr": {
+        "U": float,       # Utility [0.0-1.0]
+        "L": float,       # Life/Care [0.0-1.0]
+        "F_penalty": float, # Fairness Penalty [0.0-1.0]
+        "R_risk": float   # Rights Risk [0.0-1.0]
+    },
+    "vote": "APPROVE" | "REJECT" | "ABSTAIN",
+    "confidence": float,  # [0.0-1.0]
+    "reasoning": "string", # Detailed explanation
+    "concerns": ["string", ...],
+    "recommendations": ["string", ...],
+    "evidence_cited": ["string", ...]
+}
+"""
+
+    def _parse_json_response(self, response: str) -> Dict[str, Any]:
         """
-        Parse ULFR scores from LLM response.
-        
-        Expected format in response:
-        U: 0.85
-        L: 0.72
-        F_penalty: 0.15
-        R_risk: 0.20
-        
-        Args:
-            response: LLM response text
-            
-        Returns:
-            ULFRScore object
+        Parse JSON response from LLM.
+        Handles potential markdown code blocks.
         """
-        lines = response.split('\n')
-        scores = {}
+        import json
+        import re
         
-        for line in lines:
-            line = line.strip()
-            if line.startswith('U:'):
-                scores['utility'] = float(line.split(':')[1].strip())
-            elif line.startswith('L:'):
-                scores['life'] = float(line.split(':')[1].strip())
-            elif line.startswith('F_penalty:') or line.startswith('F:'):
-                scores['fairness_penalty'] = float(line.split(':')[1].strip())
-            elif line.startswith('R_risk:') or line.startswith('R:'):
-                scores['rights_risk'] = float(line.split(':')[1].strip())
+        # Clean response
+        clean_response = response.strip()
         
-        # Defaults if not found
+        # Remove markdown code blocks if present
+        if "```json" in clean_response:
+            pattern = r"```json(.*?)```"
+            match = re.search(pattern, clean_response, re.DOTALL)
+            if match:
+                clean_response = match.group(1).strip()
+        elif "```" in clean_response:
+            pattern = r"```(.*?)```"
+            match = re.search(pattern, clean_response, re.DOTALL)
+            if match:
+                clean_response = match.group(1).strip()
+                
+        try:
+            return json.loads(clean_response)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON response: {e}")
+            print(f"Response was: {response}")
+            # Fallback or raise
+            return {}
+
+    def _parse_ulfr_from_json(self, data: Dict[str, Any]) -> ULFRScore:
+        """Parse ULFR score from JSON data."""
+        ulfr = data.get("ulfr", {})
         return ULFRScore(
-            utility=scores.get('utility', 0.5),
-            life=scores.get('life', 0.5),
-            fairness_penalty=scores.get('fairness_penalty', 0.5),
-            rights_risk=scores.get('rights_risk', 0.5)
+            utility=float(ulfr.get("U", 0.5)),
+            life=float(ulfr.get("L", 0.5)),
+            fairness_penalty=float(ulfr.get("F_penalty", 0.5)),
+            rights_risk=float(ulfr.get("R_risk", 0.5))
         )
-    
-    def _parse_vote_from_response(self, response: str) -> int:
-        """
-        Parse vote from LLM response.
-        
-        Looks for: VOTE: APPROVE/REJECT/ABSTAIN
-        
-        Args:
-            response: LLM response text
-            
-        Returns:
-            Vote value (-1, 0, 1)
-        """
-        response_lower = response.lower()
-        
-        if 'vote: approve' in response_lower or 'vote: 1' in response_lower:
+
+    def _parse_vote_from_json(self, data: Dict[str, Any]) -> int:
+        """Parse vote from JSON data."""
+        vote_str = data.get("vote", "ABSTAIN").upper()
+        if vote_str == "APPROVE":
             return EntityVote.APPROVE.value
-        elif 'vote: reject' in response_lower or 'vote: -1' in response_lower:
+        elif vote_str == "REJECT":
             return EntityVote.REJECT.value
         else:
             return EntityVote.ABSTAIN.value
-    
-    def _extract_section(self, response: str, section_name: str) -> str:
-        """
-        Extract a section from structured response.
-        
-        Args:
-            response: Full response text
-            section_name: Section to extract (e.g., "REASONING", "CONCERNS")
-            
-        Returns:
-            Section content
-        """
-        lines = response.split('\n')
-        in_section = False
-        section_lines = []
-        
-        for line in lines:
-            if line.strip().startswith(f"{section_name}:"):
-                in_section = True
-                continue
-            elif in_section and line.strip() and line.strip()[0].isupper() and ':' in line:
-                # Hit next section
-                break
-            elif in_section:
-                section_lines.append(line.strip())
-        
-        return '\n'.join(section_lines).strip()
-    
-    def _extract_list_section(self, response: str, section_name: str) -> List[str]:
-        """
-        Extract a list section from response.
-        
-        Args:
-            response: Full response text
-            section_name: Section to extract
-            
-        Returns:
-            List of items
-        """
-        section = self._extract_section(response, section_name)
-        if not section:
-            return []
-        
-        items = []
-        for line in section.split('\n'):
-            line = line.strip()
-            if line.startswith('-') or line.startswith('•'):
-                items.append(line[1:].strip())
-            elif line:
-                items.append(line)
-        
-        return [item for item in items if item]
 
 
 class EntityEvaluator:

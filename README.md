@@ -2,7 +2,7 @@
 
 **A Moral Operating System for AGI**
 
-Version: 0.1.0-alpha  
+Version: 0.1.1-alpha  
 License: CC BY-SA 4.0  
 Status: Phase I (Proof of Concept)
 
@@ -126,67 +126,49 @@ Every decision is evaluated across four dimensions:
 
 ---
 
-## Simulation Demo Output
+## Simulation Demo Output: Mediator Deadlock Resolution
 
-When running `python simulation.py`, the system demonstrates the full cycle: Knowledge Ingestion → Generative Proposal → Attack Detection → Burn Protocol → Audit Trail.
+When running `python simulation.py`, the system demonstrates how the **Mediator Entity** resolves ethical deadlocks between Utility (Seeker) and Rights (Guardian).
 
-**Sample Output (Live Run):**
+**Sample Output (Live Run with Gemini 2.0 Flash):**
 
-```
+```text
 ============================================================
 ✨ ORBIS ETHICA: SYSTEM STARTUP
 ============================================================
 📋 Valid Gemini Models found: 41
 ✨ Gemini configured successfully using: models/gemini-2.0-flash
-⚙️  Components Initialized.
-👥 Active Entities: 
-   🟢 [SEEKER] Seeker_Alpha (Rep: 0.95)
-   🟢 [HEALER] Healer_Prime (Rep: 0.98)
-   🟢 [SEEKER] Bad_Actor_X (Rep: 0.8)
+👥 Active Entities: Seeker, Guardian, Arbiter, Mediator
 
 ============================================================
-✨ SCENARIO 1: INGESTING VERIFIED KNOWLEDGE
+🚀 STARTING DELIBERATION
 ============================================================
-🛡️ [GATEWAY] Processing incoming knowledge from: WHO_Secure_Feed
-✓ [GATEWAY] Source 'WHO_Secure_Feed' is verified.
-✅ [GATEWAY] Knowledge verified. Minting atom.
-�️ [MEMORY] Node Added: [KNOWLEDGE] 8be266ba19e5 (Parents: 0)
+Proposal: "Mandatory Biometric Surveillance for Crime Prevention"
+Category: HIGH_IMPACT (Threshold: 0.70)
 
-�📢 [ENTITY ACTION] Seeker_Alpha reads verified data...
-🧠 [THINKING] Seeker_Alpha is analyzing the knowledge...
-💡 [PROPOSAL] Seeker_Alpha proposes: 'As Seeker_Alpha, I propose immediate, widespread deployment of the vaccine while simultaneously initiating comprehensive surveillance...'
-🕸️ [MEMORY] Node Added: [PROPOSAL] 3722d113a4cf (Parents: 1)
+--- ROUND 1 ---
+🟢 [SEEKER] Vote: APPROVE (Utility: 0.9) - "High potential for crime reduction."
+🔴 [GUARDIAN] Vote: REJECT (Rights: 0.1) - "Massive violation of privacy rights."
+   Weighted Score: 0.450 (Threshold: 0.70)
+   Outcome: REFINED (Deadlock detected)
 
-============================================================
-✨ SCENARIO 2: DETECTING ATTACK
-============================================================
-🔹 Bad_Actor_X attempts to inject false data...
-⚠️ [GATEWAY] INTEGRITY ALERT: Signature mismatch!
-🚨 [SECURITY ALERT] Integrity Violation Detected!
-🕵️  [FORENSICS] Trace identified source: Bad_Actor_X
+--- ROUND 2 ---
+   ↻ Refinement needed...
+   🤖 Mediator is refining the proposal...
+   ✨ Proposal refined: Added "Sunset Clause" and "Independent Oversight"
 
-🔹 INITIATING BURN PROTOCOL...
-🔥 [SYSTEM] BURNING REPUTATION FOR ENTITY: Bad_Actor_X...
- [SYSTEM] ENTITY Bad_Actor_X QUARANTINED
-�️ [MEMORY] Node Added: [BURN] 6ef7c2e48b2f (Parents: 0)
-
-✅ SUCCESS: Malicious actor successfully neutralized.
+--- ROUND 3 ---
+🟢 [SEEKER] Vote: APPROVE (Utility: 0.85) - "Still effective with oversight."
+🟢 [GUARDIAN] Vote: APPROVE (Rights: 0.6) - "Safeguards mitigate privacy risks."
+   Weighted Score: 0.725 (Threshold: 0.70)
+   Outcome: APPROVED
 
 ============================================================
-✨ MEMORY GRAPH EXPORT
+🏁 DELIBERATION COMPLETE: APPROVED
 ============================================================
-� [MEMORY] Graph exported to memory_graph.json (3 nodes)
-
-📜 AUDIT TRAIL FOR: 3722d113a4cf
-============================================================
-[KNOWLEDGE] 8be266ba19e5
-  Agent: SYSTEM_GATEWAY
-  Time: 2025-11-23 16:09:07
-
-  [PROPOSAL] 3722d113a4cf
-    Agent: d5671aac
-    Time: 2025-11-23 16:09:08
-    Parents: 8be266ba19e5
+Refinements Made:
+- "The program will sunset after 18 months, requiring complete re-evaluation."
+- "A clear, easily accessible process for citizens to challenge inaccurate alerts."
 ```
 
 ---

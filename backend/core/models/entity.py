@@ -52,6 +52,12 @@ class Entity(BaseModel):
         le=1.0,
         description="Reputation score (0-1)"
     )
+    staked_reputation: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Reputation currently staked on votes"
+    )
     
     # Configuration
     model_provider: str = Field(

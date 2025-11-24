@@ -128,6 +128,11 @@ class Proposal(BaseModel):
         description="Verified knowledge atoms supporting this proposal"
     )
     
+    refinements_made: List[str] = Field(
+        default_factory=list,
+        description="History of refinements made to the proposal"
+    )
+    
     class Config:
         """Pydantic configuration."""
         json_encoders = {

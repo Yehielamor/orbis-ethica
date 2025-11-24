@@ -4,6 +4,7 @@ from .base import BaseEntity, EntityEvaluator
 from .seeker import SeekerEntity
 from .guardian import GuardianEntity
 from .arbiter import ArbiterEntity
+from .mediator import MediatorEntity
 
 __all__ = [
     "BaseEntity",
@@ -11,4 +12,5 @@ __all__ = [
     "SeekerEntity",
     "GuardianEntity",
     "ArbiterEntity",
+    "MediatorEntity",
 ]

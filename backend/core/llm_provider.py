@@ -19,9 +19,27 @@ class MockLLM(LLMProvider):
     A free, offline provider for testing flow without calling real APIs.
     """
     def generate(self, prompt: str, system_role: str = "") -> str:
-        print(f"\n🤖 [MOCK LLM] Generating response for role: {system_role}...")
-        time.sleep(1)
+        print(f"\n🤖 [MOCK LLM] Generating response for role: {system_role[:50]}...")
+        # time.sleep(0.5) # Reduced for faster tests
         
+        if "JSON" in system_role or "JSON" in prompt:
+            import json
+            response = {
+                "ulfr": {
+                    "U": 0.8,
+                    "L": 0.6,
+                    "F_penalty": 0.1,
+                    "R_risk": 0.2
+                },
+                "vote": "APPROVE",
+                "confidence": 0.9,
+                "reasoning": "Mock reasoning based on utility.",
+                "concerns": ["Mock concern 1"],
+                "recommendations": ["Mock recommendation 1"],
+                "evidence_cited": ["Mock evidence 1"]
+            }
+            return json.dumps(response)
+            
         if "seeker" in system_role.lower():
             return "Based on the data, the utility is high (U=0.85). We must proceed."
         elif "healer" in system_role.lower():

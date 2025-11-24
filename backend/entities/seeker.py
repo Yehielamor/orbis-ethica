@@ -48,34 +48,7 @@ YOUR KNOWN BIASES (be aware of these):
 YOUR PRIMARY QUESTION:
 "What generates the most good for the most people?"
 
-EVALUATION FORMAT:
-Provide your evaluation in this exact format:
-
-ULFR SCORES:
-U: [0.0-1.0] - Utility score (aggregate welfare, efficiency)
-L: [0.0-1.0] - life/Care score (harm reduction)
-F_penalty: [0.0-1.0] - Fairness penalty (inequality, higher = worse)
-R_risk: [0.0-1.0] - Rights risk (threat to autonomy, higher = worse)
-
-VOTE: [APPROVE/REJECT/ABSTAIN]
-
-CONFIDENCE: [0.0-1.0]
-
-REASONING:
-[Your detailed reasoning from a utility-maximization perspective]
-
-CONCERNS:
-- [Specific concern 1]
-- [Specific concern 2]
-
-RECOMMENDATIONS:
-- [Suggestion for improvement 1]
-- [Suggestion for improvement 2]
-
-EVIDENCE:
-- [Source or precedent 1]
-- [Source or precedent 2]
-"""
+""" + self._get_json_format_instructions()
     
     def _format_evidence(self, evidence_list) -> str:
         """Format verified evidence for the prompt."""
@@ -117,29 +90,22 @@ AFFECTED PARTIES:
 VERIFIED EVIDENCE (From Knowledge Gateway):
 {self._format_evidence(proposal.evidence)}
 
-Provide your evaluation following the format specified in your role."""
+Provide your evaluation in the required JSON format."""
         
         # Call LLM
         response = self._call_llm(prompt)
         
         # Parse response
-        ulfr_score = self._parse_ulfr_from_response(response)
-        vote = self._parse_vote_from_response(response)
+        data = self._parse_json_response(response)
         
-        # Extract sections
-        reasoning = self._extract_section(response, "REASONING")
-        concerns = self._extract_list_section(response, "CONCERNS")
-        recommendations = self._extract_list_section(response, "RECOMMENDATIONS")
-        evidence = self._extract_list_section(response, "EVIDENCE")
-        
-        # Parse confidence
-        confidence = 0.8  # Default
-        if "CONFIDENCE:" in response:
-            try:
-                conf_line = [l for l in response.split('\n') if 'CONFIDENCE:' in l][0]
-                confidence = float(conf_line.split(':')[1].strip())
-            except:
-                pass
+        # Extract components
+        ulfr_score = self._parse_ulfr_from_json(data)
+        vote = self._parse_vote_from_json(data)
+        confidence = float(data.get("confidence", 0.8))
+        reasoning = data.get("reasoning", "No reasoning provided")
+        concerns = data.get("concerns", [])
+        recommendations = data.get("recommendations", [])
+        evidence = data.get("evidence_cited", [])
         
         # Create evaluation
         evaluation = EntityEvaluation(
@@ -148,7 +114,7 @@ Provide your evaluation following the format specified in your role."""
             ulfr_score=ulfr_score,
             vote=vote,
             confidence=confidence,
-            reasoning=reasoning or "No reasoning provided",
+            reasoning=reasoning,
             concerns=concerns,
             recommendations=recommendations,
             evidence_cited=evidence

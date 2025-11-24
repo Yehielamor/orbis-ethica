@@ -50,40 +50,7 @@ YOUR KNOWN BIASES (be aware of these):
 YOUR PRIMARY QUESTION:
 "What decision will future generations respect and look back on with pride?"
 
-EVALUATION FORMAT:
-Provide your evaluation in this exact format:
-
-ULFR SCORES:
-U: [0.0-1.0] - Utility score (long-term aggregate welfare)
-L: [0.0-1.0] - life/Care score (compassion and protection)
-F_penalty: [0.0-1.0] - Fairness penalty (injustice, higher = worse)
-R_risk: [0.0-1.0] - Rights risk (threat to dignity, higher = worse)
-
-VOTE: [APPROVE/REJECT/ABSTAIN]
-
-CONFIDENCE: [0.0-1.0]
-
-REASONING:
-[Your detailed reasoning from a long-term, civilizational perspective]
-
-SYNTHESIS:
-[How you synthesize the perspectives of other entities]
-
-PRECEDENT ANALYSIS:
-[How this relates to past decisions and established principles]
-
-CONCERNS:
-- [Long-term concern 1]
-- [Long-term concern 2]
-
-RECOMMENDATIONS:
-- [Wisdom-based recommendation 1]
-- [Wisdom-based recommendation 2]
-
-EVIDENCE:
-- [Historical precedent or philosophical principle 1]
-- [Historical precedent or philosophical principle 2]
-"""
+""" + self._get_json_format_instructions()
     
     def evaluate_proposal(self, proposal: Proposal) -> EntityEvaluation:
         """
@@ -123,38 +90,22 @@ Consider:
 
 If other entities have evaluated this proposal, synthesize their perspectives and provide final judgment.
 
-Provide your evaluation following the format specified in your role."""
+Provide your evaluation in the required JSON format."""
         
         # Call LLM
         response = self._call_llm(prompt)
         
         # Parse response
-        ulfr_score = self._parse_ulfr_from_response(response)
-        vote = self._parse_vote_from_response(response)
+        data = self._parse_json_response(response)
         
-        # Extract sections
-        reasoning = self._extract_section(response, "REASONING")
-        synthesis = self._extract_section(response, "SYNTHESIS")
-        precedent = self._extract_section(response, "PRECEDENT ANALYSIS")
-        concerns = self._extract_list_section(response, "CONCERNS")
-        recommendations = self._extract_list_section(response, "RECOMMENDATIONS")
-        evidence = self._extract_list_section(response, "EVIDENCE")
-        
-        # Combine reasoning with synthesis and precedent analysis
-        full_reasoning = reasoning
-        if synthesis:
-            full_reasoning += f"\n\nSYNTHESIS:\n{synthesis}"
-        if precedent:
-            full_reasoning += f"\n\nPRECEDENT ANALYSIS:\n{precedent}"
-        
-        # Parse confidence
-        confidence = 0.85  # Arbiter typically has high confidence
-        if "CONFIDENCE:" in response:
-            try:
-                conf_line = [l for l in response.split('\n') if 'CONFIDENCE:' in l][0]
-                confidence = float(conf_line.split(':')[1].strip())
-            except:
-                pass
+        # Extract components
+        ulfr_score = self._parse_ulfr_from_json(data)
+        vote = self._parse_vote_from_json(data)
+        confidence = float(data.get("confidence", 0.85))
+        reasoning = data.get("reasoning", "No reasoning provided")
+        concerns = data.get("concerns", [])
+        recommendations = data.get("recommendations", [])
+        evidence = data.get("evidence_cited", [])
         
         # Create evaluation
         evaluation = EntityEvaluation(
@@ -163,7 +114,7 @@ Provide your evaluation following the format specified in your role."""
             ulfr_score=ulfr_score,
             vote=vote,
             confidence=confidence,
-            reasoning=full_reasoning or "No reasoning provided",
+            reasoning=reasoning,
             concerns=concerns,
             recommendations=recommendations,
             evidence_cited=evidence

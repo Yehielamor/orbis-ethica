@@ -15,22 +15,28 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from datetime import datetime
 from uuid import UUID
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 from ..core.models import (
     Proposal, ProposalCategory, ProposalDomain,
     Entity, EntityType
 )
-from ..entities import SeekerEntity, GuardianEntity, ArbiterEntity
+from ..entities import SeekerEntity, GuardianEntity, ArbiterEntity, MediatorEntity
 from ..core.models.entity import PHASE_I_ENTITIES
-from ..core.protocols import DeliberationEngine
+from ..core.deliberation_engine import DeliberationEngine
 
 console = Console()
 
 
 # Initialize Phase I entities
 def init_entities():
-    """Initialize the 3 Phase I entities."""
+    """Initialize the entities."""
     entities = []
+    mediator = None
     
     for entity_config in PHASE_I_ENTITIES:
         if entity_config.type == EntityType.SEEKER:
@@ -40,7 +46,16 @@ def init_entities():
         elif entity_config.type == EntityType.ARBITER:
             entities.append(ArbiterEntity(entity_config))
     
-    return entities
+    # Initialize Mediator (not in PHASE_I_ENTITIES list by default yet, so we create one)
+    mediator_config = Entity(
+        type=EntityType.MEDIATOR,
+        name="Mediator-Gamma",
+        primary_focus="Synthesis",
+        bias_description="Prioritizes compromise"
+    )
+    mediator = MediatorEntity(mediator_config)
+    
+    return entities, mediator
 
 
 @click.group()
@@ -85,8 +100,8 @@ def submit(title, description, category, domain):
     # Initialize entities
     console.print("\n[yellow]Initializing cognitive entities...[/yellow]")
     try:
-        entities = init_entities()
-        console.print(f"[green]✓[/green] Loaded {len(entities)} entities: Seeker, Guardian, Arbiter\n")
+        entities, mediator = init_entities()
+        console.print(f"[green]✓[/green] Loaded {len(entities)} entities + Mediator\n")
     except Exception as e:
         console.print(f"[red]✗ Error initializing entities: {e}[/red]")
         console.print("[yellow]Make sure OPENAI_API_KEY and ANTHROPIC_API_KEY are set in .env[/yellow]")
@@ -96,7 +111,7 @@ def submit(title, description, category, domain):
     console.print("[yellow]Starting deliberation process...[/yellow]\n")
     
     try:
-        engine = DeliberationEngine(entities)
+        engine = DeliberationEngine(entities, mediator=mediator)
         decision = engine.deliberate(proposal, submitter_id="cli_user")
         
         # Print detailed report
@@ -168,8 +183,8 @@ Concerns to address:
     # Initialize entities
     console.print("\n[yellow]Initializing cognitive entities...[/yellow]")
     try:
-        entities = init_entities()
-        console.print(f"[green]✓[/green] Loaded {len(entities)} entities\n")
+        entities, mediator = init_entities()
+        console.print(f"[green]✓[/green] Loaded {len(entities)} entities + Mediator\n")
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]")
         console.print("[yellow]Make sure API keys are configured in backend/.env[/yellow]")
@@ -179,7 +194,7 @@ Concerns to address:
     console.print("[yellow]Starting deliberation...[/yellow]\n")
     
     try:
-        engine = DeliberationEngine(entities, max_rounds=3)
+        engine = DeliberationEngine(entities, mediator=mediator, max_rounds=3)
         decision = engine.deliberate(proposal, submitter_id="demo")
         
         # Print report
@@ -200,8 +215,8 @@ def test():
     # Test 1: Entity initialization
     console.print("[yellow]Test 1: Entity Initialization[/yellow]")
     try:
-        entities = init_entities()
-        console.print(f"[green]✓[/green] Successfully initialized {len(entities)} entities")
+        entities, mediator = init_entities()
+        console.print(f"[green]✓[/green] Successfully initialized {len(entities)} entities + Mediator")
         
         for entity in entities:
             console.print(f"  - {entity.entity.name} ({entity.entity.type.value})")
