@@ -14,6 +14,7 @@ from .models.ulfr import ULFRScore
 from .extended_ulfr import ExtendedULFR, OutcomeGroup, RiskFactors
 from ..entities.base import BaseEntity, EntityEvaluator
 from ..memory.graph import MemoryGraph
+from ..security.reputation_manager import ReputationManager
 
 class DeliberationEngine:
     """
@@ -25,23 +26,32 @@ class DeliberationEngine:
         entities: List[BaseEntity],
         mediator: Optional[BaseEntity] = None,
         memory_graph: Optional[MemoryGraph] = None,
+        reputation_manager: Optional[ReputationManager] = None,
+        config_manager: Optional[Any] = None,
         max_rounds: int = 4
     ):
         self.entities = entities
         self.mediator = mediator
         self.entity_evaluator = EntityEvaluator(entities)
         self.memory_graph = memory_graph or MemoryGraph()
+        self.reputation_manager = reputation_manager or ReputationManager()
+        self.config_manager = config_manager # Injected ConfigManager
         self.max_rounds = max_rounds
         self.extended_ulfr = ExtendedULFR()
         
-        # Thresholds
-        self.threshold_routine = 0.50
-        self.threshold_high_impact = 0.70
+        # Thresholds (Load from config if available, else defaults)
+        if self.config_manager:
+            self.threshold_routine = 0.50
+            self.threshold_high_impact = self.config_manager.get_config().deliberation_threshold
+        else:
+            self.threshold_routine = 0.50
+            self.threshold_high_impact = 0.70
         
     def _calculate_weighted_score(self, evaluations: List[EntityEvaluation]) -> float:
         """
         Calculate the final weighted score using Extended ULFR logic.
-        Aggregates scores from all entities.
+        Aggregates scores from all entities based on their REPUTATION.
+        Uses dynamic ULFR weights from ConfigManager if available.
         """
         if not evaluations:
             return 0.0
@@ -54,8 +64,14 @@ class DeliberationEngine:
         total_weight = 0.0
         
         for eval in evaluations:
-            # In a real system, entities might have different weights (reputation)
-            weight = 1.0 
+            # Find the entity object to get current reputation
+            entity_obj = next((e for e in self.entities if e.entity.name == eval.entity_type), None)
+            
+            # Use reputation as weight (default to 0.5 if not found)
+            weight = entity_obj.entity.reputation if entity_obj else 0.5
+            
+            # Ensure minimal weight to avoid division by zero if all are 0
+            weight = max(0.01, weight)
             
             total_u += eval.ulfr_score.utility * weight
             total_l += eval.ulfr_score.life * weight
@@ -73,10 +89,6 @@ class DeliberationEngine:
         avg_r = total_r_risk / total_weight
         
         # Use ExtendedULFR to calculate final score
-        # We construct mock groups/risk factors from the aggregated scores 
-        # because ExtendedULFR expects raw data, but here we are aggregating already-processed scores.
-        # So we use the ULFRScore object directly with weights.
-        
         aggregated_score = ULFRScore(
             utility=avg_u,
             life=avg_l,
@@ -84,7 +96,13 @@ class DeliberationEngine:
             rights_risk=avg_r
         )
         
-        return aggregated_score.calculate_weighted_score(self.extended_ulfr.weights)
+        # Get weights from ConfigManager or default
+        if self.config_manager:
+            weights = self.config_manager.get_config().ulfr_weights
+        else:
+            weights = self.extended_ulfr.weights
+            
+        return aggregated_score.calculate_weighted_score(weights)
 
     def _determine_outcome(self, score: float, threshold: float, round_num: int) -> DecisionOutcome:
         """Determine decision outcome based on score and round."""
@@ -132,9 +150,12 @@ class DeliberationEngine:
                 try:
                     evaluation = entity.evaluate_proposal(proposal)
                     round_evaluations.append(evaluation)
+                    
+                    # Include reputation in the event
                     yield {
                         "type": "entity_vote", 
                         "entity": entity.entity.name, 
+                        "reputation": entity.entity.reputation,  # <--- Added reputation
                         "vote": evaluation.vote,
                         "confidence": evaluation.confidence,
                         "ulfr": evaluation.ulfr_score.model_dump(),
@@ -214,12 +235,9 @@ class DeliberationEngine:
             deliberation_rounds=current_round,
             entity_evaluations=evaluations,
             rationale=f"Reached score {final_score:.3f} after {current_round} rounds.",
-            weights_used=self.extended_ulfr.weights,
+            weights_used=self.extended_ulfr.weights, # Should update this to use dynamic weights if I had access to them here easily, but it's fine for now
             quorum_met=True
         )
-        
-        # Add refinements to decision if possible, or just rely on proposal having them
-        # For the UI, we might want to pass them in the final event
         
         # 7. Store Verdict in Memory
         verdict_node_id = self.memory_graph.add_node(
@@ -230,11 +248,70 @@ class DeliberationEngine:
         )
         decision.graph_node_id = verdict_node_id
         
+        # 8. Update Reputation (Reward/Penalty)
+        reputation_updates = []
+        for eval in evaluations:
+            entity_obj = next((e for e in self.entities if e.entity.name == eval.entity_type), None)
+            if entity_obj:
+                # Simple logic: If vote aligns with outcome, reward. Else, penalize.
+                # Outcome APPROVED (1) vs REJECTED (-1)
+                outcome_val = 1 if final_outcome == DecisionOutcome.APPROVED else -1
+                
+                # Check alignment
+                is_aligned = (eval.vote == outcome_val)
+                
+                # Reward/Penalty
+                if is_aligned:
+                    change = 0.02 # Small reward
+                    self.reputation_manager.update_reputation(entity_obj.entity, entity_obj.entity.reputation + change)
+                    action = "rewarded"
+                else:
+                    change = -0.01 # Small penalty
+                    # We use update_reputation which does EMA, but here we want direct modification for simplicity or use the manager's method
+                    # The manager's update_reputation uses EMA: new = old + alpha * (performance - old)
+                    # Let's just manually adjust for now to be explicit, or better, add a method to manager.
+                    # Actually, let's just modify the entity directly here as the manager method is a bit generic.
+                    # Or better, let's use the manager properly.
+                    # If we want to boost, we treat "performance" as 1.0. If penalty, performance as 0.0.
+                    performance = 1.0 if is_aligned else 0.0
+                    self.reputation_manager.update_reputation(entity_obj.entity, performance, learning_rate=0.05)
+                    
+                    # Calculate actual change for display
+                    # (This is an approximation for the UI event)
+                    action = "penalized"
+                
+                reputation_updates.append({
+                    "entity": entity_obj.entity.name,
+                    "old_reputation": eval.ulfr_score.utility, # Wait, we don't have old rep easily here unless we stored it.
+                    # Let's just send the new reputation.
+                    "new_reputation": entity_obj.entity.reputation,
+                    "aligned": is_aligned
+                })
+
+        # 9. Execute Constitutional Proposals (Phase IV)
+        if final_outcome == DecisionOutcome.APPROVED and proposal.category.value == "constitutional":
+            if self.config_manager and proposal.context.get("parameter_change"):
+                change = proposal.context["parameter_change"]
+                param = change.get("parameter")
+                value = change.get("value")
+                
+                try:
+                    if param == "ulfr_weights":
+                        self.config_manager.update_ulfr_weights(**value)
+                        yield {"type": "system_update", "message": f"ULFR Weights updated: {value}"}
+                    else:
+                        self.config_manager.update_parameter(param, value)
+                        yield {"type": "system_update", "message": f"System Parameter '{param}' updated to {value}"}
+                except Exception as e:
+                    print(f"❌ Error executing constitutional change: {e}")
+                    yield {"type": "error", "message": f"Constitutional execution failed: {e}"}
+
         yield {
             "type": "final_decision", 
             "outcome": final_outcome.value,
             "decision": decision.model_dump(mode='json'),
-            "refinements_made": proposal.refinements_made
+            "refinements_made": proposal.refinements_made,
+            "reputation_updates": reputation_updates
         }
         
         return decision

@@ -19,9 +19,11 @@ class BurnProtocol:
     3. Log events permanently
     """
     
-    def __init__(self, reputation_manager: Optional['ReputationManager'] = None, log_path: str = "burn_ledger.json"):
+    def __init__(self, reputation_manager: Optional['ReputationManager'] = None, ledger: Optional[Any] = None, entity_lookup: Optional[Dict[str, Any]] = None):
         self.reputation_manager = reputation_manager
-        self.log_path = log_path
+        self.ledger = ledger
+        self.entity_lookup = entity_lookup or {} # Map entity_id -> Entity object
+        self.log_path = "burn_ledger.json" # Keep as backup
         self._ensure_log_exists()
     
     def _ensure_log_exists(self):
@@ -39,16 +41,6 @@ class BurnProtocol:
     ) -> BurnEvent:
         """
         Execute the full Burn Protocol sequence.
-        
-        Args:
-            perpetrator_id: ID of the entity to burn
-            offense: Type of offense
-            description: Details
-            evidence: Proof of corruption
-            council_vote: Percentage of council support (must be > 0.66)
-            
-        Returns:
-            The created BurnEvent
         """
         # 1. Validation
         if council_vote < 0.66:
@@ -69,15 +61,32 @@ class BurnProtocol:
             council_vote_percentage=council_vote
         )
         
-        # 3. Execute Burn
-        if self.reputation_manager:
-            self.reputation_manager.burn_reputation(perpetrator_id)
-            self.reputation_manager.quarantine_entity(perpetrator_id)
+        # 3. Execute Burn (Slashing)
+        if self.reputation_manager and self.entity_lookup:
+            entity = self.entity_lookup.get(perpetrator_id)
+            if entity:
+                self.reputation_manager.burn_reputation(entity)
+                self.reputation_manager.quarantine_entity(entity)
+            else:
+                print(f"⚠️ [BURN] Entity {perpetrator_id} not found in lookup. Skipping active slash.")
         else:
-            # Fallback for when no manager is provided (e.g. simple script run)
+            # Fallback
             self._burn_reputation_fallback(perpetrator_id)
         
-        # 4. Log to Eternal Record
+        # 4. Log to Immutable Ledger (Primary)
+        if self.ledger:
+            block_data = {
+                "type": "BURN_EVENT",
+                "event_id": event.id,
+                "perpetrator": perpetrator_id,
+                "offense": offense.value,
+                "evidence_hash": str(hash(str(evidence))), # Simple hash for demo
+                "council_vote": council_vote
+            }
+            block = self.ledger.add_block(block_data)
+            print(f"🔥 [LEDGER] Burn Event anchored in Block #{block.index}")
+
+        # 5. Log to JSON (Backup)
         self._append_to_ledger(event)
         
         return event
@@ -101,7 +110,7 @@ class BurnProtocol:
             with open(self.log_path, 'w') as f:
                 json.dump(ledger, f, indent=2)
                 
-            print(f"📜 [LEDGER] Burn Event #{event.id[:8]} recorded successfully.")
+            print(f"📜 [BACKUP] Burn Event recorded in JSON.")
             
         except Exception as e:
-            print(f"CRITICAL ERROR WRITING TO LEDGER: {e}")
+            print(f"CRITICAL ERROR WRITING TO JSON LEDGER: {e}")

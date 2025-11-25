@@ -71,11 +71,16 @@ async def startup_event():
     if llm_provider.__class__.__name__ == "MockLLM":
         print("   ⚠️  WARNING: Running in MOCK mode. Set GEMINI_API_KEY for live LLM.")
     
-    # 2. Initialize Memory Graph
-    memory_graph = MemoryGraph()
-    print(f"   🧠 Memory Graph: Initialized")
+    # 2. Initialize Ledger (Phase III)
+    from ..core.ledger import LocalBlockchain
+    ledger = LocalBlockchain()
+    print(f"   ⛓️  Ledger: Initialized (Genesis Block: {ledger.get_latest_block().hash[:8]}...)")
+
+    # 3. Initialize Memory Graph (with Ledger)
+    memory_graph = MemoryGraph(ledger=ledger)
+    print(f"   🧠 Memory Graph: Initialized (Connected to Ledger)")
     
-    # 3. Define Entity Models
+    # 4. Define Entity Models
     entity_models_data = [
         {
             "name": "Seeker Alpha",
@@ -121,7 +126,7 @@ async def startup_event():
         },
     ]
     
-    # 4. Initialize Entities
+    # 5. Initialize Entities
     ENTITY_CLASS_MAP = {
         EntityType.SEEKER: SeekerEntity,
         EntityType.HEALER: HealerEntity,
@@ -139,16 +144,41 @@ async def startup_event():
     
     print(f"   👥 Entities Loaded: {len(ENTITY_INSTANCES)}")
     
-    # 5. Extract Mediator (4th in list, index 3)
+    # 6. Extract Mediator (4th in list, index 3)
     mediator_instance = ENTITY_INSTANCES[3]
     
-    # 6. Initialize Deliberation Engine
+    # 7. Initialize Reputation Manager
+    from ..security.reputation_manager import ReputationManager
+    reputation_manager = ReputationManager()
+    print(f"   🛡️  Reputation Manager: Initialized")
+    
+    # 10. Initialize Config Manager (Phase IV Governance)
+    from ..core.config import ConfigManager
+    config_manager = ConfigManager()
+    print(f"   ⚙️  Config Manager: Initialized (Threshold: {config_manager.get_config().deliberation_threshold})")
+    
+    # 8. Initialize Deliberation Engine (Updated with ConfigManager)
     deliberation_engine = DeliberationEngine(
         entities=ENTITY_INSTANCES,
         mediator=mediator_instance,
-        memory_graph=memory_graph
+        memory_graph=memory_graph,
+        reputation_manager=reputation_manager,
+        config_manager=config_manager
     )
     print(f"   ⚖️  Deliberation Engine: Ready")
+    
+    # 9. Initialize Burn Protocol (Phase III Automation)
+    from ..security.burn.protocol import BurnProtocol
+    
+    # Create Entity Lookup Map (ID -> Entity Model)
+    entity_lookup = {str(e.entity.id): e.entity for e in ENTITY_INSTANCES}
+    
+    burn_protocol = BurnProtocol(
+        reputation_manager=reputation_manager,
+        ledger=ledger,
+        entity_lookup=entity_lookup
+    )
+    print(f"   🔥 Burn Protocol: Automated & Armed")
     
     print("✅ Orbis Ethica API: Startup complete!\n")
 
@@ -192,7 +222,9 @@ def read_root():
             "status": "/api/status",
             "docs": "/api/docs",
             "submit_proposal": "/api/proposals/submit",
-            "entities": "/api/entities"
+            "entities": "/api/entities",
+            "ledger": "/api/ledger",
+            "governance": "/api/governance/config"
         }
     }
 
@@ -207,7 +239,9 @@ def get_status():
             "llm_provider": llm_provider.__class__.__name__ if llm_provider else "Not initialized",
             "entities_loaded": len(ENTITY_INSTANCES),
             "deliberation_engine": "Ready" if deliberation_engine else "Not initialized",
-            "memory_graph": "Active" if memory_graph else "Not initialized"
+            "memory_graph": "Active" if memory_graph else "Not initialized",
+            "ledger": "Active" if memory_graph and memory_graph.ledger else "Not initialized",
+            "config_manager": "Active" if config_manager else "Not initialized"
         }
     }
 
@@ -234,6 +268,65 @@ def get_entities():
         "total_entities": len(entities_info),
         "entities": entities_info
     }
+
+
+@app.get("/api/ledger")
+def get_ledger():
+    """Returns the full blockchain ledger."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+    
+    chain = memory_graph.ledger.get_chain()
+    return {
+        "height": len(chain),
+        "blocks": [block.model_dump() for block in chain]
+    }
+
+@app.get("/api/governance/config")
+def get_governance_config():
+    """Returns the current system configuration."""
+    if not config_manager:
+        raise HTTPException(status_code=503, detail="Config Manager not initialized")
+    
+    return config_manager.get_config().model_dump()
+
+
+class BurnRequest(BaseModel):
+    entity_id: str
+    reason: str
+    council_vote: float = 1.0
+
+@app.post("/api/security/burn")
+def trigger_burn(request: BurnRequest):
+    """
+    [ADMIN] Manually trigger the Burn Protocol for an entity.
+    """
+    if not burn_protocol:
+        raise HTTPException(status_code=503, detail="Burn Protocol not initialized")
+    
+    try:
+        from ..security.burn.models import BurnOffenseType
+        
+        event = burn_protocol.execute_burn(
+            perpetrator_id=request.entity_id,
+            offense=BurnOffenseType.SIGNATURE_MISMATCH,
+            description=request.reason,
+            evidence={"manual_trigger": True, "admin_user": "API_TEST"},
+            council_vote=request.council_vote
+        )
+        
+        return {
+            "status": "BURN_EXECUTED",
+            "event_id": event.id,
+            "perpetrator": request.entity_id,
+            "reputation_now": 0.0,
+            "ledger_block": "Check /api/ledger"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/proposals/submit")

@@ -2,7 +2,7 @@
 
 **A Moral Operating System for AGI**
 
-Version: 0.1.2-alpha  
+Version: 0.1.3-alpha  
 License: CC BY-SA 4.0  
 Status: Phase I (Proof of Concept)
 
@@ -32,12 +32,23 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 - [x] CLI interface / Simulation Script
 - [x] Local consensus protocol
 
-### Phase II: Open Dialogue Network (Months 5-9)
-- [ ] All 6 entities operational
-- [ ] Purification Gateway v1
-- [ ] Reputation system
-- [ ] Web interface
-- [ ] Public ledger (testnet)
+### Phase II: Open Dialogue Network (Completed)
+- [x] All 6 entities operational
+- [x] Reputation System & Weighted Voting
+- [x] Real-time Web Interface
+- [x] Mediator Refinement Logic
+
+### Phase III: Blockchain Integration (Completed)
+- [x] Immutable Ledger (LocalBlockchain)
+- [x] Genesis Block & Hashing
+- [x] Automated Burn Protocol (Slashing)
+- [x] Tamper Detection
+
+### Phase IV: DAO Governance (Completed)
+- [x] Governance Dashboard
+- [x] Dynamic System Configuration (ConfigManager)
+- [x] Constitutional Proposals (Auto-Execution)
+- [x] Parameter Change Logic
 
 ---
 
@@ -159,6 +170,12 @@ pytest tests/unit
 
 # Integration tests
 pytest tests/integration
+
+# Verification Scripts (New!)
+python scripts/verify_reputation.py  # Test Weighted Voting
+python scripts/verify_blockchain.py  # Test Ledger Integrity
+python scripts/verify_burn.py        # Test Burn Protocol
+python scripts/verify_governance.py  # Test Constitutional Proposals
 
 # Coverage report
 pytest --cov=backend --cov-report=html

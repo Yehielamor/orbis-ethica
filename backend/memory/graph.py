@@ -39,13 +39,15 @@ class MemoryGraph:
     """
     Manages the DAG. In a real implementation, this would sync with IPFS/Arweave.
     """
-    def __init__(self):
+    def __init__(self, ledger=None):
         self.nodes: Dict[str, MemoryNode] = {}
         self.head_ids: List[str] = [] # Tips of the graph
+        self.ledger = ledger # Injected ledger instance
 
     def add_node(self, type: str, content: Dict[str, Any], agent_id: str, parent_ids: List[str] = []) -> str:
         """
         Create, seal, and store a new memory node.
+        Also anchors the node to the immutable ledger.
         """
         # Create Node
         node = MemoryNode(
@@ -59,9 +61,20 @@ class MemoryGraph:
         # Seal it (Immutable)
         node.seal()
         
-        # Store
+        # Store in Graph
         self.nodes[node.id] = node
         print(f"🕸️ [MEMORY] Node Added: [{type}] {node.id} (Parents: {len(parent_ids)})")
+        
+        # Anchor to Ledger (if available)
+        if self.ledger:
+            block_data = {
+                "node_id": node.id,
+                "node_hash": node.node_hash,
+                "type": type,
+                "agent_id": agent_id
+            }
+            block = self.ledger.add_block(block_data)
+            print(f"   🔗 Anchored to Ledger: Block #{block.index} ({block.hash[:8]}...)")
         
         return node.id
 

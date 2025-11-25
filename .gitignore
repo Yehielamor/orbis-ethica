@@ -24,3 +24,4 @@ memory_graph.json
 burn_ledger.json
 test_burn_ledger.json
 *.log
+system_config.json

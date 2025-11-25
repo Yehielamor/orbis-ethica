@@ -82,3 +82,21 @@ class ReputationManager:
         Update reputation based on performance (standard update).
         """
         entity.update_reputation(performance, learning_rate)
+
+    def burn_reputation(self, entity: Entity) -> None:
+        """
+        Irreversibly set entity reputation to 0.0.
+        """
+        print(f"🔥 BURNING reputation for {entity.name} (ID: {entity.id})")
+        entity.reputation = 0.0
+        entity.staked_reputation = 0.0
+
+    def quarantine_entity(self, entity: Entity) -> None:
+        """
+        Mark entity as quarantined (inactive).
+        """
+        print(f"🚫 QUARANTINING entity {entity.name} (ID: {entity.id})")
+        # In a real system, we would set a status flag.
+        # For now, we can just log it, or if Entity has a status field, update it.
+        # Assuming Entity model might need a status field update in the future.
+        pass

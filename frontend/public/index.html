@@ -100,7 +100,7 @@
             </header>
         );
 
-        const EntityCard = ({ entity, vote, confidence, ulfr, reasoning }) => {
+        const EntityCard = ({ entity, vote, confidence, ulfr, reasoning, reputation }) => {
             const getVoteColor = (v) => {
                 if (v === 1) return 'bg-green-50 border-green-200 text-green-700';
                 if (v === -1) return 'bg-red-50 border-red-200 text-red-700';
@@ -113,12 +113,23 @@
                 return '○ ABSTAIN';
             };
 
+            // Calculate visual weight based on reputation (0.5 is baseline)
+            const weightPercent = (reputation || 0.5) * 100;
+
             return (
-                <div className={`p-4 rounded-xl border ${getVoteColor(vote)} mb-3 animate-fade-in shadow-sm`}>
-                    <div className="flex justify-between items-start mb-2">
+                <div className={`p-4 rounded-xl border ${getVoteColor(vote)} mb-3 animate-fade-in shadow-sm relative overflow-hidden`}>
+                    {/* Reputation Watermark/Indicator */}
+                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                        <div className="text-4xl font-black">{weightPercent.toFixed(0)}</div>
+                    </div>
+
+                    <div className="flex justify-between items-start mb-2 relative z-10">
                         <div className="flex items-center gap-2">
                             <span className="font-bold text-lg">{entity}</span>
-                            <span className="text-xs font-mono opacity-75">Confidence: {(confidence * 100).toFixed(0)}%</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-black/5 rounded font-mono" title="Reputation Score / Voting Weight">
+                                ⚖️ {(reputation || 0.5).toFixed(2)}
+                            </span>
+                            <span className="text-xs font-mono opacity-75">Conf: {(confidence * 100).toFixed(0)}%</span>
                         </div>
                         <span className="font-bold text-sm px-2 py-1 rounded bg-white/50 border border-black/5">
                             {getVoteIcon(vote)}
@@ -126,14 +137,14 @@
                     </div>
 
                     {/* ULFR Mini-Bar */}
-                    <div className="flex gap-1 mb-3 h-1.5 rounded-full overflow-hidden bg-black/5">
+                    <div className="flex gap-1 mb-3 h-1.5 rounded-full overflow-hidden bg-black/5 relative z-10">
                         <div className="bg-blue-500" style={{ width: `${ulfr.utility * 25}%` }} title={`Utility: ${ulfr.utility.toFixed(2)}`}></div>
                         <div className="bg-green-500" style={{ width: `${ulfr.life * 25}%` }} title={`Life: ${ulfr.life.toFixed(2)}`}></div>
                         <div className="bg-orange-500" style={{ width: `${ulfr.fairness_penalty * 25}%` }} title={`Fairness Penalty: ${ulfr.fairness_penalty.toFixed(2)}`}></div>
                         <div className="bg-purple-500" style={{ width: `${ulfr.rights_risk * 25}%` }} title={`Rights Risk: ${ulfr.rights_risk.toFixed(2)}`}></div>
                     </div>
 
-                    <p className="text-sm italic opacity-90 leading-relaxed">"{reasoning}"</p>
+                    <p className="text-sm italic opacity-90 leading-relaxed relative z-10">"{reasoning}"</p>
                 </div>
             );
         };
@@ -153,21 +164,36 @@
             </div>
         );
 
-        const MediatorAction = ({ message, snippet }) => (
-            <div className="my-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in">
-                <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
-                    <span className="text-xl">🤖</span> Mediator Intervention
-                </div>
-                {message && <p className="text-indigo-900 mb-2">{message}</p>}
-                {snippet && (
-                    <div className="bg-white p-3 rounded border border-indigo-100 text-sm font-mono text-slate-600">
-                        <span className="text-indigo-500 font-bold">REFINED:</span> {snippet}
-                    </div>
-                )}
-            </div>
-        );
+        const MediatorAction = ({ message, snippet, full_text }) => {
+            const [expanded, setExpanded] = useState(false);
 
-        const FinalVerdict = ({ outcome, decision }) => {
+            return (
+                <div className="my-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in">
+                    <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
+                        <span className="text-xl">🤖</span> Mediator Intervention
+                    </div>
+                    {message && <p className="text-indigo-900 mb-2">{message}</p>}
+                    {(snippet || full_text) && (
+                        <div className="bg-white p-3 rounded border border-indigo-100 text-sm font-mono text-slate-600 whitespace-pre-wrap">
+                            <span className="text-indigo-500 font-bold">REFINED:</span> {expanded ? (full_text || snippet) : snippet}
+
+                            {full_text && (
+                                <div className="mt-2 text-right">
+                                    <button
+                                        onClick={() => setExpanded(!expanded)}
+                                        className="text-indigo-600 hover:text-indigo-800 font-bold text-xs underline cursor-pointer"
+                                    >
+                                        {expanded ? "Show Less" : "Show Full Proposal"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const FinalVerdict = ({ outcome, decision, reputation_updates }) => {
             const isApproved = outcome === 'APPROVED';
             const colorClass = isApproved ? 'bg-green-600' : 'bg-red-600';
 
@@ -176,7 +202,7 @@
                     <h2 className="text-3xl font-bold mb-2">Final Verdict: {outcome}</h2>
                     <p className="opacity-90 text-lg mb-6">{decision.rationale}</p>
 
-                    <div className="grid grid-cols-2 gap-4 text-white/90 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-white/90 text-sm mb-6">
                         <div className="bg-black/20 p-3 rounded-lg">
                             <div className="opacity-75">Total Rounds</div>
                             <div className="font-bold text-xl">{decision.deliberation_rounds}</div>
@@ -186,6 +212,28 @@
                             <div className="font-bold text-xl">{decision.weighted_vote.toFixed(3)}</div>
                         </div>
                     </div>
+
+                    {/* Reputation Updates Section */}
+                    {reputation_updates && reputation_updates.length > 0 && (
+                        <div className="bg-black/20 rounded-xl p-4 mb-4">
+                            <h3 className="font-bold text-sm uppercase tracking-wider opacity-75 mb-3">Reputation Updates</h3>
+                            <div className="space-y-2">
+                                {reputation_updates.map((update, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-sm">
+                                        <span>{update.entity}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono">{update.new_reputation.toFixed(3)}</span>
+                                            {update.aligned ? (
+                                                <span className="text-green-300 font-bold">▲ +0.02</span>
+                                            ) : (
+                                                <span className="text-red-300 font-bold">▼ -0.01</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {decision.graph_node_id && (
                         <div className="mt-6 pt-4 border-t border-white/20 text-xs font-mono opacity-75 flex items-center gap-2">
@@ -350,8 +398,8 @@
                                         type="submit"
                                         disabled={isStreaming}
                                         className={`w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${isStreaming
-                                                ? 'bg-slate-400 cursor-not-allowed'
-                                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-indigo-500/30'
+                                            ? 'bg-slate-400 cursor-not-allowed'
+                                            : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-indigo-500/30'
                                             }`}
                                     >
                                         {isStreaming ? (
@@ -424,7 +472,7 @@
                                                     </div>
                                                 );
                                             case 'proposal_refined':
-                                                return <MediatorAction key={idx} snippet={event.snippet} />;
+                                                return <MediatorAction key={idx} snippet={event.snippet} full_text={event.full_text} />;
                                             case 'final_decision':
                                                 return <FinalVerdict key={idx} {...event} />;
                                             case 'error':
