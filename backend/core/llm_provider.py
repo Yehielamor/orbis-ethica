@@ -7,6 +7,10 @@ without changing the core entity logic.
 from abc import ABC, abstractmethod
 import os
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class LLMProvider(ABC):
     @abstractmethod

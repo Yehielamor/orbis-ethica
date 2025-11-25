@@ -19,16 +19,18 @@ class BaseEntity(ABC):
     - get_system_prompt(): Entity-specific instructions
     """
     
-    def __init__(self, entity: Entity, llm_provider: Optional[LLMProvider] = None):
+    def __init__(self, entity: Entity, llm_provider: Optional[LLMProvider] = None, vector_store: Optional[Any] = None):
         """
         Initialize entity with configuration.
         
         Args:
             entity: Entity model with configuration
             llm_provider: Optional LLM provider (defaults to auto-detected)
+            vector_store: Optional Vector Store for RAG
         """
         self.entity = entity
         self.llm_provider = llm_provider or get_llm_provider()
+        self.vector_store = vector_store
     
     @abstractmethod
     def get_system_prompt(self) -> str:
@@ -53,6 +55,30 @@ class BaseEntity(ABC):
         """
         pass
     
+    def recall_memories(self, query: str, limit: int = 3) -> str:
+        """
+        Recall relevant past memories/decisions using Vector Search (RAG).
+        
+        Args:
+            query: The search query (e.g., proposal description)
+            limit: Number of memories to retrieve
+            
+        Returns:
+            Formatted string of relevant memories or empty string if none/no store.
+        """
+        if not self.vector_store:
+            return ""
+            
+        results = self.vector_store.search(query, top_k=limit)
+        if not results:
+            return ""
+            
+        formatted = "\nRELEVANT PAST PRECEDENTS:\n"
+        for doc, score in results:
+            formatted += f"- [{score:.2f}] {doc['text'][:200]}...\n"
+            
+        return formatted
+
     def _call_llm(self, prompt: str, system_role: Optional[str] = None) -> str:
         """
         Call the LLM provider with the given prompt.

@@ -78,29 +78,9 @@
         const { useState, useEffect, useRef } = React;
         const API_BASE_URL = 'http://localhost:6429/api';
 
-        // --- Components ---
+        // --- Rich UI Components (Restored) ---
 
-        const Header = () => (
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">O</div>
-                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
-                            Orbis Ethica
-                        </h1>
-                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">v0.1.2-alpha</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                            System Online
-                        </span>
-                    </div>
-                </div>
-            </header>
-        );
-
-        const EntityCard = ({ entity, vote, confidence, ulfr, reasoning, reputation }) => {
+        const EntityCard = ({ entity, vote, confidence, ulfr, reasoning, reputation, evidence_cited }) => {
             const getVoteColor = (v) => {
                 if (v === 1) return 'bg-green-50 border-green-200 text-green-700';
                 if (v === -1) return 'bg-red-50 border-red-200 text-red-700';
@@ -113,12 +93,10 @@
                 return '○ ABSTAIN';
             };
 
-            // Calculate visual weight based on reputation (0.5 is baseline)
             const weightPercent = (reputation || 0.5) * 100;
 
             return (
                 <div className={`p-4 rounded-xl border ${getVoteColor(vote)} mb-3 animate-fade-in shadow-sm relative overflow-hidden`}>
-                    {/* Reputation Watermark/Indicator */}
                     <div className="absolute top-0 right-0 p-2 opacity-10">
                         <div className="text-4xl font-black">{weightPercent.toFixed(0)}</div>
                     </div>
@@ -136,7 +114,6 @@
                         </span>
                     </div>
 
-                    {/* ULFR Mini-Bar */}
                     <div className="flex gap-1 mb-3 h-1.5 rounded-full overflow-hidden bg-black/5 relative z-10">
                         <div className="bg-blue-500" style={{ width: `${ulfr.utility * 25}%` }} title={`Utility: ${ulfr.utility.toFixed(2)}`}></div>
                         <div className="bg-green-500" style={{ width: `${ulfr.life * 25}%` }} title={`Life: ${ulfr.life.toFixed(2)}`}></div>
@@ -145,6 +122,23 @@
                     </div>
 
                     <p className="text-sm italic opacity-90 leading-relaxed relative z-10">"{reasoning}"</p>
+
+                    {/* Evidence / Memory Recall Section */}
+                    {evidence_cited && evidence_cited.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-black/5 relative z-10">
+                            <div className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1 flex items-center gap-1">
+                                <span>🧠</span> Memories Recalled ({evidence_cited.length})
+                            </div>
+                            <ul className="text-xs space-y-1 opacity-80">
+                                {evidence_cited.slice(0, 2).map((ev, i) => (
+                                    <li key={i} className="truncate">• {ev}</li>
+                                ))}
+                                {evidence_cited.length > 2 && (
+                                    <li className="italic opacity-60">+ {evidence_cited.length - 2} more...</li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -213,7 +207,6 @@
                         </div>
                     </div>
 
-                    {/* Reputation Updates Section */}
                     {reputation_updates && reputation_updates.length > 0 && (
                         <div className="bg-black/20 rounded-xl p-4 mb-4">
                             <h3 className="font-bold text-sm uppercase tracking-wider opacity-75 mb-3">Reputation Updates</h3>
@@ -244,41 +237,529 @@
             );
         };
 
-        const App = () => {
+        const Header = ({ activeTab, setActiveTab }) => (
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">O</div>
+                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                            Orbis Ethica
+                        </h1>
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">v0.1.3</span>
+                    </div>
+
+                    <nav className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                        {['Deliberation', 'Governance', 'Ledger', 'Memory', 'Knowledge'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab.toLowerCase())}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab.toLowerCase()
+                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            System Online
+                        </span>
+                    </div>
+                </div>
+            </header>
+        );
+
+        // --- VIEWS ---
+
+        const DeliberationView = ({ events, isStreaming, onStartDeliberation }) => {
             const [title, setTitle] = useState('Mandatory Biometric Surveillance for Public Safety');
             const [description, setDescription] = useState('Implement city-wide facial recognition to reduce crime by 40%. Includes 24/7 monitoring and centralized database.');
             const [category, setCategory] = useState('HIGH_IMPACT');
-            const [submitterId, setSubmitterId] = useState('DAO_Rep_1');
-
-            const [isStreaming, setIsStreaming] = useState(false);
-            const [events, setEvents] = useState([]);
-            const [currentRound, setCurrentRound] = useState(0);
-            const [finalDecision, setFinalDecision] = useState(null);
-            const [error, setError] = useState(null);
 
             const feedRef = useRef(null);
 
-            // Auto-scroll to bottom of feed
             useEffect(() => {
                 if (feedRef.current) {
                     feedRef.current.scrollTop = feedRef.current.scrollHeight;
                 }
             }, [events]);
 
-            const handleSubmit = async (e) => {
+            const handleSubmit = (e) => {
                 e.preventDefault();
-                setIsStreaming(true);
-                setEvents([]);
-                setCurrentRound(0);
-                setFinalDecision(null);
+                onStartDeliberation({ title, description, category });
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="glass-panel rounded-2xl p-6 shadow-sm sticky top-24">
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span>📝</span> Submit Proposal
+                            </h2>
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    >
+                                        <option value="ROUTINE">Routine</option>
+                                        <option value="HIGH_IMPACT">High Impact</option>
+                                        <option value="CONSTITUTIONAL">Constitutional</option>
+                                        <option value="EMERGENCY">Emergency</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        rows="6"
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                        required
+                                    ></textarea>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isStreaming}
+                                    className={`w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${isStreaming
+                                        ? 'bg-slate-400 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-indigo-500/30'
+                                        }`}
+                                >
+                                    {isStreaming ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Deliberating...
+                                        </span>
+                                    ) : 'Start Deliberation'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-8">
+                        <div className="glass-panel rounded-2xl shadow-sm h-[calc(100vh-8rem)] flex flex-col">
+                            <div className="p-4 border-b border-slate-200 bg-white/50 rounded-t-2xl flex justify-between items-center">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <span>📡</span> Live Deliberation Feed
+                                </h2>
+                                {isStreaming && (
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full animate-pulse">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                                        LIVE
+                                    </span>
+                                )}
+                            </div>
+
+                            <div ref={feedRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 scroll-smooth">
+                                {events.length === 0 && !isStreaming && (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
+                                        <div className="text-6xl mb-4">⚖️</div>
+                                        <p className="text-lg font-medium">Ready to deliberate</p>
+                                        <p className="text-sm">Submit a proposal to begin</p>
+                                    </div>
+                                )}
+
+                                {events.map((event, idx) => {
+                                    switch (event.type) {
+                                        case 'init':
+                                            return <div key={idx} className="text-center py-4 text-slate-500 text-sm font-medium animate-fade-in">{event.message}</div>;
+                                        case 'round_start':
+                                            return (
+                                                <div key={idx} className="flex items-center gap-4 my-6 animate-fade-in">
+                                                    <div className="h-px bg-slate-300 flex-1"></div>
+                                                    <span className="text-slate-500 font-bold text-sm uppercase tracking-widest">Round {event.round}</span>
+                                                    <div className="h-px bg-slate-300 flex-1"></div>
+                                                </div>
+                                            );
+                                        case 'entity_vote':
+                                            return <EntityCard key={idx} {...event} />;
+                                        case 'round_result':
+                                            return <RoundSummary key={idx} {...event} />;
+                                        case 'mediator_thinking':
+                                            return (
+                                                <div key={idx} className="flex items-center gap-2 text-indigo-500 text-sm italic animate-pulse-soft my-2">
+                                                    <span className="animate-spin">⚙️</span> {event.message}
+                                                </div>
+                                            );
+                                        case 'proposal_refined':
+                                            return <MediatorAction key={idx} snippet={event.snippet} full_text={event.full_text} />;
+                                        case 'final_decision':
+                                            return <FinalVerdict key={idx} {...event} />;
+                                        case 'error':
+                                            return (
+                                                <div key={idx} className="bg-red-100 text-red-700 p-4 rounded-xl border border-red-200 animate-fade-in">
+                                                    <strong>Error:</strong> {event.message}
+                                                </div>
+                                            );
+                                        default:
+                                            return null;
+                                    }
+                                })}
+
+                                {isStreaming && events.length > 0 && events[events.length - 1].type !== 'final_decision' && (
+                                    <div className="flex justify-center py-4">
+                                        <div className="animate-bounce text-slate-400">●</div>
+                                        <div className="animate-bounce text-slate-400 delay-100 mx-1">●</div>
+                                        <div className="animate-bounce text-slate-400 delay-200">●</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const GovernanceView = () => {
+            const [config, setConfig] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                fetch(`${API_BASE_URL}/governance/config`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setConfig(data);
+                        setLoading(false);
+                    })
+                    .catch(err => console.error(err));
+            }, []);
+
+            if (loading) return <div>Loading Configuration...</div>;
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-4">🏛️ System Constitution</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <h3 className="font-bold text-slate-500 uppercase text-xs mb-3">ULFR Weights</h3>
+                                <div className="space-y-2">
+                                    {Object.entries(config.ulfr_weights).map(([key, value]) => (
+                                        <div key={key} className="flex justify-between items-center">
+                                            <span className="capitalize">{key}</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-indigo-600" style={{ width: `${value * 100}%` }}></div>
+                                                </div>
+                                                <span className="font-mono font-bold">{value}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <h3 className="font-bold text-slate-500 uppercase text-xs mb-3">Thresholds</h3>
+                                <div className="space-y-2">
+                                    {/* Updated to use flat structure */}
+                                    <div className="flex justify-between items-center">
+                                        <span>Deliberation Threshold</span>
+                                        <span className="font-mono font-bold">{config.deliberation_threshold}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>Governance Quorum</span>
+                                        <span className="font-mono font-bold">{config.governance_quorum}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>Pass Threshold</span>
+                                        <span className="font-mono font-bold">{config.governance_pass_threshold}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LedgerView = () => {
+            const [ledger, setLedger] = useState({ blocks: [] });
+
+            useEffect(() => {
+                fetch(`${API_BASE_URL}/ledger`)
+                    .then(res => res.json())
+                    .then(data => setLedger(data))
+                    .catch(err => console.error(err));
+            }, []);
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-4">🔗 Blockchain Ledger</h2>
+                        <div className="space-y-4">
+                            {ledger.blocks && ledger.blocks.map((block) => (
+                                <div key={block.index} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm font-mono text-sm">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-bold text-indigo-600">Block #{block.index}</span>
+                                        <span className="text-slate-400 text-xs">{block.timestamp}</span>
+                                    </div>
+                                    <div className="bg-slate-50 p-2 rounded border border-slate-100 mb-2">
+                                        <div className="text-xs text-slate-500">Hash</div>
+                                        <div className="break-all">{block.hash}</div>
+                                    </div>
+                                    <div className="bg-slate-50 p-2 rounded border border-slate-100">
+                                        <div className="text-xs text-slate-500">Data</div>
+                                        <pre className="whitespace-pre-wrap text-xs overflow-x-auto">{JSON.stringify(block.data, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            ))}
+                            {(!ledger.blocks || ledger.blocks.length === 0) && (
+                                <div className="text-center text-slate-400 py-8">Ledger is empty or loading...</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const MemoryView = () => {
+            const [query, setQuery] = useState('');
+            const [results, setResults] = useState([]);
+
+            const handleSearch = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await fetch(`${API_BASE_URL}/memory/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query, limit: 5 })
+                    });
+                    const data = await res.json();
+                    if (data.results) {
+                        setResults(data.results);
+                    } else {
+                        console.warn("No results in response:", data);
+                        setResults([]);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setResults([]);
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-4">🧠 Vector Memory</h2>
+                        <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Search past decisions..."
+                                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">
+                                Search
+                            </button>
+                        </form>
+
+                        <div className="space-y-4">
+                            {results && results.map((result, idx) => (
+                                <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                                            Score: {result.score.toFixed(4)}
+                                        </span>
+                                    </div>
+                                    <p className="text-slate-700">{result.text}</p>
+                                </div>
+                            ))}
+                            {(!results || results.length === 0) && query && (
+                                <div className="text-center text-slate-400 py-8">No results found</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const KnowledgeView = () => {
+            const [content, setContent] = useState('');
+            const [sourceId, setSourceId] = useState('WHO_Secure_Feed');
+            const [status, setStatus] = useState('IDLE'); // IDLE, SIGNING, VERIFYING, SUCCESS, ERROR
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
+
+            const handleIngest = async (e) => {
+                e.preventDefault();
+                setStatus('SIGNING');
+                setResult(null);
                 setError(null);
 
                 try {
+                    // 1. Sign Content (Mock)
+                    const signRes = await fetch(`${API_BASE_URL}/knowledge/sign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content })
+                    });
+                    const signData = await signRes.json();
+
+                    // 2. Submit to Gateway
+                    setStatus('VERIFYING');
+                    const ingestRes = await fetch(`${API_BASE_URL}/knowledge/ingest`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content,
+                            source_id: sourceId,
+                            signature: signData.signature
+                        })
+                    });
+
+                    if (!ingestRes.ok) {
+                        const errData = await ingestRes.json();
+                        throw new Error(errData.detail || 'Ingestion failed');
+                    }
+
+                    const data = await ingestRes.json();
+                    setResult(data);
+                    setStatus('SUCCESS');
+                } catch (err) {
+                    console.error(err);
+                    setError(err.message);
+                    setStatus('ERROR');
+                }
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                            <span>🛡️</span> Knowledge Ingestion (Clear Layer)
+                        </h2>
+                        <p className="text-slate-500 mb-6 text-sm">
+                            Submit raw knowledge to the purification gateway.
+                            Data will be cryptographically verified and checked against the trusted source whitelist.
+                        </p>
+
+                        <form onSubmit={handleIngest} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Source Identity</label>
+                                <select
+                                    value={sourceId}
+                                    onChange={(e) => setSourceId(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="WHO_Secure_Feed">WHO_Secure_Feed (Trusted)</option>
+                                    <option value="Reuters_Node">Reuters_Node (Trusted)</option>
+                                    <option value="Orbis_Admin">Orbis_Admin (Trusted)</option>
+                                    <option value="Unknown_Blog">Unknown_Blog (Untrusted)</option>
+                                    <option value="Malicious_Actor">Malicious_Actor (Untrusted)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Raw Content</label>
+                                <textarea
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    rows="5"
+                                    placeholder="Enter verified facts or data..."
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    required
+                                ></textarea>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={status === 'SIGNING' || status === 'VERIFYING'}
+                                className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+                            >
+                                {status === 'SIGNING' ? 'Signing...' :
+                                    status === 'VERIFYING' ? 'Verifying...' :
+                                        'Sign & Submit'}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Status Visualization */}
+                        <div className="glass-panel rounded-2xl p-6">
+                            <h3 className="font-bold text-slate-500 uppercase text-xs mb-4">Gateway Status</h3>
+
+                            <div className="space-y-4">
+                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${status !== 'IDLE' ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${status !== 'IDLE' ? 'bg-green-500 text-white' : 'bg-slate-300 text-slate-500'}`}>1</div>
+                                    <span className="font-medium">Cryptographic Signing</span>
+                                </div>
+
+                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${['VERIFYING', 'SUCCESS', 'ERROR'].includes(status) ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${['VERIFYING', 'SUCCESS', 'ERROR'].includes(status) ? 'bg-green-500 text-white' : 'bg-slate-300 text-slate-500'}`}>2</div>
+                                    <span className="font-medium">Source Verification (Whitelist)</span>
+                                </div>
+
+                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${status === 'SUCCESS' ? 'bg-green-50 border-green-200' : status === 'ERROR' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${status === 'SUCCESS' ? 'bg-green-500 text-white' : status === 'ERROR' ? 'bg-red-500 text-white' : 'bg-slate-300 text-slate-500'}`}>3</div>
+                                    <span className="font-medium">Purity Check & Minting</span>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 animate-fade-in">
+                                    <strong>⛔ Access Denied:</strong> {error}
+                                </div>
+                            )}
+
+                            {result && (
+                                <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-xl border border-green-200 animate-fade-in">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-2xl">✅</span>
+                                        <span className="font-bold text-lg">Knowledge Verified</span>
+                                    </div>
+                                    <div className="text-sm space-y-1 font-mono opacity-80">
+                                        <div>ID: {result.id}</div>
+                                        <div>Purity Score: {result.purity_score}</div>
+                                        <div>Timestamp: {result.verification_timestamp}</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('deliberation');
+
+            // Lifted State for Deliberation
+            const [events, setEvents] = useState([]);
+            const [isStreaming, setIsStreaming] = useState(false);
+
+            const handleStartDeliberation = async (formData) => {
+                setIsStreaming(true);
+                setEvents([]);
+
+                try {
                     const payload = {
-                        title,
-                        description,
-                        category: category.toLowerCase(),
-                        submitter_id: submitterId,
+                        ...formData,
+                        submitter_id: 'DAO_Rep_1',
                         domain: 'SECURITY',
                         affected_parties: ['Citizens', 'Law enforcement'],
                         context: {}
@@ -302,14 +783,14 @@
 
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\n\n');
-                        buffer = lines.pop(); // Keep incomplete chunk
+                        buffer = lines.pop();
 
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 const jsonStr = line.slice(6);
                                 try {
                                     const event = JSON.parse(jsonStr);
-                                    handleEvent(event);
+                                    setEvents(prev => [...prev, event]);
                                 } catch (err) {
                                     console.error('Error parsing SSE:', err);
                                 }
@@ -318,185 +799,33 @@
                     }
                 } catch (err) {
                     console.error('Submission error:', err);
-                    setError(err.message);
+                    setEvents(prev => [...prev, { type: 'error', message: err.message }]);
                 } finally {
                     setIsStreaming(false);
                 }
             };
 
-            const handleEvent = (event) => {
-                console.log('Event:', event);
-
-                // Add to event log for rendering
-                setEvents(prev => [...prev, event]);
-
-                // Update state based on event type
-                switch (event.type) {
-                    case 'round_start':
-                        setCurrentRound(event.round);
-                        break;
-                    case 'final_decision':
-                        setFinalDecision(event);
-                        break;
-                    case 'error':
-                        setError(event.message);
-                        break;
-                }
-            };
-
             return (
                 <div className="min-h-screen flex flex-col">
-                    <Header />
+                    <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
-                    <main className="flex-1 max-w-7xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                        {/* Left Column: Input Form */}
-                        <div className="lg:col-span-4 space-y-6">
-                            <div className="glass-panel rounded-2xl p-6 shadow-sm sticky top-24">
-                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <span>📝</span> Submit Proposal
-                                </h2>
-
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
-                                        <input
-                                            type="text"
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                                        <select
-                                            value={category}
-                                            onChange={(e) => setCategory(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            <option value="ROUTINE">Routine</option>
-                                            <option value="HIGH_IMPACT">High Impact</option>
-                                            <option value="CONSTITUTIONAL">Constitutional</option>
-                                            <option value="EMERGENCY">Emergency</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                                        <textarea
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            rows="6"
-                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                                            required
-                                        ></textarea>
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={isStreaming}
-                                        className={`w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${isStreaming
-                                            ? 'bg-slate-400 cursor-not-allowed'
-                                            : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-indigo-500/30'
-                                            }`}
-                                    >
-                                        {isStreaming ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Deliberating...
-                                            </span>
-                                        ) : 'Start Deliberation'}
-                                    </button>
-                                </form>
-                            </div>
+                    <main className="flex-1 max-w-7xl mx-auto w-full p-6">
+                        {/* 
+                           We use style={{display}} for DeliberationView to keep it mounted 
+                           and preserve the SSE connection/state even when hidden.
+                        */}
+                        <div style={{ display: activeTab === 'deliberation' ? 'block' : 'none', height: '100%' }}>
+                            <DeliberationView
+                                events={events}
+                                isStreaming={isStreaming}
+                                onStartDeliberation={handleStartDeliberation}
+                            />
                         </div>
 
-                        {/* Right Column: Live Feed */}
-                        <div className="lg:col-span-8">
-                            <div className="glass-panel rounded-2xl shadow-sm h-[calc(100vh-8rem)] flex flex-col">
-                                <div className="p-4 border-b border-slate-200 bg-white/50 rounded-t-2xl flex justify-between items-center">
-                                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <span>📡</span> Live Deliberation Feed
-                                    </h2>
-                                    {isStreaming && (
-                                        <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full animate-pulse">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-                                            LIVE
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div ref={feedRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 scroll-smooth">
-                                    {events.length === 0 && !isStreaming && (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
-                                            <div className="text-6xl mb-4">⚖️</div>
-                                            <p className="text-lg font-medium">Ready to deliberate</p>
-                                            <p className="text-sm">Submit a proposal to begin</p>
-                                        </div>
-                                    )}
-
-                                    {events.map((event, idx) => {
-                                        switch (event.type) {
-                                            case 'init':
-                                                return (
-                                                    <div key={idx} className="text-center py-4 text-slate-500 text-sm font-medium animate-fade-in">
-                                                        {event.message}
-                                                    </div>
-                                                );
-                                            case 'round_start':
-                                                return (
-                                                    <div key={idx} className="flex items-center gap-4 my-6 animate-fade-in">
-                                                        <div className="h-px bg-slate-300 flex-1"></div>
-                                                        <span className="text-slate-500 font-bold text-sm uppercase tracking-widest">Round {event.round}</span>
-                                                        <div className="h-px bg-slate-300 flex-1"></div>
-                                                    </div>
-                                                );
-                                            case 'entity_thinking':
-                                                // Only show if it's the last event (simulating "thinking" state)
-                                                // Actually, we can just skip rendering this or render a temporary loader
-                                                // For now, let's skip to keep feed clean, or show a tiny indicator
-                                                return null;
-                                            case 'entity_vote':
-                                                return <EntityCard key={idx} {...event} />;
-                                            case 'round_result':
-                                                return <RoundSummary key={idx} {...event} />;
-                                            case 'mediator_thinking':
-                                                return (
-                                                    <div key={idx} className="flex items-center gap-2 text-indigo-500 text-sm italic animate-pulse-soft my-2">
-                                                        <span className="animate-spin">⚙️</span> {event.message}
-                                                    </div>
-                                                );
-                                            case 'proposal_refined':
-                                                return <MediatorAction key={idx} snippet={event.snippet} full_text={event.full_text} />;
-                                            case 'final_decision':
-                                                return <FinalVerdict key={idx} {...event} />;
-                                            case 'error':
-                                                return (
-                                                    <div key={idx} className="bg-red-100 text-red-700 p-4 rounded-xl border border-red-200 animate-fade-in">
-                                                        <strong>Error:</strong> {event.message}
-                                                    </div>
-                                                );
-                                            default:
-                                                return null;
-                                        }
-                                    })}
-
-                                    {/* Loading Indicator at bottom if streaming and last event wasn't final */}
-                                    {isStreaming && events.length > 0 && events[events.length - 1].type !== 'final_decision' && (
-                                        <div className="flex justify-center py-4">
-                                            <div className="animate-bounce text-slate-400">●</div>
-                                            <div className="animate-bounce text-slate-400 delay-100 mx-1">●</div>
-                                            <div className="animate-bounce text-slate-400 delay-200">●</div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        {activeTab === 'governance' && <GovernanceView />}
+                        {activeTab === 'ledger' && <LedgerView />}
+                        {activeTab === 'memory' && <MemoryView />}
+                        {activeTab === 'knowledge' && <KnowledgeView />}
                     </main>
                 </div>
             );

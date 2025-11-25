@@ -5,6 +5,8 @@ def test_extended_ulfr():
     print("Testing Extended ULFR...")
     
     # Setup
+    # Add project root to path
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
     ulfr = ExtendedULFR()
     
     # Case 1: High Inequality (should have high F_penalty)

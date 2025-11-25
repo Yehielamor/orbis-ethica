@@ -2,9 +2,9 @@
 
 **A Moral Operating System for AGI**
 
-Version: 0.1.3-alpha  
+Version: 0.1.4-beta  
 License: CC BY-SA 4.0  
-Status: Phase I (Proof of Concept)
+Status: Phase IX (Identity & Security)
 
 ---
 
@@ -16,6 +16,8 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 - **Ethical Core**: ULFR framework (Utility, Life, Fairness, Rights).
 - **Cognitive Entities**: 6 specialized agents for ethical deliberation.
 - **Distributed Memory Graph**: Permanent record of moral reasoning.
+- **P2P Network**: Decentralized node communication with Gossip Protocol.
+- **Proof of Authority**: Cryptographic identity and block signing.
 - **Burn Protocol**: Transparent corruption detection and remediation.
 - **Decentralized Governance**: Global Assembly, DAO, and OEPs.
 
@@ -23,32 +25,32 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 
 ## Project Status
 
-### Phase I: Proof of Concept (Months 1-4)
-- [x] Project structure
-- [x] Minimal Ethical Core with decision function
-- [x] LLM Integration (Google Gemini / Groq / Mock)
-- [x] 3 entities: Seeker, Guardian, Arbiter
-- [x] Distributed Memory Graph (DAG implementation)
-- [x] CLI interface / Simulation Script
-- [x] Local consensus protocol
+### Phase I-IV: Core Foundations (Completed)
+- [x] Ethical Core & Decision Function
+- [x] Cognitive Entities (Seeker, Healer, Guardian, etc.)
+- [x] Distributed Memory Graph (DAG)
+- [x] Immutable Ledger & Burn Protocol
+- [x] DAO Governance & ConfigManager
 
-### Phase II: Open Dialogue Network (Completed)
-- [x] All 6 entities operational
-- [x] Reputation System & Weighted Voting
-- [x] Real-time Web Interface
-- [x] Mediator Refinement Logic
+### Phase VI: Dashboard Upgrade (Completed)
+- [x] Glassmorphism UI
+- [x] Real-time Deliberation Feed (SSE)
+- [x] Governance & Ledger Views
 
-### Phase III: Blockchain Integration (Completed)
-- [x] Immutable Ledger (LocalBlockchain)
-- [x] Genesis Block & Hashing
-- [x] Automated Burn Protocol (Slashing)
-- [x] Tamper Detection
+### Phase VI.5: Clear Layer (Completed)
+- [x] **Knowledge Gateway**: Ingestion & Verification API.
+- [x] **Source Whitelisting**: Trusted registry for data providers.
+- [x] **Purity Scoring**: Automated content validation.
 
-### Phase IV: DAO Governance (Completed)
-- [x] Governance Dashboard
-- [x] Dynamic System Configuration (ConfigManager)
-- [x] Constitutional Proposals (Auto-Execution)
-- [x] Parameter Change Logic
+### Phase VIII: P2P Decentralization (Completed)
+- [x] **Node Manager**: Peer discovery and management.
+- [x] **Gossip Protocol**: Broadcasting transactions and blocks.
+- [x] **Consensus**: Longest Chain Rule implementation.
+
+### Phase IX: Identity & Security (Completed)
+- [x] **Node Identity**: Ed25519 Keypair generation.
+- [x] **Proof of Authority**: Cryptographic block signing.
+- [x] **Tamper Evidence**: Signature verification for all blocks.
 
 ---
 
@@ -57,15 +59,17 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 ```
 orbis-ethica/
 ├── backend/           # Python core engine
-│   ├── core/          # ULFR framework, LLM providers
+│   ├── core/          # ULFR framework, Ledger, LLM providers
 │   ├── entities/      # 6 cognitive entities
 │   ├── memory/        # Distributed graph (DAG)
-│   ├── security/      # Crypto, reputation, burn protocol
+│   ├── security/      # Identity, Crypto, Burn Protocol
+│   ├── p2p/           # Node Manager, Gossip Protocol
+│   ├── knowledge/     # Knowledge Gateway (Clear Layer)
 │   ├── governance/    # DAO, Assembly, OEPs
-│   ├── api/           # REST/GraphQL API
+│   ├── api/           # REST/GraphQL/WebSocket API
 │   └── main.py        # Entry point
 ├── frontend/          # React + TypeScript UI
-├── blockchain/        # Solidity smart contracts
+├── scripts/           # Verification and utility scripts
 ├── tests/             # Unit, integration, e2e tests
 └── docs/              # Documentation
 ```
@@ -104,7 +108,12 @@ To run the full end-to-end simulation with live agents:
 # Optional: Set API Key for generative responses
 export GEMINI_API_KEY="your_key_here" 
 
-# Option 1: Run Real-Time Dashboard (Recommended)
+# Option 1: Run with Docker (Recommended for Production)
+docker-compose up --build
+# Backend: http://localhost:6429
+# Frontend: http://localhost:3000
+
+# Option 2: Run Locally (Development)
 # Terminal 1: Start Backend
 python -m uvicorn backend.api.app:app --reload --host 0.0.0.0 --port 6429
 
@@ -112,7 +121,7 @@ python -m uvicorn backend.api.app:app --reload --host 0.0.0.0 --port 6429
 cd frontend/public && python3 -m http.server 4930
 # Open http://localhost:4930 in your browser
 
-# Option 2: Run CLI Simulation
+# Option 3: Run CLI Simulation
 python simulation.py
 ```
 
@@ -162,7 +171,9 @@ Experience the ethical reasoning process live with our new real-time dashboard.
 
 ---
 
-## Testing
+## Testing & Verification
+
+We provide a suite of scripts to verify the integrity of the system components.
 
 ```bash
 # Unit tests
@@ -171,14 +182,11 @@ pytest tests/unit
 # Integration tests
 pytest tests/integration
 
-# Verification Scripts (New!)
-python scripts/verify_reputation.py  # Test Weighted Voting
-python scripts/verify_blockchain.py  # Test Ledger Integrity
-python scripts/verify_burn.py        # Test Burn Protocol
-python scripts/verify_governance.py  # Test Constitutional Proposals
-
-# Coverage report
-pytest --cov=backend --cov-report=html
+# Verification Scripts
+python scripts/verification/verify_identity.py       # Test Key Generation & Signing
+python scripts/verification/verify_block_signing.py  # Test Proof of Authority
+python scripts/verification/verify_startup.py        # Test System Initialization
+python scripts/verification/verify_p2p.py            # Test Network Layer
 ```
 
 ---

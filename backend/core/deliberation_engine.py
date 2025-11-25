@@ -28,6 +28,7 @@ class DeliberationEngine:
         memory_graph: Optional[MemoryGraph] = None,
         reputation_manager: Optional[ReputationManager] = None,
         config_manager: Optional[Any] = None,
+        node_manager: Optional[Any] = None, # Injected NodeManager
         max_rounds: int = 4
     ):
         self.entities = entities
@@ -35,7 +36,8 @@ class DeliberationEngine:
         self.entity_evaluator = EntityEvaluator(entities)
         self.memory_graph = memory_graph or MemoryGraph()
         self.reputation_manager = reputation_manager or ReputationManager()
-        self.config_manager = config_manager # Injected ConfigManager
+        self.config_manager = config_manager
+        self.node_manager = node_manager
         self.max_rounds = max_rounds
         self.extended_ulfr = ExtendedULFR()
         
@@ -128,6 +130,25 @@ class DeliberationEngine:
         )
         yield {"type": "memory_added", "node_id": proposal_node_id, "node_type": "PROPOSAL"}
         
+        # Broadcast Block (P2P)
+        if self.node_manager and self.memory_graph.ledger:
+            latest_block = self.memory_graph.ledger.get_latest_block()
+            # We need to import P2PMessage/MessageType here or use a helper
+            # To avoid circular imports, we'll assume node_manager has a helper or we construct dict
+            # Actually, let's use the node_manager.broadcast method which expects a P2PMessage object.
+            # But we can't import P2PMessage easily without circular dependency if not careful.
+            # Let's assume we pass the raw dict and node_manager handles wrapping, OR we import inside method.
+            from ..p2p.models import P2PMessage, MessageType
+            import asyncio
+            
+            asyncio.create_task(self.node_manager.broadcast(
+                P2PMessage(
+                    type=MessageType.GOSSIP_BLOCK,
+                    sender_id=self.node_manager.node_id,
+                    payload=latest_block.model_dump()
+                )
+            ))
+            
         current_round = 1
         final_outcome = DecisionOutcome.REJECTED
         final_score = 0.0
@@ -159,7 +180,8 @@ class DeliberationEngine:
                         "vote": evaluation.vote,
                         "confidence": evaluation.confidence,
                         "ulfr": evaluation.ulfr_score.model_dump(),
-                        "reasoning": evaluation.reasoning
+                        "reasoning": evaluation.reasoning,
+                        "evidence_cited": evaluation.evidence_cited  # <--- Added evidence
                     }
                 except Exception as e:
                     print(f"Error evaluating with {entity.entity.name}: {e}")

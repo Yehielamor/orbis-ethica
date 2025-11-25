@@ -1,3 +1,8 @@
+import sys
+import os
+
+# Add project root to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from backend.core.models.entity import Entity, EntityType
 from backend.security.reputation_manager import ReputationManager

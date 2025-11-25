@@ -9,16 +9,21 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 # Load environment variables
 load_dotenv()
 
-# --- Import Core Components ---
+# --- IMPORTS ---
 from ..core.llm_provider import get_llm_provider
 from ..core.deliberation_engine import DeliberationEngine
 from ..core.models import Proposal, ProposalCategory, ProposalDomain, Entity, EntityType
@@ -33,18 +38,27 @@ from ..entities.mediator import MediatorEntity
 from ..entities.creator import CreatorEntity
 from ..entities.arbiter import ArbiterEntity
 
+# --- P2P Imports ---
+from ..p2p.node_manager import NodeManager
+from ..p2p.models import P2PMessage, MessageType, PeerInfo
+
 app = FastAPI(
     title="Orbis Ethica API",
     description="Decentralized Moral Operating System - REST API for ethical deliberation",
-    version="0.1.1-alpha",
+    version="0.1.3",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
 
+# Initialize Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=["*", "http://localhost:4930", "http://127.0.0.1:4930"],  # Explicitly allow frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,13 +68,17 @@ app.add_middleware(
 llm_provider = None
 deliberation_engine = None
 memory_graph = None
+config_manager = None
+burn_protocol = None
+knowledge_gateway = None
+node_manager = None
 ENTITY_INSTANCES = []
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize core components on server startup."""
-    global llm_provider, deliberation_engine, memory_graph, ENTITY_INSTANCES
+    global llm_provider, deliberation_engine, memory_graph, ENTITY_INSTANCES, config_manager, burn_protocol, knowledge_gateway, node_manager
     
     print("🚀 Orbis Ethica API: Starting up...")
     
@@ -71,11 +89,20 @@ async def startup_event():
     if llm_provider.__class__.__name__ == "MockLLM":
         print("   ⚠️  WARNING: Running in MOCK mode. Set GEMINI_API_KEY for live LLM.")
     
+    # 1.5 Initialize Node Identity (Phase IX) - Moved to top for dependency injection
+    NODE_ID = os.getenv("NODE_ID", f"node_{os.urandom(4).hex()}")
+    from ..security.identity import NodeIdentity
+    identity = NodeIdentity(node_id=NODE_ID)
+    print(f"   🔑 Node Identity: {identity.public_key_hex[:16]}...")
+    
     # 2. Initialize Ledger (Phase III)
     from ..core.ledger import LocalBlockchain
-    ledger = LocalBlockchain()
-    print(f"   ⛓️  Ledger: Initialized (Genesis Block: {ledger.get_latest_block().hash[:8]}...)")
-
+    ledger = LocalBlockchain(identity=identity) # Pass Identity to Ledger
+    if not ledger.verify_integrity():
+        print("❌ Ledger Integrity Check Failed!")
+    else:
+        print(f"   ⛓️  Ledger: Initialized (Genesis Block: {ledger.get_latest_block().hash[:8]}...)")
+    
     # 3. Initialize Memory Graph (with Ledger)
     memory_graph = MemoryGraph(ledger=ledger)
     print(f"   🧠 Memory Graph: Initialized (Connected to Ledger)")
@@ -156,6 +183,16 @@ async def startup_event():
     from ..core.config import ConfigManager
     config_manager = ConfigManager()
     print(f"   ⚙️  Config Manager: Initialized (Threshold: {config_manager.get_config().deliberation_threshold})")
+
+    # 11. Initialize P2P Node Manager (Phase VIII) - Moved up for Dependency Injection
+    # NODE_ID is already initialized at step 1.5
+    NODE_HOST = os.getenv("NODE_HOST", "localhost")
+    NODE_PORT = int(os.getenv("NODE_PORT", "6429"))
+    SEED_NODES = os.getenv("SEED_NODES", "").split(",") if os.getenv("SEED_NODES") else []
+    
+    node_manager = NodeManager(node_id=NODE_ID, host=NODE_HOST, port=NODE_PORT, seed_nodes=SEED_NODES, identity=identity)
+    await node_manager.start()
+    print(f"   🌐 P2P Node Manager: Active ({NODE_ID} on {NODE_HOST}:{NODE_PORT})")
     
     # 8. Initialize Deliberation Engine (Updated with ConfigManager)
     deliberation_engine = DeliberationEngine(
@@ -163,7 +200,8 @@ async def startup_event():
         mediator=mediator_instance,
         memory_graph=memory_graph,
         reputation_manager=reputation_manager,
-        config_manager=config_manager
+        config_manager=config_manager,
+        node_manager=node_manager # Pass P2P Manager
     )
     print(f"   ⚖️  Deliberation Engine: Ready")
     
@@ -180,6 +218,11 @@ async def startup_event():
     )
     print(f"   🔥 Burn Protocol: Automated & Armed")
     
+    # 10. Initialize Knowledge Gateway (Phase VI.5 Clear Layer)
+    from ..knowledge.gateway import KnowledgeGateway
+    knowledge_gateway = KnowledgeGateway(verified_sources=["WHO_Secure_Feed", "Reuters_Node", "Orbis_Admin", "Trusted_User"])
+    print(f"   🛡️  Knowledge Gateway: Active (Sources: {len(knowledge_gateway.verified_sources)})")
+
     print("✅ Orbis Ethica API: Startup complete!\n")
 
 
@@ -209,24 +252,178 @@ class ProposalResponse(BaseModel):
     refinements_made: List[str] = []  # History of Mediator refinements
 
 
+# --- KNOWLEDGE ENDPOINTS (Phase VI.5) ---
+from ..knowledge.models import RawKnowledge, VerifiedKnowledge
+
+@app.post("/api/knowledge/ingest", response_model=VerifiedKnowledge)
+async def ingest_knowledge(raw: RawKnowledge):
+    """
+    Ingest raw knowledge through the purification gateway.
+    Verifies source and signature.
+    """
+    if not knowledge_gateway:
+        raise HTTPException(status_code=503, detail="Knowledge Gateway not initialized")
+    
+    try:
+        verified = knowledge_gateway.process_knowledge(raw)
+        
+        # Store in Memory Graph as KNOWLEDGE node
+        if memory_graph:
+            memory_graph.add_node(
+                type="KNOWLEDGE",
+                content={
+                    "text": verified.content,
+                    "source": verified.source_id,
+                    "purity": verified.purity_score
+                },
+                agent_id="KnowledgeGateway"
+            )
+            
+        return verified
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class SignRequest(BaseModel):
+    content: str
+
+@app.post("/api/knowledge/sign")
+async def sign_content(req: SignRequest):
+    """
+    Helper endpoint to generate a valid mock signature for testing.
+    In production, this would NOT exist (signatures come from client).
+    """
+    # Mock signature logic: "SIG_" + reversed(content)
+    signature = f"SIG_{req.content[::-1]}"
+    return {"signature": signature}
+
+
+# --- P2P WEBSOCKET ENDPOINT ---
+@app.websocket("/ws/p2p")
+async def p2p_websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for P2P communication.
+    Handles incoming connections from other nodes.
+    """
+    await websocket.accept()
+    peer_id = None
+    try:
+        # 1. Handshake: Wait for HELLO message
+        data = await websocket.receive_text()
+        message = P2PMessage.parse_raw(data)
+        
+        if message.type == MessageType.HANDSHAKE:
+            peer_id = message.sender_id
+            peer_info = PeerInfo(**message.payload)
+            
+            # Register peer
+            if node_manager:
+                node_manager.add_peer(peer_info)
+                node_manager.active_connections[peer_id] = websocket
+            
+            # Send ACK
+            ack_msg = P2PMessage(
+                type=MessageType.HANDSHAKE_ACK,
+                sender_id=node_manager.node_id if node_manager else "UNKNOWN",
+                payload={"status": "connected", "node_id": node_manager.node_id if node_manager else "UNKNOWN"}
+            )
+            await websocket.send_text(ack_msg.json())
+            print(f"✅ P2P Handshake successful with {peer_id}")
+            
+            # 2. Main Loop
+            while True:
+                data = await websocket.receive_text()
+                msg = P2PMessage.parse_raw(data)
+                
+                # Deduplicate
+                msg_hash = f"{msg.sender_id}:{msg.timestamp}:{msg.type}"
+                if node_manager and msg_hash in node_manager.seen_messages:
+                    continue
+                if node_manager:
+                    node_manager.seen_messages.add(msg_hash)
+                
+                print(f"📩 Received {msg.type} from {msg.sender_id}")
+                
+                if msg.type == MessageType.GOSSIP_TX:
+                    # Received a new proposal from a peer
+                    proposal_data = msg.payload
+                    print(f"   💡 New Proposal Gossip: {proposal_data.get('title', 'Unknown')}")
+                    # TODO: Add to Mempool / Validate
+                    
+                    # Re-broadcast to other peers (Flood)
+                    if node_manager:
+                        await node_manager.broadcast(msg)
+                        
+                elif msg.type == MessageType.GOSSIP_BLOCK:
+                    # Received a new block
+                    block_data = msg.payload
+                    print(f"   🧱 New Block Gossip: Height {block_data.get('index')}")
+                    
+                    if memory_graph and memory_graph.ledger:
+                        # Attempt to add block
+                        success = memory_graph.ledger.add_block_from_peer(block_data)
+                        
+                        if success:
+                            # Re-broadcast only if valid and new
+                            if node_manager:
+                                await node_manager.broadcast(msg)
+                        else:
+                            # If failed, it might be a fork or we are behind.
+                            # TODO: Implement Sync Request if index > local_height + 1
+                            pass
+                
+    except WebSocketDisconnect:
+        print(f"❌ P2P Connection closed: {peer_id}")
+        if node_manager and peer_id:
+            node_manager.remove_peer(peer_id)
+            if peer_id in node_manager.active_connections:
+                del node_manager.active_connections[peer_id]
+    except Exception as e:
+        print(f"❌ P2P Error: {e}")
+        await websocket.close()
+
+
 # --- API Endpoints ---
 
 @app.get("/")
-def read_root():
-    """Root endpoint - API information."""
+async def root():
     return {
-        "name": "Orbis Ethica API",
-        "version": app.version,
-        "description": "Decentralized Moral Operating System",
-        "endpoints": {
-            "status": "/api/status",
-            "docs": "/api/docs",
-            "submit_proposal": "/api/proposals/submit",
-            "entities": "/api/entities",
-            "ledger": "/api/ledger",
-            "governance": "/api/governance/config"
-        }
+        "message": "Orbis Ethica API v0.1.3",
+        "docs": "/docs",
+        "endpoints": [
+            "/api/deliberate",
+            "/api/proposals/submit",
+            "/api/entities",
+            "/api/governance/config",
+            "/api/ledger",
+            "/api/memory/search"
+        ]
     }
+
+# --- LEDGER ENDPOINTS ---
+
+
+# --- MEMORY ENDPOINTS ---
+class SearchQuery(BaseModel):
+    query: str
+    limit: int = 5
+
+@app.post("/api/memory/search")
+async def search_memory(query: SearchQuery):
+    """Semantic search in the vector memory."""
+    if not memory_graph:
+        raise HTTPException(status_code=503, detail="Memory graph not initialized")
+    
+    try:
+        results = memory_graph.vector_store.search(query.query, top_k=query.limit)
+        
+        return {
+            "results": [
+                {"text": doc.page_content, "score": score, "metadata": doc.metadata}
+                for doc, score in results
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Memory search failed: {str(e)}")
 
 
 @app.get("/api/status")
@@ -288,7 +485,13 @@ def get_governance_config():
     if not config_manager:
         raise HTTPException(status_code=503, detail="Config Manager not initialized")
     
-    return config_manager.get_config().model_dump()
+    try:
+        return config_manager.get_config().model_dump()
+    except Exception as e:
+        print(f"❌ Error in get_governance_config: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class BurnRequest(BaseModel):
@@ -330,15 +533,17 @@ def trigger_burn(request: BurnRequest):
 
 
 @app.post("/api/proposals/submit")
-async def submit_proposal(proposal_input: ProposalInput):
+@limiter.limit("5/minute")
+async def submit_proposal(request: Request, proposal_input: ProposalInput):
     """
     Submits a new proposal and runs the full deliberation protocol with real-time streaming.
     Returns a Server-Sent Events (SSE) stream.
     """
+    # Validate input
     if not deliberation_engine:
         raise HTTPException(
             status_code=503,
-            detail="Deliberation engine not initialized. Please wait for startup to complete."
+            detail="Deliberation Engine not initialized. Please check server logs."
         )
     
     try:
@@ -355,6 +560,16 @@ async def submit_proposal(proposal_input: ProposalInput):
         proposal.submit(submitter_id=proposal_input.submitter_id)
         
         print(f"\n🚀 API: Streaming deliberation for proposal: {proposal.title}")
+        
+        # --- P2P BROADCAST (Phase VIII) ---
+        if node_manager:
+            asyncio.create_task(node_manager.broadcast(
+                P2PMessage(
+                    type=MessageType.GOSSIP_TX,
+                    sender_id=node_manager.node_id,
+                    payload=proposal.to_dict()
+                )
+            ))
         
         # 2. Define SSE Generator
         def sse_generator():
