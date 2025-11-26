@@ -500,6 +500,63 @@ def get_wallet_info():
         "is_validator": False
     }
 
+@app.get("/api/ledger/blocks")
+def get_blocks(limit: int = 10, offset: int = 0):
+    """Get recent blocks."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+    
+    session = memory_graph.ledger.db_manager.get_session()
+    try:
+        from ..core.models.sql_models import BlockModel
+        blocks = session.query(BlockModel).order_by(BlockModel.index.desc()).offset(offset).limit(limit).all()
+        
+        return {
+            "blocks": [
+                {
+                    "index": b.index,
+                    "hash": b.hash,
+                    "previous_hash": b.previous_hash,
+                    "timestamp": b.timestamp.isoformat(),
+                    "validator_id": b.validator_id,
+                    "transactions_count": len(b.transactions)
+                }
+                for b in blocks
+            ],
+            "total": session.query(BlockModel).count()
+        }
+    finally:
+        session.close()
+
+@app.get("/api/ledger/transactions")
+def get_transactions(limit: int = 20, offset: int = 0):
+    """Get recent transactions."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+    
+    session = memory_graph.ledger.db_manager.get_session()
+    try:
+        from ..core.models.sql_models import LedgerEntryModel
+        txs = session.query(LedgerEntryModel).order_by(LedgerEntryModel.timestamp.desc()).offset(offset).limit(limit).all()
+        
+        return {
+            "transactions": [
+                {
+                    "id": t.id,
+                    "timestamp": t.timestamp.isoformat(),
+                    "sender": t.sender,
+                    "recipient": t.recipient,
+                    "amount": t.amount,
+                    "type": t.transaction_type,
+                    "description": t.description,
+                    "block_hash": t.block_hash
+                }
+                for t in txs
+            ]
+        }
+    finally:
+        session.close()
+
 @app.post("/api/wallet/stake")
 def stake_tokens(req: StakeRequest):
     """Stake tokens to become a validator."""
@@ -551,6 +608,45 @@ def unstake_tokens(req: StakeRequest):
         return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
     else:
         raise HTTPException(status_code=400, detail="Unstaking failed (Insufficient stake?)")
+
+class TransferRequest(BaseModel):
+    recipient: str
+    amount: float
+    description: str = "Transfer"
+
+@app.post("/api/wallet/transfer")
+def transfer_tokens(req: TransferRequest):
+    """Transfer tokens to another address."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+        
+    ledger = memory_graph.ledger
+    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    
+    # Check balance
+    current_balance = ledger.get_balance(my_address)
+    if current_balance < req.amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient funds. Balance: {current_balance}")
+
+    # Create TRANSFER transaction
+    from ..core.ledger import TokenTransaction, TransactionType
+    
+    tx = TokenTransaction(
+        id=f"tx_{uuid4().hex[:8]}",
+        type=TransactionType.TRANSFER,
+        sender=my_address,
+        receiver=req.recipient,
+        amount=req.amount,
+        signature="simulated_sig" # In real app, sign with private key
+    )
+    
+    # Add description if supported by model (it is in SQL but maybe not in TokenTransaction class yet)
+    # We'll pass it in block data for now or rely on the transaction model update
+    
+    if ledger.add_block(data={"msg": req.description}, transactions=[tx]):
+        return {"status": "success", "tx_id": tx.id, "new_balance": ledger.get_balance(my_address)}
+    else:
+        raise HTTPException(status_code=400, detail="Transfer failed")
 
 
 # --- MEMORY ENDPOINTS ---

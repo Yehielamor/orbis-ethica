@@ -5,27 +5,31 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    container_name: orbis_backend
     ports:
       - "6429:6429"
+      - "6430-6440:6430-6440" # Expose P2P ports range
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - NODE_ID=default_node
+      - P2P_PORT=6430
     volumes:
-      - ./backend:/app/backend
-      - ./vector_memory.json:/app/vector_memory.json
-      - ./orbis.db:/app/orbis.db
+      - ./orbis_ethica.db:/app/orbis_ethica.db # Persist SQLite DB
+      - ./vector_memory.json:/app/vector_memory.json # Persist Vector Memory
+      - ./.keys:/app/.keys # Persist Keys
     restart: unless-stopped
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    container_name: orbis_frontend
     ports:
       - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped
 
-# Define volumes if needed for persistence beyond bind mounts
 volumes:
-  db_data:
+  orbis_data:

@@ -118,10 +118,10 @@
                     </div>
 
                     <div className="flex gap-1 mb-3 h-1.5 rounded-full overflow-hidden bg-black/5 relative z-10">
-                        <div className="bg-blue-500" style={{ width: `${ulfr.utility * 25}%` }} title={`Utility: ${ulfr.utility.toFixed(2)}`}></div>
-                        <div className="bg-green-500" style={{ width: `${ulfr.life * 25}%` }} title={`Life: ${ulfr.life.toFixed(2)}`}></div>
-                        <div className="bg-orange-500" style={{ width: `${ulfr.fairness_penalty * 25}%` }} title={`Fairness Penalty: ${ulfr.fairness_penalty.toFixed(2)}`}></div>
-                        <div className="bg-purple-500" style={{ width: `${ulfr.rights_risk * 25}%` }} title={`Rights Risk: ${ulfr.rights_risk.toFixed(2)}`}></div>
+                        <div className="bg-blue-500" style={{ width: `${(ulfr.alpha || 0) * 100}%` }} title={`Utility (Alpha): ${(ulfr.alpha || 0).toFixed(2)}`}></div>
+                        <div className="bg-green-500" style={{ width: `${(ulfr.beta || 0) * 100}%` }} title={`Life (Beta): ${(ulfr.beta || 0).toFixed(2)}`}></div>
+                        <div className="bg-orange-500" style={{ width: `${(ulfr.gamma || 0) * 100}%` }} title={`Fairness (Gamma): ${(ulfr.gamma || 0).toFixed(2)}`}></div>
+                        <div className="bg-purple-500" style={{ width: `${(ulfr.delta || 0) * 100}%` }} title={`Rights (Delta): ${(ulfr.delta || 0).toFixed(2)}`}></div>
                     </div>
 
                     <p className="text-sm italic opacity-90 leading-relaxed relative z-10">"{reasoning}"</p>
@@ -248,11 +248,11 @@
                         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
                             Orbis Ethica
                         </h1>
-                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">v0.1.3</span>
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">v0.5.0 (Genesis)</span>
                     </div>
 
                     <nav className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-                        {['Deliberation', 'Governance', 'Ledger', 'Memory', 'Knowledge', 'Wallet'].map((tab) => (
+                        {['Deliberation', 'Governance', 'Ledger', 'Network', 'Memory', 'Knowledge', 'Wallet'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab.toLowerCase())}
@@ -461,17 +461,20 @@
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <h3 className="font-bold text-slate-500 uppercase text-xs mb-3">ULFR Weights</h3>
                                 <div className="space-y-2">
-                                    {Object.entries(config.ulfr_weights).map(([key, value]) => (
-                                        <div key={key} className="flex justify-between items-center">
-                                            <span className="capitalize">{key}</span>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-indigo-600" style={{ width: `${value * 100}%` }}></div>
+                                    {Object.entries(config.ulfr_weights).map(([key, value]) => {
+                                        const labelMap = { alpha: 'Utility', beta: 'Life', gamma: 'Fairness', delta: 'Rights' };
+                                        return (
+                                            <div key={key} className="flex justify-between items-center">
+                                                <span className="capitalize font-medium text-slate-700">{labelMap[key] || key} <span className="text-xs text-slate-400 font-normal">({key})</span></span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${key === 'alpha' ? 'bg-blue-500' : key === 'beta' ? 'bg-green-500' : key === 'gamma' ? 'bg-orange-500' : 'bg-purple-500'}`} style={{ width: `${value * 100}%` }}></div>
+                                                    </div>
+                                                    <span className="font-mono font-bold">{value}</span>
                                                 </div>
-                                                <span className="font-mono font-bold">{value}</span>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -500,40 +503,119 @@
         };
 
         const LedgerView = () => {
-            const [ledger, setLedger] = useState({ blocks: [] });
+            const [ledger, setLedger] = useState({ blocks: [], transactions: [] });
+            const [tab, setTab] = useState('BLOCKS'); // BLOCKS, TXS
 
             useEffect(() => {
-                fetch(`${API_BASE_URL}/ledger`)
-                    .then(res => res.json())
-                    .then(data => setLedger(data))
-                    .catch(err => console.error(err));
+                const fetchData = async () => {
+                    try {
+                        const [blocksRes, txsRes] = await Promise.all([
+                            fetch(`${API_BASE_URL}/ledger/blocks`),
+                            fetch(`${API_BASE_URL}/ledger/transactions`)
+                        ]);
+                        const blocksData = await blocksRes.json();
+                        const txsData = await txsRes.json();
+                        setLedger({ blocks: blocksData.blocks, transactions: txsData.transactions });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                };
+                fetchData();
+                const interval = setInterval(fetchData, 5000);
+                return () => clearInterval(interval);
             }, []);
 
             return (
                 <div className="space-y-6">
                     <div className="glass-panel rounded-2xl p-6">
-                        <h2 className="text-2xl font-bold mb-4">🔗 Blockchain Ledger</h2>
-                        <div className="space-y-4">
-                            {ledger.blocks && ledger.blocks.map((block) => (
-                                <div key={block.index} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm font-mono text-sm">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="font-bold text-indigo-600">Block #{block.index}</span>
-                                        <span className="text-slate-400 text-xs">{block.timestamp}</span>
-                                    </div>
-                                    <div className="bg-slate-50 p-2 rounded border border-slate-100 mb-2">
-                                        <div className="text-xs text-slate-500">Hash</div>
-                                        <div className="break-all">{block.hash}</div>
-                                    </div>
-                                    <div className="bg-slate-50 p-2 rounded border border-slate-100">
-                                        <div className="text-xs text-slate-500">Data</div>
-                                        <pre className="whitespace-pre-wrap text-xs overflow-x-auto">{JSON.stringify(block.data, null, 2)}</pre>
-                                    </div>
-                                </div>
-                            ))}
-                            {(!ledger.blocks || ledger.blocks.length === 0) && (
-                                <div className="text-center text-slate-400 py-8">Ledger is empty or loading...</div>
-                            )}
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold flex items-center gap-2">
+                                <span>🔗</span> Blockchain Explorer
+                            </h2>
+                            <div className="flex bg-slate-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setTab('BLOCKS')}
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'BLOCKS' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
+                                >
+                                    Blocks
+                                </button>
+                                <button
+                                    onClick={() => setTab('TXS')}
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'TXS' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
+                                >
+                                    Transactions
+                                </button>
+                            </div>
                         </div>
+
+                        {tab === 'BLOCKS' && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                                        <tr>
+                                            <th className="px-4 py-3 rounded-l-lg">Height</th>
+                                            <th className="px-4 py-3">Hash</th>
+                                            <th className="px-4 py-3">Validator</th>
+                                            <th className="px-4 py-3">Txs</th>
+                                            <th className="px-4 py-3 rounded-r-lg">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ledger.blocks && ledger.blocks.map((block) => (
+                                            <tr key={block.index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                <td className="px-4 py-3 font-bold text-indigo-600">#{block.index}</td>
+                                                <td className="px-4 py-3 font-mono text-xs text-slate-500 truncate max-w-[150px]" title={block.hash}>
+                                                    {block.hash.substring(0, 16)}...
+                                                </td>
+                                                <td className="px-4 py-3 text-xs">{block.validator_id}</td>
+                                                <td className="px-4 py-3">{block.transactions_count}</td>
+                                                <td className="px-4 py-3 text-slate-400 text-xs">{new Date(block.timestamp).toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {tab === 'TXS' && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                                        <tr>
+                                            <th className="px-4 py-3 rounded-l-lg">Type</th>
+                                            <th className="px-4 py-3">Sender</th>
+                                            <th className="px-4 py-3">Recipient</th>
+                                            <th className="px-4 py-3">Amount</th>
+                                            <th className="px-4 py-3">Desc</th>
+                                            <th className="px-4 py-3 rounded-r-lg">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ledger.transactions && ledger.transactions.map((tx) => (
+                                            <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${tx.type === 'mint' ? 'bg-green-100 text-green-700' :
+                                                        tx.type === 'transfer' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                        {tx.type.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 font-mono text-xs text-slate-500 truncate max-w-[100px]">{tx.sender === 'system' ? 'SYSTEM' : tx.sender.substring(0, 8) + '...'}</td>
+                                                <td className="px-4 py-3 font-mono text-xs text-slate-500 truncate max-w-[100px]">{tx.recipient.substring(0, 8) + '...'}</td>
+                                                <td className="px-4 py-3 font-bold">{tx.amount > 0 ? `${tx.amount} ETHC` : '-'}</td>
+                                                <td className="px-4 py-3 text-xs italic text-slate-500 truncate max-w-[150px]">{tx.description}</td>
+                                                <td className="px-4 py-3 text-slate-400 text-xs">{new Date(tx.timestamp).toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {(!ledger.blocks || ledger.blocks.length === 0) && (
+                            <div className="text-center text-slate-400 py-8">Ledger is empty or loading...</div>
+                        )}
                     </div>
                 </div>
             );
@@ -766,11 +848,167 @@
             );
         };
 
+        const NetworkView = () => {
+            const [peers, setPeers] = useState([]);
+            const svgRef = useRef(null);
+
+            useEffect(() => {
+                fetch(`${API_BASE_URL}/network/peers`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setPeers(data);
+                    })
+                    .catch(err => console.error(err));
+            }, []);
+
+            // Helper to mask IP addresses for privacy
+            const maskAddress = (addr) => {
+                if (!addr) return 'Unknown';
+                if (addr.includes('127.0.0.1') || addr.includes('localhost')) return 'Localhost';
+                const parts = addr.split('.');
+                if (parts.length === 4) {
+                    return `${parts[0]}.${parts[1]}.x.x:${addr.split(':')[1]}`;
+                }
+                return addr.substring(0, 10) + '...';
+            };
+
+            useEffect(() => {
+                if (!peers.length || !svgRef.current) return;
+
+                const width = svgRef.current.clientWidth;
+                const height = 400;
+                const svg = d3.select(svgRef.current);
+                svg.selectAll("*").remove();
+
+                const nodes = peers.map(p => ({ ...p }));
+                const links = [];
+
+                // Create links from local to everyone else
+                const localNode = nodes.find(n => n.role === 'local');
+                if (localNode) {
+                    nodes.forEach(n => {
+                        if (n.id !== localNode.id) {
+                            links.push({ source: localNode.id, target: n.id });
+                        }
+                    });
+                }
+
+                const simulation = d3.forceSimulation(nodes)
+                    .force("link", d3.forceLink(links).id(d => d.id).distance(150))
+                    .force("charge", d3.forceManyBody().strength(-300))
+                    .force("center", d3.forceCenter(width / 2, height / 2));
+
+                const link = svg.append("g")
+                    .selectAll("line")
+                    .data(links)
+                    .join("line")
+                    .attr("stroke", "#999")
+                    .attr("stroke-opacity", 0.6)
+                    .attr("stroke-width", 2);
+
+                const node = svg.append("g")
+                    .selectAll("g")
+                    .data(nodes)
+                    .join("g")
+                    .call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+
+                node.append("circle")
+                    .attr("r", d => d.role === 'local' ? 20 : 15)
+                    .attr("fill", d => d.role === 'local' ? '#4f46e5' : d.status === 'connected' ? '#10b981' : '#94a3b8')
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 2);
+
+                node.append("text")
+                    .text(d => d.role === 'local' ? 'YOU' : d.id.substring(0, 6))
+                    .attr("x", 25)
+                    .attr("y", 5)
+                    .style("font-size", "12px")
+                    .style("font-weight", "bold")
+                    .style("fill", "#475569");
+
+                simulation.on("tick", () => {
+                    link
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+
+                    node
+                        .attr("transform", d => `translate(${d.x},${d.y})`);
+                });
+
+                function dragstarted(event) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                }
+
+                function dragged(event) {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                }
+
+                function dragended(event) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    event.subject.fx = null;
+                    event.subject.fy = null;
+                }
+
+            }, [peers]);
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                            <span>🌐</span> P2P Network Map
+                        </h2>
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden relative">
+                            <svg ref={svgRef} width="100%" height="400"></svg>
+                            <div className="absolute top-4 right-4 bg-white/90 p-2 rounded-lg shadow-sm text-xs border border-slate-200">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
+                                    <span>Local Node (You)</span>
+                                </div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                    <span>Connected Peer</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                                    <span>Known Peer</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                            <h3 className="font-bold text-slate-500 uppercase text-xs mb-3">Active Connections</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {peers.map(peer => (
+                                    <div key={peer.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${peer.status === 'active' || peer.status === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                                        <div className="overflow-hidden">
+                                            <div className="font-mono text-sm font-bold truncate w-full">{peer.id === 'default_node' ? 'You (Default Node)' : peer.id.substring(0, 12) + '...'}</div>
+                                            <div className="text-xs text-slate-500">{maskAddress(peer.address)}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const WalletView = () => {
             const [wallet, setWallet] = useState(null);
             const [amount, setAmount] = useState('');
+            const [recipient, setRecipient] = useState('');
             const [status, setStatus] = useState('IDLE'); // IDLE, LOADING, SUCCESS, ERROR
             const [msg, setMsg] = useState('');
+            const [tab, setTab] = useState('STAKE'); // STAKE, TRANSFER
 
             const fetchWallet = () => {
                 fetch(`${API_BASE_URL}/wallet`)
@@ -785,107 +1023,168 @@
                 return () => clearInterval(interval);
             }, []);
 
-            const handleStake = async (action) => {
+            const handleAction = async (action) => {
                 if (!amount || isNaN(amount)) return;
                 setStatus('LOADING');
                 setMsg('');
 
                 try {
-                    const endpoint = action === 'STAKE' ? '/wallet/stake' : '/wallet/unstake';
+                    let endpoint, body;
+
+                    if (action === 'TRANSFER') {
+                        endpoint = '/wallet/transfer';
+                        body = { recipient, amount: parseFloat(amount) };
+                    } else {
+                        endpoint = action === 'STAKE' ? '/wallet/stake' : '/wallet/unstake';
+                        body = { amount: parseFloat(amount) };
+                    }
+
                     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amount: parseFloat(amount) })
+                        body: JSON.stringify(body)
                     });
 
+                    const data = await res.json();
+
                     if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.detail || 'Transaction failed');
+                        throw new Error(data.detail || 'Action failed');
                     }
 
-                    const data = await res.json();
                     setStatus('SUCCESS');
-                    setMsg(`${action} Successful! New Stake: ${data.new_stake}`);
-                    fetchWallet(); // Refresh UI
+                    setMsg(action === 'TRANSFER' ? `Sent ${amount} ETHC!` : 'Transaction successful!');
                     setAmount('');
+                    setRecipient('');
+                    fetchWallet(); // Refresh balance immediately
+
+                    setTimeout(() => setStatus('IDLE'), 3000);
                 } catch (err) {
+                    console.error(err);
                     setStatus('ERROR');
                     setMsg(err.message);
                 }
             };
 
-            if (!wallet) return <div>Loading Wallet...</div>;
-
             return (
                 <div className="space-y-6">
-                    <div className="glass-panel rounded-2xl p-6">
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                            <span>💰</span> Crypto-Economic Wallet
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-2xl shadow-lg">
-                                <div className="text-slate-400 text-sm font-medium mb-1">Liquid Balance</div>
-                                <div className="text-3xl font-mono font-bold">{wallet.liquid_balance.toLocaleString()} <span className="text-sm text-slate-500">ETHC</span></div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-                                <div className="relative z-10">
-                                    <div className="text-indigo-200 text-sm font-medium mb-1">Staked Balance</div>
-                                    <div className="text-3xl font-mono font-bold">{wallet.staked_balance.toLocaleString()} <span className="text-sm text-indigo-300">ETHC</span></div>
-                                </div>
-                                <div className="absolute -right-4 -bottom-4 text-9xl opacity-10 rotate-12">🔒</div>
-                            </div>
-
-                            <div className={`p-6 rounded-2xl shadow-lg border ${wallet.is_validator ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="text-slate-500 text-sm font-medium mb-1">Validator Status</div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-2xl font-bold ${wallet.is_validator ? 'text-green-600' : 'text-slate-400'}`}>
-                                        {wallet.is_validator ? 'ACTIVE' : 'INACTIVE'}
-                                    </span>
-                                    {wallet.is_validator && <span className="animate-pulse text-green-500">●</span>}
-                                </div>
-                                <div className="text-xs text-slate-400 mt-2">
-                                    Min Stake: 32,000 ETHC
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg">
+                            <div className="text-slate-400 text-sm font-medium mb-1">Liquid Balance</div>
+                            <div className="text-4xl font-bold flex items-baseline gap-2">
+                                {wallet ? wallet.liquid_balance.toLocaleString() : '...'}
+                                <span className="text-lg font-medium text-slate-500">ETHC</span>
                             </div>
                         </div>
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div className="relative z-10">
+                                <div className="text-indigo-100 text-sm font-medium mb-1">Staked Balance</div>
+                                <div className="text-4xl font-bold flex items-baseline gap-2">
+                                    {wallet ? wallet.staked_balance.toLocaleString() : '...'}
+                                    <span className="text-lg font-medium text-indigo-200">ETHC</span>
+                                </div>
+                            </div>
+                            <div className="absolute -right-4 -bottom-4 opacity-20 transform rotate-12">
+                                <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" /></svg>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="text-slate-500 text-sm font-medium mb-1">Validator Status</div>
+                            <div className="text-2xl font-bold text-slate-400 uppercase">
+                                {wallet?.is_validator ? <span className="text-green-600">Active</span> : 'Inactive'}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-2">Min Stake: 32,000 ETHC</div>
+                        </div>
+                    </div>
 
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                            <h3 className="font-bold text-slate-700 mb-4">Manage Stake</h3>
-                            <div className="flex gap-4 items-end">
+                    <div className="glass-panel rounded-2xl p-6">
+                        <div className="flex gap-4 mb-6 border-b border-slate-200 pb-2">
+                            <button
+                                onClick={() => setTab('STAKE')}
+                                className={`pb-2 font-bold transition-all ${tab === 'STAKE' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Manage Stake
+                            </button>
+                            <button
+                                onClick={() => setTab('TRANSFER')}
+                                className={`pb-2 font-bold transition-all ${tab === 'TRANSFER' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Transfer Funds
+                            </button>
+                        </div>
+
+                        {tab === 'STAKE' && (
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
                                 <div className="flex-1">
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Amount</label>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Amount</label>
                                     <input
                                         type="number"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                         placeholder="0.00"
-                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg font-mono"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                     />
                                 </div>
                                 <button
-                                    onClick={() => handleStake('STAKE')}
+                                    onClick={() => handleAction('STAKE')}
                                     disabled={status === 'LOADING'}
-                                    className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                                    className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-200"
                                 >
-                                    Stake 🔒
+                                    {status === 'LOADING' ? 'Processing...' : 'Stake 🔒'}
                                 </button>
                                 <button
-                                    onClick={() => handleStake('UNSTAKE')}
+                                    onClick={() => handleAction('UNSTAKE')}
                                     disabled={status === 'LOADING'}
-                                    className="px-6 py-2 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 disabled:opacity-50"
+                                    className="px-8 py-3 bg-white text-slate-700 border border-slate-300 font-bold rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-all"
                                 >
                                     Unstake 🔓
                                 </button>
                             </div>
+                        )}
 
-                            {msg && (
-                                <div className={`mt-4 p-3 rounded-lg text-sm font-medium ${status === 'SUCCESS' ? 'bg-green-100 text-green-800' : status === 'ERROR' ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-800'}`}>
-                                    {msg}
+                        {tab === 'TRANSFER' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Recipient Address</label>
+                                    <input
+                                        type="text"
+                                        value={recipient}
+                                        onChange={(e) => setRecipient(e.target.value)}
+                                        placeholder="Enter node ID or wallet address..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                    />
                                 </div>
-                            )}
-                        </div>
+                                <div className="flex flex-col md:flex-row gap-4 items-end">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Amount</label>
+                                        <input
+                                            type="number"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            placeholder="0.00"
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => handleAction('TRANSFER')}
+                                        disabled={status === 'LOADING'}
+                                        className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-emerald-200"
+                                    >
+                                        {status === 'LOADING' ? 'Sending...' : 'Send ETHC 💸'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {status === 'SUCCESS' && (
+                            <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm font-medium animate-fade-in text-center">
+                                ✅ {msg}
+                            </div>
+                        )}
+                        {status === 'ERROR' && (
+                            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm font-medium animate-fade-in text-center">
+                                ❌ {msg}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -970,6 +1269,7 @@
 
                         {activeTab === 'governance' && <GovernanceView />}
                         {activeTab === 'ledger' && <LedgerView />}
+                        {activeTab === 'network' && <NetworkView />}
                         {activeTab === 'memory' && <MemoryView />}
                         {activeTab === 'knowledge' && <KnowledgeView />}
                         {activeTab === 'wallet' && <WalletView />}

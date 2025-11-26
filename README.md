@@ -151,6 +151,25 @@ cd frontend/public && python3 -m http.server 4930
 python simulation.py
 ```
 
+### 🌍 Deployment & P2P Architecture
+
+**"Why localhost:3000?"**
+When you run Orbis Ethica on your computer (via Docker or Python), your machine becomes a **Node** in the network. `localhost:3000` is simply the address of the dashboard running *on your own machine*.
+
+**"Does it connect to a central server?"**
+**No.** Orbis Ethica is a pure P2P network. There is no central server at Google or Amazon.
+*   **Your Computer = The Server.** When you run the software, you are hosting a piece of the network.
+*   **Connectivity:** For your node to participate (validate blocks, vote), your computer must be on and connected to the internet.
+*   **Going Offline:** If you turn off your computer, your node stops. The network continues without you. When you return, your node will sync the missing blocks from peers.
+
+**For Permanent Hosting:**
+To run a 24/7 node (recommended for Validators), deploy the Docker container to a VPS (Virtual Private Server) like DigitalOcean, AWS, or even a Raspberry Pi at home.
+```bash
+# Example: Running on a public server
+export NODE_HOST="203.0.113.1" # Your Public IP
+docker-compose up -d
+```
+
 ---
 
 ## Core Concepts

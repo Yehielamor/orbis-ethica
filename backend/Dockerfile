@@ -20,6 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the backend code
 COPY backend/ ./backend/
 COPY simulation.py .
+COPY genesis.json .
+COPY system_config.json .
 
 # Expose the port
 EXPOSE 6429
