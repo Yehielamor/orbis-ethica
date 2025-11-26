@@ -1,0 +1,26 @@
+{
+    "chain_id": "orbis-ethica-mainnet",
+    "timestamp": "2025-11-26T12:00:00Z",
+    "governance_wallet": "GOVERNANCE_DAO_MULTI_SIG_V1",
+    "initial_balances": {
+        "genesis_wallet": 1000000.0,
+        "founder_vesting_contract": 8000000.0,
+        "ethical_allocation_pool": 1000000.0
+    },
+    "params": {
+        "block_reward": 5.0,
+        "min_stake_validator": 32000.0,
+        "min_stake_knowledge": 10000.0,
+        "vesting_schedule": {
+            "duration_years": 5,
+            "cliff_months": 12,
+            "release_per_year": 0.20
+        },
+        "junior_validator_program": {
+            "enabled": true,
+            "min_reputation": 0.95,
+            "grant_amount": 32000.0,
+            "probation_period_blocks": 10000
+        }
+    }
+}

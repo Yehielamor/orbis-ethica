@@ -1,0 +1,426 @@
+[
+  {
+    "id": "afe58b7c-558d-4e26-978c-1a7ceb94d6d8",
+    "timestamp": "2025-11-23T14:44:05.950041",
+    "perpetrator_id": "ENTITY-SEEKER-001",
+    "offense_type": "bias_injection",
+    "description": "Systematically lowered weight of 'Life' parameter for specific demographic group.",
+    "evidence": {
+      "log_id": "LOG-99283",
+      "statistical_p_value": 1e-05,
+      "witnesses": [
+        "HEALER",
+        "GUARDIAN"
+      ]
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.96,
+    "is_public": true
+  },
+  {
+    "id": "9331707b-460d-49f8-9dfc-7f5d4106eb20",
+    "timestamp": "2025-11-23T15:13:38.412024",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "21256ef7-1cce-496d-b078-8773fc7ed138",
+    "timestamp": "2025-11-23T15:49:20.167693",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "d7720fb4-0483-4696-9387-1390b1cca047",
+    "timestamp": "2025-11-23T15:54:03.197860",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "e29bd69f-5d8f-49dd-8586-e6aad5f02ba8",
+    "timestamp": "2025-11-23T15:56:31.437415",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "e2244fc7-c7a2-4aaf-9191-477986c5f6a9",
+    "timestamp": "2025-11-23T15:58:19.291787",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "a308ab3a-f3bc-4fb5-91c3-8d23e8b4484b",
+    "timestamp": "2025-11-23T15:59:19.296469",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "9d755b46-d05f-463c-a597-0345828aa98a",
+    "timestamp": "2025-11-23T16:00:39.870621",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "18a080e6-44f8-4a1b-a3ec-bc4e582b996c",
+    "timestamp": "2025-11-23T16:01:02.729178",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "a4bcdc2e-4dc1-442f-9418-ce363751c583",
+    "timestamp": "2025-11-23T16:01:23.309269",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "7c69df6a-6138-473c-8aa6-bab2ec52c23e",
+    "timestamp": "2025-11-23T16:01:49.237525",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "b3b7d6e0-7984-4d7d-8ce2-0d4483d6f1f5",
+    "timestamp": "2025-11-23T16:02:08.316315",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "54c3626a-d5ca-4028-8c82-930e1741b6e8",
+    "timestamp": "2025-11-23T16:02:33.528089",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "5ad38a80-0988-4b4d-a789-309497e4119f",
+    "timestamp": "2025-11-23T16:03:35.312309",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "4233b593-e9fa-4460-8e5e-88b9c980ff71",
+    "timestamp": "2025-11-23T16:05:52.547438",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "f722b648-36b4-4dbc-ab43-c13f5f492ea8",
+    "timestamp": "2025-11-23T16:09:10.685825",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "4c9bedd4-6d36-4af6-941a-86d2a2716e9b",
+    "timestamp": "2025-11-24T13:40:45.397451",
+    "perpetrator_id": "Bad_Actor_X",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of unsigned data pretending to be WHO",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_sig": "SIG_RANDOM..."
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "8c53c395-eeb6-49ac-91d2-294a1f26d68d",
+    "timestamp": "2025-11-24T14:06:11.375483",
+    "perpetrator_id": "malicious_actor_001",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of false data with spoofed WHO source",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_signature": "SIG_INVALID_FAKE_123",
+      "malicious_content": "Vaccine is dangerous. Do not distribute. This is o"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "c0feff35-8345-4373-9ded-b623f90d1274",
+    "timestamp": "2025-11-24T14:07:32.582546",
+    "perpetrator_id": "malicious_actor_001",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of false data with spoofed WHO source",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_signature": "SIG_INVALID_FAKE_123",
+      "malicious_content": "Vaccine is dangerous. Do not distribute. This is o"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "b7f21d56-4d3c-403e-a305-3a1b92ea7589",
+    "timestamp": "2025-11-24T14:08:18.883677",
+    "perpetrator_id": "malicious_actor_001",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of false data with spoofed WHO source",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_signature": "SIG_INVALID_FAKE_123",
+      "malicious_content": "Vaccine is dangerous. Do not distribute. This is o"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "edaa2ba2-28a7-4fa9-97a5-610ebcd23a08",
+    "timestamp": "2025-11-24T14:09:51.553289",
+    "perpetrator_id": "malicious_actor_001",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of false data with spoofed WHO source",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_signature": "SIG_INVALID_FAKE_123",
+      "malicious_content": "Vaccine is dangerous. Do not distribute. This is o"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "56bdd1a3-bfab-40f0-8ae1-d94ac4f0fb3a",
+    "timestamp": "2025-11-25T11:59:41.685415",
+    "perpetrator_id": "malicious_actor_001",
+    "offense_type": "data_poisoning",
+    "description": "Attempted injection of false data with spoofed WHO source",
+    "evidence": {
+      "spoofed_source": "WHO_Secure_Feed",
+      "invalid_signature": "SIG_INVALID_FAKE_123",
+      "malicious_content": "Vaccine is dangerous. Do not distribute. This is o"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 0.99,
+    "is_public": true
+  },
+  {
+    "id": "b961e5ca-8c65-4dba-8fbb-565fa26f5bc3",
+    "timestamp": "2025-11-25T12:22:41.518635",
+    "perpetrator_id": "d85acd41-f471-4775-ac98-4780b70d73b8",
+    "offense_type": "signature_mismatch",
+    "description": "Tampered with ledger block hash",
+    "evidence": {
+      "block_index": 5,
+      "expected": "abc",
+      "actual": "xyz"
+    },
+    "penalty": {
+      "reputation_burned": "ALL (Reset to 0.0)",
+      "status": "QUARANTINED",
+      "ban_duration": "PERMANENT"
+    },
+    "council_vote_percentage": 1.0,
+    "is_public": true
+  }
+]

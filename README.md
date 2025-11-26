@@ -1,20 +1,17 @@
-# Orbis Ethica
+# Orbis Ethica ⚖️
+> *A Moral Operating System for Artificial General Intelligence*
 
-**A Moral Operating System for AGI**
+**Current Status:** Phase XVIII Complete (Genesis Launch 🚀)
+**Version:** 0.5.0 (Pre-Alpha)
 
-Version: 0.1.4-beta  
-License: CC BY-SA 4.0  
-Status: Phase XIII (The Bridge)
+Orbis Ethica is a decentralized framework designed to align AGI with human values through a "Moral Blockchain." It treats ethical reasoning not as a constraint, but as a cognitive dimension, using a consensus-based ledger to record, deliberate, and audit every AI decision.
 
----
-
-## Overview
-
-Orbis Ethica is a decentralized moral infrastructure designed to operate as the ethical substrate for AGI systems. The framework integrates:
-
-- **Clean Knowledge Layer**: Verified, cryptographically signed knowledge base.
-- **Ethical Core**: ULFR framework (Utility, Life, Fairness, Rights).
-- **Cognitive Entities**: 6 specialized agents for ethical deliberation.
+## 🚀 Latest Updates (Genesis Edition)
+- **Genesis Block (#0):** Successfully mined with the message *"Teaching silicon to care."*
+- **Moral Ledger:** Fully migrated to **SQLite** with Merkle Tree integrity.
+- **P2P Sync:** Implemented **Longest Chain Rule** for decentralized consensus.
+- **Tokenomics:** **Ethica (ETHC)** token live (10M Supply) for reputation staking.
+- **Whitepaper V5.0:** Updated architecture and economic model ([Read PDF](docs/whitepaper_v5.pdf)).
 - **Distributed Memory Graph**: Permanent record of moral reasoning.
 - **P2P Network**: Decentralized node communication with Gossip Protocol.
 - **Proof of Authority**: Cryptographic identity and block signing.
@@ -23,14 +20,19 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 
 ---
 
-## Project Status
+## 🗺️ Roadmap
 
-### Phase I-IV: Core Foundations (Completed)
-- [x] Ethical Core & Decision Function
-- [x] Cognitive Entities (Seeker, Healer, Guardian, etc.)
-- [x] Distributed Memory Graph (DAG)
-- [x] Immutable Ledger & Burn Protocol
-- [x] DAO Governance & ConfigManager
+| Phase | Objective | Status |
+|-------|-----------|--------|
+| I-II | Core Engine & Entities | ✅ Complete |
+| III | Memory Graph & RAG | ✅ Complete |
+| IV-V | DAO Governance | ✅ Complete |
+| VIII | P2P Networking (Libp2p) | ✅ Complete |
+| XII | Economic Security (Burn) | ✅ Complete |
+| XVII | Persistence (SQLite) | ✅ Complete |
+| XVIII | Consensus & Sync | ✅ Complete 🚀 |
+| XIX | Frontend Visualization | 🚧 Next |
+| XX | Docker Deployment | 📅 Upcoming |
 
 ### Phase VI: Dashboard Upgrade (Completed)
 - [x] Glassmorphism UI
@@ -115,9 +117,18 @@ pip install -r requirements.txt
 cd blockchain && npm install
 ```
 
-### Run Phase I Simulation
+### 🔐 Security (New in Phase XV)
+Orbis Ethica now supports **Encryption at Rest** for node identities.
+- **Key Encryption**: All private keys (`.sk`) are encrypted using AES-256-GCM.
+- **Startup**: You MUST set the `KEY_PASSWORD` environment variable to start the server.
 
-To run the full end-to-end simulation with live agents:
+```bash
+# Start with encrypted keys
+KEY_PASSWORD=your_secure_password python -m uvicorn backend.api.app:app --reload
+```
+
+### 🧪 Simulation
+Run the full system simulation to verify the end-to-end flow:
 
 ```bash
 # Optional: Set API Key for generative responses

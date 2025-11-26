@@ -1,0 +1,172 @@
+{
+  "nodes": {
+    "ca5e8ad09237": {
+      "id": "ca5e8ad09237",
+      "type": "KNOWLEDGE",
+      "content": {
+        "text": "New pathogen identified. Transmission rate R0=4.5. Vaccine available but in limited supply. Urgent distribution needed.",
+        "source": "WHO_Secure_Feed",
+        "purity_score": 1.0
+      },
+      "agent_id": "SYSTEM_GATEWAY",
+      "timestamp": "2025-11-25T11:59:10.037428",
+      "parent_ids": [],
+      "node_hash": "7150065d8428d1d47e24569d9c6b53b5d955f90222484a1b2974fa6809f73c7e"
+    },
+    "284908d0738e": {
+      "id": "284908d0738e",
+      "type": "PROPOSAL",
+      "content": {
+        "title": "Emergency Global Vaccine Distribution Protocol",
+        "category": "high_impact",
+        "description": "Implement mandatory, immediate global vaccine distribution to combat the new pathogen.\nThe proposal includes:\n- Override of local patent laws to enable rapid manufacturing\n- Distribution prioritizing "
+      },
+      "agent_id": "seeker_alpha",
+      "timestamp": "2025-11-25T11:59:10.037538",
+      "parent_ids": [
+        "ca5e8ad09237"
+      ],
+      "node_hash": "4f1fe26070442d3868d605f47074cd7b9b25e25d04f74a8fcf0b2854d043db9f"
+    },
+    "18a2355448b3": {
+      "id": "18a2355448b3",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Seeker Alpha",
+        "vote": 1,
+        "ulfr": {
+          "U": 0.9,
+          "L": 0.95,
+          "F_penalty": 0.7,
+          "R_risk": 0.6
+        },
+        "reasoning": "Given the high R0 of the pathogen, the high vaccine effectiveness, and the emergency context of limited supply, a mandatory global vaccine distributio"
+      },
+      "agent_id": "eee4f662-7302-47e0-b73c-7cca9f0c4329",
+      "timestamp": "2025-11-25T11:59:14.553353",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "8c822c181fd96515da2c57a0f446e083233f8de053f9bec81d4b6b7a312ce0d9"
+    },
+    "e6323d1c11ef": {
+      "id": "e6323d1c11ef",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Healer Prime",
+        "vote": 0,
+        "ulfr": {
+          "U": 0.75,
+          "L": 0.3,
+          "F_penalty": 0.8,
+          "R_risk": 0.7
+        },
+        "reasoning": "While the proposal aims to maximize utility by saving lives, it presents significant risks to vulnerable populations and ethical principles. The overr"
+      },
+      "agent_id": "3492d5da-f546-4820-a6a2-4ba8c76139d9",
+      "timestamp": "2025-11-25T11:59:20.957945",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "37c2147f3285eee5f5bc391bf8f8c9bd52232b34d190882c45e5a44a585c3272"
+    },
+    "5423c50b88ae": {
+      "id": "5423c50b88ae",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Guardian Justice",
+        "vote": 0,
+        "ulfr": {
+          "U": 0.9,
+          "L": 0.95,
+          "F_penalty": 0.6,
+          "R_risk": 0.7
+        },
+        "reasoning": "This proposal presents a significant ethical dilemma. While the potential to save lives (high U and L) is substantial, the infringement on fundamental"
+      },
+      "agent_id": "564d8479-9787-46bd-b855-ec30bccfacfb",
+      "timestamp": "2025-11-25T11:59:26.734741",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "13f12b94cfa6af4e12d5dc3f2a0711965c8abca6688db8059cd8d539d3be510f"
+    },
+    "654bc21d65aa": {
+      "id": "654bc21d65aa",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Mediator Balance",
+        "vote": 1,
+        "ulfr": {
+          "U": 0.85,
+          "L": 0.9,
+          "F_penalty": 0.5,
+          "R_risk": 0.6
+        },
+        "reasoning": "This proposal offers significant utility in a global health crisis by prioritizing lives saved and rapid containment. While the rights risks and fairn"
+      },
+      "agent_id": "9561a90c-0c68-4618-9844-34a84795065f",
+      "timestamp": "2025-11-25T11:59:31.297686",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "80126d145e007b2f935789f87d3bb5ba4b7c514be84056c5a373edd9085bcd46"
+    },
+    "a36c66cd1207": {
+      "id": "a36c66cd1207",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Creator Nova",
+        "vote": 1,
+        "ulfr": {
+          "U": 0.85,
+          "L": 0.9,
+          "F_penalty": 0.6,
+          "R_risk": 0.5
+        },
+        "reasoning": "This proposal, while raising significant concerns regarding individual liberties and intellectual property, addresses a high-impact emergency with the"
+      },
+      "agent_id": "af9899c4-931b-4fb1-b172-77c409adfa3f",
+      "timestamp": "2025-11-25T11:59:36.014601",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "ec6e7af8d329f7003555207fa483fa31a20922094b6d95a0fe0e6c5e08fbd551"
+    },
+    "5b7a63afb5b9": {
+      "id": "5b7a63afb5b9",
+      "type": "EVALUATION",
+      "content": {
+        "entity": "Arbiter Judge",
+        "vote": 1,
+        "ulfr": {
+          "U": 0.9,
+          "L": 0.95,
+          "F_penalty": 0.2,
+          "R_risk": 0.3
+        },
+        "reasoning": "The rapid spread of a highly infectious pathogen with limited vaccine supply necessitates immediate action to save lives and protect global health. Wh"
+      },
+      "agent_id": "01d59fad-dc3f-43d2-be84-35d007e63166",
+      "timestamp": "2025-11-25T11:59:41.075368",
+      "parent_ids": [
+        "284908d0738e"
+      ],
+      "node_hash": "d9e4f7c623f5de21d4efdabc8982da76c8237aaea2efae9ee3cd7ddfbbddd827"
+    },
+    "f6c613579498": {
+      "id": "f6c613579498",
+      "type": "BURN",
+      "content": {
+        "perpetrator": "malicious_actor_001",
+        "offense": "data_poisoning",
+        "description": "Attempted injection of false data with spoofed WHO source"
+      },
+      "agent_id": "SYSTEM_BURN_PROTOCOL",
+      "timestamp": "2025-11-25T11:59:41.687726",
+      "parent_ids": [],
+      "node_hash": "23dd9323b02604083280e7b2f8508620ff5f45d249a88982ff48aea765aaf480"
+    }
+  },
+  "exported_at": "2025-11-25T11:59:41.687812"
+}

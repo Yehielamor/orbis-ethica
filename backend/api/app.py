@@ -66,6 +66,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+    # 3.5 Authentication Middleware (Phase XVI)
+from .auth_middleware import SignatureAuthMiddleware
+app.add_middleware(
+    SignatureAuthMiddleware,
+    protected_paths=[
+        "/api/proposals/submit",
+        "/api/votes"
+    ]
+)
+
 @app.get("/api/network/peers")
 async def get_network_peers():
     """Get list of all known peers and their status."""
@@ -81,15 +91,20 @@ config_manager = None
 burn_protocol = None
 knowledge_gateway = None
 node_manager = None
+sync_manager = None
 ENTITY_INSTANCES = []
-
+identity = None # Make identity global
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize core components on server startup."""
-    global llm_provider, deliberation_engine, memory_graph, ENTITY_INSTANCES, config_manager, burn_protocol, knowledge_gateway, node_manager
+    global llm_provider, deliberation_engine, memory_graph, ENTITY_INSTANCES, config_manager, burn_protocol, knowledge_gateway, node_manager, identity, sync_manager
     
     print("🚀 Orbis Ethica API: Starting up...")
+    
+    # 0. Initialize Database (Phase XVII)
+    from ..core.database import init_db
+    init_db()
     
     # 1. Initialize LLM Provider
     llm_provider = get_llm_provider()
@@ -100,21 +115,30 @@ async def startup_event():
     
     # 1.5 Initialize Node Identity (Phase IX) - Moved to top for dependency injection
     NODE_ID = os.getenv("NODE_ID", f"node_{os.urandom(4).hex()}")
+    KEY_PASSWORD = os.getenv("KEY_PASSWORD")
+    
     from ..security.identity import NodeIdentity
-    identity = NodeIdentity(node_id=NODE_ID)
-    print(f"   🔑 Node Identity: {identity.public_key_hex[:16]}...")
+    try:
+        identity = NodeIdentity(node_id=NODE_ID, password=KEY_PASSWORD)
+        print(f"   🔑 Node Identity: {identity.public_key_hex[:16]}...")
+    except ValueError as e:
+        print(f"❌ FATAL: Failed to load identity: {e}")
+        print("   💡 If keys are encrypted, ensure KEY_PASSWORD is set.")
+        # We should probably exit here, but raising exception will stop startup
+        raise e
     
     # 2. Initialize Ledger (Phase III)
-    from ..core.ledger import LocalBlockchain
-    ledger = LocalBlockchain(identity=identity) # Pass Identity to Ledger
-    if not ledger.verify_integrity():
-        print("❌ Ledger Integrity Check Failed!")
-    else:
-        print(f"   ⛓️  Ledger: Initialized (Genesis Block: {ledger.get_latest_block().hash[:8]}...)")
+    # 2. Initialize Ledger (Phase XVII)
+    from ..core.ledger import Ledger
+    ledger = Ledger() # Uses global DatabaseManager
+    print(f"   ⛓️  Ledger: Initialized (SQLite Backend)")
     
     # 3. Initialize Memory Graph (with Ledger)
     memory_graph = MemoryGraph(ledger=ledger)
     print(f"   🧠 Memory Graph: Initialized (Connected to Ledger)")
+    
+    # 3.5 Load Genesis (Phase XVIII)
+    ledger.load_genesis()
     
     # 4. Define Entity Models
     entity_models_data = [
@@ -210,17 +234,26 @@ async def startup_event():
     print(f"   🕸️  Libp2p Node Started: {p2p_service.get_peer_id()}")
     
     # Legacy NodeManager (keeping for now to avoid breaking other parts, but it won't do much)
+    # Use the random port we generated above if NODE_PORT is not set
+    final_p2p_port = int(os.getenv('NODE_PORT', p2p_port))
+    
     node_manager = NodeManager(
         node_id=NODE_ID,
         host=os.getenv("NODE_HOST", "127.0.0.1"),
-        port=int(os.getenv("NODE_PORT", 8000)),
+        port=final_p2p_port,
         seed_nodes=os.getenv("SEED_NODES", "").split(",") if os.getenv("SEED_NODES") else [],
         identity=identity
     )
     # await node_manager.start() # Disable legacy start to avoid confusion? 
     # Actually, keep it for the UI API for now until we fully migrate.
     await node_manager.start()
-    print(f"   🌐 P2P Node Manager: Active ({NODE_ID} on {os.getenv('NODE_HOST', '127.0.0.1')}:{int(os.getenv('NODE_PORT', 8000))})")
+    print(f"   🌐 P2P Node Manager: Active ({NODE_ID} on {os.getenv('NODE_HOST', '127.0.0.1')}:{final_p2p_port})")
+    
+    # 4.5 Initialize Sync Manager (Phase XVIII)
+    from ..p2p.sync_manager import SyncManager
+    sync_manager = SyncManager(ledger=ledger, node_manager=node_manager)
+    # asyncio.create_task(sync_manager.start_sync_loop()) # Uncomment to enable active sync
+    print(f"   🔄 Sync Manager: Initialized")
     
     # 8. Initialize Deliberation Engine (Updated with ConfigManager)
     # 8. Initialize Deliberation Engine
@@ -457,13 +490,14 @@ def get_wallet_info():
         raise HTTPException(status_code=503, detail="Ledger not initialized")
     
     ledger = memory_graph.ledger
-    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    # Use global identity
+    my_address = identity.public_key_hex if identity else "genesis_wallet"
     
     return {
         "address": my_address,
         "liquid_balance": ledger.get_balance(my_address),
-        "staked_balance": ledger.get_stake_balance(my_address),
-        "is_validator": ledger.get_stake_balance(my_address) >= 32000.0
+        "staked_balance": 0.0, # Staking not yet migrated to DB
+        "is_validator": False
     }
 
 @app.post("/api/wallet/stake")
@@ -535,7 +569,7 @@ async def search_memory(query: SearchQuery):
         
         return {
             "results": [
-                {"text": doc.page_content, "score": score, "metadata": doc.metadata}
+                {"text": doc.get("text", ""), "score": score, "metadata": doc.get("metadata", {})}
                 for doc, score in results
             ]
         }
@@ -586,14 +620,15 @@ def get_entities():
 
 @app.get("/api/ledger")
 def get_ledger():
-    """Returns the full blockchain ledger."""
+    """Returns the full ledger transaction history."""
     if not memory_graph or not memory_graph.ledger:
         raise HTTPException(status_code=503, detail="Ledger not initialized")
     
-    chain = memory_graph.ledger.get_chain()
+    # New SQLite Ledger returns transactions, not blocks
+    history = memory_graph.ledger.get_transaction_history()
     return {
-        "height": len(chain),
-        "blocks": [block.model_dump() for block in chain]
+        "count": len(history),
+        "transactions": history
     }
 
 @app.get("/api/governance/config")

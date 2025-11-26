@@ -25,6 +25,7 @@ burn_ledger.json
 test_burn_ledger.json
 *.log
 system_config.json
+*.db
 
 # Security
 .keys/
@@ -33,8 +34,9 @@ identity.json
 *.key
 
 # Simulation & Runtime
-scripts/simulation/
+# scripts/simulation/
 *.json
 !package.json
 !tsconfig.json
 !manifest.json
+!genesis.json
