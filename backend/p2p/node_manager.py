@@ -67,6 +67,33 @@ class NodeManager:
         # For now, return all
         return list(self.peers.values())
 
+    def get_peers_status(self) -> List[Dict[str, Any]]:
+        """Return formatted status of all peers for UI."""
+        status_list = []
+        
+        # Add self
+        status_list.append({
+            "id": self.node_id,
+            "role": "local",
+            "status": "active",
+            "address": f"{self.host}:{self.port}",
+            "reputation": 1.0, # Self is always trusted
+            "last_seen": time.time()
+        })
+        
+        # Add peers
+        for peer in self.peers.values():
+            status_list.append({
+                "id": peer.node_id,
+                "role": "peer",
+                "status": "connected" if peer.node_id in self.active_connections else "known",
+                "address": f"{peer.host}:{peer.port}",
+                "reputation": peer.reputation,
+                "last_seen": peer.last_seen
+            })
+            
+        return status_list
+
     async def broadcast(self, message: P2PMessage):
         """
         Broadcast a message to all active peers (Gossip Protocol).

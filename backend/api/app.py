@@ -29,7 +29,9 @@ from ..core.deliberation_engine import DeliberationEngine
 from ..core.models import Proposal, ProposalCategory, ProposalDomain, Entity, EntityType
 from ..memory.graph import MemoryGraph
 
-# --- Entity Imports ---
+
+
+# --- WebSocket for P2P ---
 from ..entities.base import BaseEntity
 from ..entities.seeker import SeekerEntity
 from ..entities.healer import HealerEntity
@@ -63,6 +65,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/api/network/peers")
+async def get_network_peers():
+    """Get list of all known peers and their status."""
+    if not node_manager:
+        return []
+    return node_manager.get_peers_status()
 
 # --- Global State (Initialized at Startup) ---
 llm_provider = None
@@ -184,17 +193,37 @@ async def startup_event():
     config_manager = ConfigManager()
     print(f"   ⚙️  Config Manager: Initialized (Threshold: {config_manager.get_config().deliberation_threshold})")
 
-    # 11. Initialize P2P Node Manager (Phase VIII) - Moved up for Dependency Injection
-    # NODE_ID is already initialized at step 1.5
-    NODE_HOST = os.getenv("NODE_HOST", "localhost")
-    NODE_PORT = int(os.getenv("NODE_PORT", "6429"))
-    SEED_NODES = os.getenv("SEED_NODES", "").split(",") if os.getenv("SEED_NODES") else []
+    # 2. Initialize P2P Service (Phase XI - True P2P)
+    # We use the new Libp2pService instead of the old NodeManager for transport
+    from ..p2p.libp2p_service import Libp2pService
     
-    node_manager = NodeManager(node_id=NODE_ID, host=NODE_HOST, port=NODE_PORT, seed_nodes=SEED_NODES, identity=identity)
+    # Use a random port or fixed one
+    p2p_port = int(os.getenv("P2P_PORT", 0))
+    p2p_service = Libp2pService(port=p2p_port)
+    p2p_service.start_background()
+    
+    # Attach to app state for access
+    app.state.p2p_service = p2p_service
+    
+    # Wait a bit for it to initialize (hacky but simple for now)
+    await asyncio.sleep(2)
+    print(f"   🕸️  Libp2p Node Started: {p2p_service.get_peer_id()}")
+    
+    # Legacy NodeManager (keeping for now to avoid breaking other parts, but it won't do much)
+    node_manager = NodeManager(
+        node_id=NODE_ID,
+        host=os.getenv("NODE_HOST", "127.0.0.1"),
+        port=int(os.getenv("NODE_PORT", 8000)),
+        seed_nodes=os.getenv("SEED_NODES", "").split(",") if os.getenv("SEED_NODES") else [],
+        identity=identity
+    )
+    # await node_manager.start() # Disable legacy start to avoid confusion? 
+    # Actually, keep it for the UI API for now until we fully migrate.
     await node_manager.start()
-    print(f"   🌐 P2P Node Manager: Active ({NODE_ID} on {NODE_HOST}:{NODE_PORT})")
+    print(f"   🌐 P2P Node Manager: Active ({NODE_ID} on {os.getenv('NODE_HOST', '127.0.0.1')}:{int(os.getenv('NODE_PORT', 8000))})")
     
     # 8. Initialize Deliberation Engine (Updated with ConfigManager)
+    # 8. Initialize Deliberation Engine
     deliberation_engine = DeliberationEngine(
         entities=ENTITY_INSTANCES,
         mediator=mediator_instance,
@@ -283,8 +312,25 @@ async def ingest_knowledge(raw: RawKnowledge):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+class ChallengeRequest(BaseModel):
+    source_id: str
+
+@app.post("/api/knowledge/challenge")
+async def request_challenge(req: ChallengeRequest):
+    """
+    Step 1: Request a cryptographic challenge (nonce).
+    """
+    if not knowledge_gateway:
+        raise HTTPException(status_code=503, detail="Gateway not initialized")
+    
+    try:
+        nonce = knowledge_gateway.create_challenge(req.source_id)
+        return {"nonce": nonce}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 class SignRequest(BaseModel):
-    content: str
+    content: str # In this case, the content to sign is the NONCE
 
 @app.post("/api/knowledge/sign")
 async def sign_content(req: SignRequest):
@@ -292,8 +338,8 @@ async def sign_content(req: SignRequest):
     Helper endpoint to generate a valid mock signature for testing.
     In production, this would NOT exist (signatures come from client).
     """
-    # Mock signature logic: "SIG_" + reversed(content)
-    signature = f"SIG_{req.content[::-1]}"
+    # Mock signature logic: "SIG_" + content (where content is the nonce)
+    signature = f"SIG_{req.content}"
     return {"signature": signature}
 
 
@@ -400,6 +446,77 @@ async def root():
     }
 
 # --- LEDGER ENDPOINTS ---
+
+class StakeRequest(BaseModel):
+    amount: float
+
+@app.get("/api/wallet")
+def get_wallet_info():
+    """Get current node's wallet status."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+    
+    ledger = memory_graph.ledger
+    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    
+    return {
+        "address": my_address,
+        "liquid_balance": ledger.get_balance(my_address),
+        "staked_balance": ledger.get_stake_balance(my_address),
+        "is_validator": ledger.get_stake_balance(my_address) >= 32000.0
+    }
+
+@app.post("/api/wallet/stake")
+def stake_tokens(req: StakeRequest):
+    """Stake tokens to become a validator."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+        
+    ledger = memory_graph.ledger
+    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    
+    # Create STAKE transaction
+    from ..core.ledger import TokenTransaction, TransactionType
+    
+    tx = TokenTransaction(
+        id=f"stake_{uuid4().hex[:8]}",
+        type=TransactionType.STAKE,
+        sender=my_address,
+        receiver="STAKING_CONTRACT",
+        amount=req.amount,
+        signature="simulated_sig" # In real app, sign with private key
+    )
+    
+    if ledger.add_block(data={"msg": "Staking Request"}, transactions=[tx]):
+        return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
+    else:
+        raise HTTPException(status_code=400, detail="Staking failed (Insufficient funds?)")
+
+@app.post("/api/wallet/unstake")
+def unstake_tokens(req: StakeRequest):
+    """Unstake tokens."""
+    if not memory_graph or not memory_graph.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+        
+    ledger = memory_graph.ledger
+    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    
+    # Create UNSTAKE transaction
+    from ..core.ledger import TokenTransaction, TransactionType
+    
+    tx = TokenTransaction(
+        id=f"unstake_{uuid4().hex[:8]}",
+        type=TransactionType.UNSTAKE,
+        sender=my_address,
+        receiver="STAKING_CONTRACT", # Receiver doesn't matter much for unstake logic
+        amount=req.amount,
+        signature="simulated_sig"
+    )
+    
+    if ledger.add_block(data={"msg": "Unstaking Request"}, transactions=[tx]):
+        return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
+    else:
+        raise HTTPException(status_code=400, detail="Unstaking failed (Insufficient stake?)")
 
 
 # --- MEMORY ENDPOINTS ---
@@ -572,7 +689,7 @@ async def submit_proposal(request: Request, proposal_input: ProposalInput):
             ))
         
         # 2. Define SSE Generator
-        def sse_generator():
+        async def sse_generator():
             try:
                 # Use the generator from the engine
                 # FastAPI runs sync iterators in a threadpool, so this won't block the event loop
@@ -581,7 +698,7 @@ async def submit_proposal(request: Request, proposal_input: ProposalInput):
                     submitter_id=proposal.submitter_id
                 )
                 
-                for event in generator:
+                async for event in generator:
                     # Format as SSE
                     yield f"data: {json.dumps(event)}\n\n"
                     

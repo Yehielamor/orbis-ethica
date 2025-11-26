@@ -115,7 +115,7 @@ class DeliberationEngine:
         else:
             return DecisionOutcome.REJECTED
 
-    def deliberate_generator(self, proposal: Proposal, submitter_id: str = "system"):
+    async def deliberate_generator(self, proposal: Proposal, submitter_id: str = "system"):
         """
         Generator that yields events during the deliberation process.
         Useful for real-time streaming to the UI.
@@ -133,21 +133,17 @@ class DeliberationEngine:
         # Broadcast Block (P2P)
         if self.node_manager and self.memory_graph.ledger:
             latest_block = self.memory_graph.ledger.get_latest_block()
-            # We need to import P2PMessage/MessageType here or use a helper
-            # To avoid circular imports, we'll assume node_manager has a helper or we construct dict
-            # Actually, let's use the node_manager.broadcast method which expects a P2PMessage object.
-            # But we can't import P2PMessage easily without circular dependency if not careful.
-            # Let's assume we pass the raw dict and node_manager handles wrapping, OR we import inside method.
             from ..p2p.models import P2PMessage, MessageType
             import asyncio
             
-            asyncio.create_task(self.node_manager.broadcast(
+            # Use await since we are now async
+            await self.node_manager.broadcast(
                 P2PMessage(
                     type=MessageType.GOSSIP_BLOCK,
                     sender_id=self.node_manager.node_id,
                     payload=latest_block.model_dump()
                 )
-            ))
+            )
             
         current_round = 1
         final_outcome = DecisionOutcome.REJECTED
@@ -311,22 +307,38 @@ class DeliberationEngine:
                 })
 
         # 9. Execute Constitutional Proposals (Phase IV)
-        if final_outcome == DecisionOutcome.APPROVED and proposal.category.value == "constitutional":
-            if self.config_manager and proposal.context.get("parameter_change"):
-                change = proposal.context["parameter_change"]
-                param = change.get("parameter")
-                value = change.get("value")
-                
+        if final_outcome == DecisionOutcome.APPROVED:
+            # A. Constitutional Changes
+            if proposal.category.value == "constitutional":
+                if self.config_manager and proposal.context.get("parameter_change"):
+                    change = proposal.context["parameter_change"]
+                    param = change.get("parameter")
+                    value = change.get("value")
+                    
+                    try:
+                        if param == "ulfr_weights":
+                            self.config_manager.update_ulfr_weights(**value)
+                            yield {"type": "system_update", "message": f"ULFR Weights updated: {value}"}
+                        else:
+                            self.config_manager.update_parameter(param, value)
+                            yield {"type": "system_update", "message": f"System Parameter '{param}' updated to {value}"}
+                    except Exception as e:
+                        print(f"❌ Error executing constitutional change: {e}")
+                        yield {"type": "error", "message": f"Constitutional execution failed: {e}"}
+            
+            # B. Economic Rewards (Phase XIII: The Bridge)
+            if self.memory_graph.ledger:
                 try:
-                    if param == "ulfr_weights":
-                        self.config_manager.update_ulfr_weights(**value)
-                        yield {"type": "system_update", "message": f"ULFR Weights updated: {value}"}
-                    else:
-                        self.config_manager.update_parameter(param, value)
-                        yield {"type": "system_update", "message": f"System Parameter '{param}' updated to {value}"}
+                    reward_tx = self._mint_proposal_reward(proposal, final_score)
+                    if reward_tx:
+                        yield {
+                            "type": "economic_reward", 
+                            "message": f"💰 Minted {reward_tx.amount} ETHC to {reward_tx.receiver}",
+                            "tx_id": reward_tx.id
+                        }
                 except Exception as e:
-                    print(f"❌ Error executing constitutional change: {e}")
-                    yield {"type": "error", "message": f"Constitutional execution failed: {e}"}
+                    print(f"❌ Error minting reward: {e}")
+                    yield {"type": "error", "message": f"Reward minting failed: {e}"}
 
         yield {
             "type": "final_decision", 
@@ -336,21 +348,69 @@ class DeliberationEngine:
             "reputation_updates": reputation_updates
         }
         
-        return decision
+        # return decision
 
-    def deliberate(self, proposal: Proposal, submitter_id: str = "system") -> Decision:
+    def _mint_proposal_reward(self, proposal: Proposal, score: float) -> Optional[Any]:
         """
-        Run the full deliberation protocol (Synchronous Wrapper).
+        Mint a reward for an approved proposal.
+        """
+        if not self.memory_graph.ledger:
+            return None
+            
+        # Calculate Reward
+        # Base reward + multiplier based on score (0.5 to 1.0)
+        base_reward = 100.0
+        score_multiplier = max(1.0, score * 2) # e.g. score 0.8 -> 1.6x
+        amount = base_reward * score_multiplier
+        
+        # Determine Receiver
+        # If proposal has a 'submitter_id' that looks like a wallet address (hex), use it.
+        # Otherwise, we can't mint to a generic name like "system".
+        # For MVP, we'll assume submitter_id IS the wallet address if it's long enough.
+        receiver = proposal.submitter_id
+        if len(receiver) < 10: # Heuristic for non-wallet ID
+            print(f"⚠️ Cannot mint reward: Submitter ID '{receiver}' is not a valid wallet address.")
+            return None
+            
+        # Create Transaction
+        # We need to import TokenTransaction/TransactionType here to avoid circular imports at top level?
+        # Or just use the ledger's method if it has one.
+        # Let's import locally.
+        from .ledger import TokenTransaction, TransactionType
+        
+        tx = TokenTransaction(
+            id=f"reward_{proposal.id}_{int(time.time())}",
+            type=TransactionType.MINT,
+            sender="GOVERNANCE_DAO", # Minted by Governance
+            receiver=receiver,
+            amount=amount,
+            signature="governance_auto_sig" # In real system, this needs MultiSig
+        )
+        
+        # Add to Ledger
+        # We wrap it in a block (or add to mempool). 
+        # LocalBlockchain.add_block takes a list of txs.
+        self.memory_graph.ledger.add_block(
+            data={"msg": f"Reward for Proposal {proposal.id}"},
+            transactions=[tx]
+        )
+        
+        return tx
+
+
+    async def deliberate(self, proposal: Proposal, submitter_id: str = "system") -> Decision:
+        """
+        Run the full deliberation protocol (Async Wrapper).
         Consumes the generator and prints output to stdout.
         """
         print(f"\n🚀 STARTING DELIBERATION: {proposal.title}")
         print(f"   Category: {proposal.category.value}")
         
         generator = self.deliberate_generator(proposal, submitter_id)
-        last_decision = None
+        decision_data = None
         
         try:
-            for event in generator:
+            async for event in generator:
                 event_type = event.get("type")
                 
                 if event_type == "round_start":
@@ -361,7 +421,6 @@ class DeliberationEngine:
                     print(f"   Outcome: {event['outcome'].upper()}")
                     
                 elif event_type == "memory_added":
-                    # Optional: print memory operations if needed, or keep silent like before
                     pass
                     
                 elif event_type == "refinement_needed":
@@ -374,59 +433,13 @@ class DeliberationEngine:
                     print(f"   ✨ Proposal refined: {len(event['full_text'])} chars")
                     print(f"   📝 New Description Snippet: {event['snippet']}")
                     
-                elif event_type == "final_decision":
-                    print(f"\n🏁 DELIBERATION COMPLETE: {event['outcome'].upper()}")
-                    # Reconstruct decision object from dict if needed, but the generator returns it at the end
-                    pass
-                    
-        except StopIteration as e:
-            last_decision = e.value
-            
-        # The generator return value is captured in StopIteration.value
-        # But iterating with a for loop doesn't give easy access to return value.
-        # However, we know the last event is 'final_decision' which contains the data.
-        # But we need the actual Decision object.
-        # Let's just re-run the logic? No, that would duplicate side effects.
-        # We need to capture the return value.
-        
-        # Actually, since we are inside the class, we can just return the decision object 
-        # that we created in the generator. But we can't access local variables of the generator.
-        # We will modify the generator to yield the decision object as the last item 
-        # OR we can just use the data from the 'final_decision' event to reconstruct it 
-        # or simply return the decision object from the generator and capture it properly.
-        
-        # Python generators: return value is in StopIteration.value.
-        # But `for event in generator` catches StopIteration.
-        # So we have to do:
-        
-        gen = self.deliberate_generator(proposal, submitter_id)
-        decision_data = None
-        while True:
-            try:
-                event = next(gen)
-                # ... print logic ...
-                event_type = event.get("type")
-                if event_type == "round_start":
-                    print(f"\n--- ROUND {event['round']} ---")
-                elif event_type == "round_result":
-                    print(f"   Weighted Score: {event['score']:.3f} (Threshold: {event['threshold']})")
-                    print(f"   Outcome: {event['outcome'].upper()}")
-                elif event_type == "refinement_needed":
-                    print("   ↻ Refinement needed...")
-                elif event_type == "mediator_thinking":
-                    print(f"   🤖 {event['message']}")
-                elif event_type == "proposal_refined":
-                    print(f"   ✨ Proposal refined: {len(event['full_text'])} chars")
-                    print(f"   📝 New Description Snippet: {event['snippet']}")
                 elif event_type == "final_decision":
                     print(f"\n🏁 DELIBERATION COMPLETE: {event['outcome'].upper()}")
                     decision_data = event['decision']
                     
-            except StopIteration as e:
-                # The generator returned the Decision object
-                return e.value
-                
-        # Fallback if something weird happens (shouldn't reach here)
+        except Exception as e:
+            print(f"❌ Error during deliberation: {e}")
+            
         return Decision(**decision_data) if decision_data else None
 
     def print_detailed_report(self, decision: Decision) -> None:

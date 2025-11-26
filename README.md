@@ -4,7 +4,7 @@
 
 Version: 0.1.4-beta  
 License: CC BY-SA 4.0  
-Status: Phase IX (Identity & Security)
+Status: Phase XIII (The Bridge)
 
 ---
 
@@ -51,6 +51,21 @@ Orbis Ethica is a decentralized moral infrastructure designed to operate as the 
 - [x] **Node Identity**: Ed25519 Keypair generation.
 - [x] **Proof of Authority**: Cryptographic block signing.
 - [x] **Tamper Evidence**: Signature verification for all blocks.
+
+### Phase XI: True P2P (In Progress)
+- [x] **Serverless Architecture**: Transition to Libp2p/WebRTC.
+- [x] **Libp2p Service**: Background service for decentralized communication.
+- [ ] **Discovery**: Kademlia DHT for peer finding.
+
+### Phase XII: Economic Security (Completed)
+- [x] **Vesting Contract**: 5-year lock for founder funds (Anti-Rugpull).
+- [x] **Ethical Pool**: Dedicated allocation for diversity grants.
+- [x] **Integrity Checks**: Protocol-level enforcement of economic rules.
+
+### Phase XIII: The Bridge (Completed)
+- [x] **Deliberation-Ledger Link**: Automatic rewards for approved proposals.
+- [x] **Value Generation**: "Ethical Consensus" -> "Economic Value" pipeline.
+- [x] **Wallet UI**: Real-time balance and staking interface.
 
 ---
 

@@ -28,3 +28,13 @@ system_config.json
 
 # Security
 .keys/
+identity.json
+*.pem
+*.key
+
+# Simulation & Runtime
+scripts/simulation/
+*.json
+!package.json
+!tsconfig.json
+!manifest.json

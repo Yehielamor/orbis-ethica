@@ -17,7 +17,9 @@ class PeerInfo(BaseModel):
     node_id: str
     host: str
     port: int
-    last_seen: float = Field(default_factory=time.time)
+    first_seen: float = Field(default_factory=time.time) # Added first_seen with default
+    last_seen: float = Field(default_factory=time.time) # Retained default_factory for last_seen
+    reputation: float = 0.5 # Default neutral reputation
 
 class P2PMessage(BaseModel):
     """Standard P2P message envelope."""
