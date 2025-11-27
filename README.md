@@ -255,4 +255,5 @@ See [LICENSE](LICENSE) for details.
 ## Contact
 
 - **Email**: orbisethica@gmail.com
+- **Discord**: [Join the Community](https://discord.gg/gEQgqmVa)
 - **GitHub**: https://github.com/yehielamor/orbis-ethica
