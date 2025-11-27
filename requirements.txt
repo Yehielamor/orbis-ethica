@@ -26,8 +26,6 @@ ipfshttpclient==0.8.0a2
 
 # P2P (Phase XI)
 libp2p>=0.4.0
-multihash==0.1.1
-multiaddr>=0.0.11
 trio>=0.22.0
 
 # Web Framework
