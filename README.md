@@ -10,7 +10,7 @@ Orbis Ethica is a decentralized framework designed to align AGI with human value
 
 - **Moral Ledger:** Immutable SQLite blockchain with Merkle Tree integrity.
 - **Cognitive Entities:** 6-agent system (Seeker, Healer, Guardian, Mediator, Creator, Arbiter) for balanced ethical reasoning.
-- **P2P Network:** Decentralized node communication via Libp2p & Gossip Protocol.
+- **Hybrid P2P Networking**: Custom WebSocket-based mesh network with application-layer cryptography (Ed25519 signatures) for secure message propagation. (Libp2p integration planned for v2.0).
 - **Economic Security:** **Ethica (ETHC)** tokenomics with "Burn Protocol" for slashing malicious actors.
 - **Identity & Auth:** Ed25519 cryptographic identity with strict request signing.
 - **Real-Time Dashboard:** Glassmorphism UI with live deliberation feed and network visualization.

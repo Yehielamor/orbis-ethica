@@ -120,10 +120,8 @@ class NodeIdentity:
                     f.write(encrypted_data)
                 print(f"🔒 Generated NEW ENCRYPTED identity for {self.node_id}")
             else:
-                # Plaintext (Legacy)
-                with open(private_key_path, "wb") as f:
-                    f.write(key_hex_bytes)
-                print(f"⚠️  Generated NEW UNENCRYPTED identity for {self.node_id}")
+                # STRICT SECURITY: Do not allow unencrypted keys in production
+                raise ValueError(f"❌ SECURITY ERROR: Cannot generate identity for {self.node_id} without a password! Set KEY_PASSWORD env var.")
             
             # Public key is always plain
             with open(public_key_path, "wb") as f:

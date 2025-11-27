@@ -223,7 +223,7 @@ async def startup_event():
 
     # 2. Initialize P2P Service (Phase XI - True P2P)
     # We use the new Libp2pService instead of the old NodeManager for transport
-    from ..p2p.libp2p_service import Libp2pService
+    # from ..p2p.libp2p_service import Libp2pService
     
     # Use a random port or fixed one
     p2p_port = int(os.getenv("P2P_PORT", 0))
