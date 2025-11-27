@@ -329,10 +329,25 @@ The native token, **Ethica (ETHC)**, represents "Reputation at Stake." It is not
 The Genesis Block (Block \#0) mints the initial supply:
 \begin{itemize}
     \item \textbf{Total Supply}: 10,000,000 ETHC
-    \item \textbf{Genesis Wallet}: 1,000,000 ETHC (Network Bootstrap)
-    \item \textbf{Founder Vesting}: 8,000,000 ETHC (Locked for 5 years)
-    \item \textbf{Ethical Allocation Pool}: 1,000,000 ETHC (Grants for diverse nodes)
+    \item \textbf{Public Sale Treasury}: 6,500,000 ETHC (65\% - For future distribution/sale)
+    \item \textbf{Ethical Allocation Pool}: 2,000,000 ETHC (20\% - Charity Grants for diverse nodes)
+    \item \textbf{Mining Reward Pool}: 1,000,000 ETHC (10\% - Incentives for deliberation)
+    \item \textbf{Founder Allocation}: 100,000 ETHC (1\% - Liquid)
+    \item \textbf{Founder Vesting}: 400,000 ETHC (4\% - Locked for 5 years)
 \end{itemize}
+
+\subsection{Burn Recycling Mechanism (The Purgatory Protocol)}
+To maintain the 10M hard cap while ensuring due process, Orbis Ethica implements a **Slash Escrow** mechanism. When tokens are slashed from a malicious actor:
+\begin{enumerate}
+    \item \textbf{Seizure}: Tokens are immediately removed from the offender's balance and transferred to the \textbf{Slash Escrow Vault} (a time-locked contract).
+    \item \textbf{Purgatory Period}: The tokens remain frozen for a fixed period (e.g., 30 days). During this time, the offender can submit a cryptographic appeal to the Global Assembly.
+    \item \textbf{Resolution}:
+    \begin{itemize}
+        \item \textbf{Appeal Successful}: Tokens are returned to the node.
+        \item \textbf{Appeal Failed / No Appeal}: After the period expires, tokens are recycled to the \textbf{Public Sale Treasury}, becoming available for future ethical actors.
+    \end{itemize}
+\end{enumerate}
+This ensures that the ecosystem remains sustainable (non-deflationary) without sacrificing justice or security.
 
 \section{Governance}
 

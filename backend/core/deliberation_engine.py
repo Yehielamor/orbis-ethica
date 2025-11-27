@@ -372,27 +372,29 @@ class DeliberationEngine:
             print(f"⚠️ Cannot mint reward: Submitter ID '{receiver}' is not a valid wallet address.")
             return None
             
-        # Create Transaction
-        # We need to import TokenTransaction/TransactionType here to avoid circular imports at top level?
-        # Or just use the ledger's method if it has one.
-        # Let's import locally.
-        from .ledger import TokenTransaction, TransactionType
-        
-        tx = TokenTransaction(
-            id=f"reward_{proposal.id}_{int(time.time())}",
-            type=TransactionType.MINT,
-            sender="GOVERNANCE_DAO", # Minted by Governance
-            receiver=receiver,
+        # Use the ledger to TRANSFER from the Mining Reward Pool
+        # This preserves the 10M cap (no new minting).
+        success = self.memory_graph.ledger.record_transaction(
+            sender="mining_reward_pool",
+            recipient=receiver,
             amount=amount,
-            signature="governance_auto_sig" # In real system, this needs MultiSig
+            tx_type="transfer", # Transfer, not Mint
+            description=f"Reward for Proposal {proposal.id}"
         )
         
-        # Add to Ledger
-        # We wrap it in a block (or add to mempool). 
-        # LocalBlockchain.add_block takes a list of txs.
-        self.memory_graph.ledger.add_block(
-            data={"msg": f"Reward for Proposal {proposal.id}"},
-            transactions=[tx]
+        if not success:
+            print("⚠️ Reward transfer failed. Check 'ethical_allocation_pool' balance.")
+            return None
+            
+        # Return a mock TX object for the event log
+        from .ledger import TokenTransaction, TransactionType
+        tx = TokenTransaction(
+            id=f"reward_{proposal.id}_{int(time.time())}",
+            type=TransactionType.TRANSFER,
+            sender="mining_reward_pool",
+            receiver=receiver,
+            amount=amount,
+            signature="system_auto_sig"
         )
         
         return tx

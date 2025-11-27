@@ -4,9 +4,13 @@
     "governance_wallet": "GOVERNANCE_DAO_MULTI_SIG_V1",
     "initial_balances": {
         "d3be456fb17c12dbcf2b2d3a1b34fae6c904e3d5ac91469719ff53b92ad055de": 100000.0,
-        "community_treasury": 900000.0,
-        "founder_vesting_contract": 8000000.0,
-        "ethical_allocation_pool": 1000000.0
+        "founder_vesting_contract": 400000.0,
+        "public_sale_treasury": 6500000.0,
+        "ethical_allocation_pool": 2000000.0,
+        "mining_reward_pool": 1000000.0
+    },
+    "initial_stakes": {
+        "d3be456fb17c12dbcf2b2d3a1b34fae6c904e3d5ac91469719ff53b92ad055de": 32000.0
     },
     "params": {
         "block_reward": 5.0,

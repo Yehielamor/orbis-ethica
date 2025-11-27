@@ -43,3 +43,6 @@ identity.json
 !tsconfig.json
 !manifest.json
 !genesis.json
+
+# Secret Docs
+agi_3.0_architecture.md

@@ -31,15 +31,42 @@ class Ledger:
     """
     Manages economic transactions and token balances using SQLite.
     """
+    MAX_SUPPLY = 10_000_000.0
     
     def __init__(self, db_manager: DatabaseManager = None):
         self.db_manager = db_manager or DatabaseManager()
+
+    def get_total_supply(self) -> float:
+        """Calculate total circulating supply."""
+        session = self.db_manager.get_session()
+        try:
+            # Sum all mints and rewards
+            mints = session.query(LedgerEntryModel).filter(
+                LedgerEntryModel.transaction_type.in_(["mint", "reward"])
+            ).all()
+            total_minted = sum(tx.amount for tx in mints)
+            
+            # Subtract burns (penalties sent to system_burn)
+            burns = session.query(LedgerEntryModel).filter_by(recipient="system_burn").all()
+            total_burned = sum(tx.amount for tx in burns)
+            
+            return total_minted - total_burned
+        finally:
+            session.close()
         
     def record_transaction(self, sender: str, recipient: str, amount: float, 
                           tx_type: str, reference_id: str = None, description: str = None) -> bool:
         """
         Record a transaction in the ledger.
+        Enforces MAX_SUPPLY for minting operations.
         """
+        # Enforce Hard Cap
+        if tx_type in ["mint", "reward"]:
+            current_supply = self.get_total_supply()
+            if current_supply + amount > self.MAX_SUPPLY:
+                print(f"❌ Minting rejected: Cap exceeded. Supply: {current_supply}, Requested: {amount}, Max: {self.MAX_SUPPLY}")
+                return False
+
         session = self.db_manager.get_session()
         try:
             # Create entry
@@ -114,14 +141,29 @@ class Ledger:
             description=reason
         )
 
-    def slash_stake(self, target: str, amount: float, reason: str) -> bool:
-        """Slash a node's stake (penalty)."""
+        """
+        Slash a node's stake (penalty). 
+        Moves tokens to 'slash_escrow_vault' for the Purgatory Period (Appeal Window).
+        """
         return self.record_transaction(
             sender=target,
-            recipient="system_burn",
+            recipient="slash_escrow_vault", # Move to Escrow (Purgatory)
             amount=amount,
-            tx_type="penalty",
-            description=reason
+            tx_type="slash_escrow", 
+            description=f"{reason} (Held in Escrow for Appeal)"
+        )
+
+    def release_from_escrow(self, amount: float, destination: str = "public_sale_treasury") -> bool:
+        """
+        Release tokens from Escrow after appeal period expires.
+        Default destination is Public Sale Treasury (Recycling).
+        """
+        return self.record_transaction(
+            sender="slash_escrow_vault",
+            recipient=destination,
+            amount=amount,
+            tx_type="escrow_release",
+            description="Escrow period expired. Tokens recycled."
         )
         
     def get_transaction_history(self, address: str = None) -> List[Dict]:
@@ -366,6 +408,27 @@ class Ledger:
                 )
                 session.add(tx)
                 transactions.append(tx)
+
+            # Process Initial Stakes (Auto-Staking)
+            initial_stakes = genesis_data.get("initial_stakes", {})
+            for wallet, amount in initial_stakes.items():
+                # 1. Deduct from balance (Stake Transfer)
+                # In our ledger model, staking is often just a state change or a transfer to a stake address.
+                # Let's assume it's a transfer to "system_stake" or similar, or just a "stake" transaction type.
+                # Based on slash_stake, we have record_transaction.
+                # But here we are manually creating LedgerEntryModel to batch them.
+                
+                stake_tx = LedgerEntryModel(
+                    sender=wallet,
+                    recipient="system_stake", # Locked in staking contract
+                    amount=amount,
+                    transaction_type="stake",
+                    description="Genesis Auto-Staking",
+                    timestamp=datetime.utcnow()
+                )
+                session.add(stake_tx)
+                transactions.append(stake_tx)
+                print(f"   🔨 Auto-Staked {amount} ETHC for {wallet[:8]}...")
                 
             session.commit()
             print(f"💰 Genesis transactions created: {len(transactions)}")
