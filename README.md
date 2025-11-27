@@ -254,5 +254,5 @@ See [LICENSE](LICENSE) for details.
 
 ## Contact
 
-- **Email**: Amor5511@gmail.com
+- **Email**: orbisethica@gmail.com
 - **GitHub**: https://github.com/yehielamor/orbis-ethica
