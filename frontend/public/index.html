@@ -108,12 +108,20 @@
                 if (stored) {
                     try {
                         const data = JSON.parse(stored);
+                        // Validate keys exist
+                        if (!data.publicKey || !data.secretKey) {
+                            console.warn("Found invalid identity in storage (missing keys), regenerating...");
+                            localStorage.removeItem(KEY_STORAGE_KEY);
+                            return cryptoUtils.generateIdentity();
+                        }
+
                         return {
                             publicKey: data.publicKey, // Hex string
                             secretKey: cryptoUtils.fromHex(data.secretKey) // Convert Hex string back to Uint8Array
                         };
                     } catch (e) {
                         console.error("Failed to load identity", e);
+                        localStorage.removeItem(KEY_STORAGE_KEY);
                     }
                 }
                 return cryptoUtils.generateIdentity();
@@ -407,6 +415,7 @@
 
                 // 3. Sign Request
                 const headers = cryptoUtils.signRequest('POST', '/api/proposals/submit', fullPayload, identity);
+                console.log("🔐 Generated Auth Headers:", headers);
 
                 // 4. Pass everything to parent
                 onStartDeliberation(fullPayload, headers);
@@ -1183,9 +1192,19 @@
                         body = { amount: parseFloat(amount) };
                     }
 
+                    // 1. Get Identity
+                    const identity = cryptoUtils.getOrCreateIdentity();
+
+                    // 2. Sign Request
+                    const headers = cryptoUtils.signRequest('POST', `/api${endpoint}`, body, identity);
+                    console.log(`🔐 Signing Wallet Action (${action}):`, headers);
+
                     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...headers
+                        },
                         body: JSON.stringify(body)
                     });
 
@@ -1346,6 +1365,7 @@
                 setEvents([]);
 
                 try {
+                    console.log("🚀 Submitting proposal with headers:", headers);
                     // Payload is already constructed and signed by the child component
                     const response = await fetch(`${API_BASE_URL}/proposals/submit`, {
                         method: 'POST',
