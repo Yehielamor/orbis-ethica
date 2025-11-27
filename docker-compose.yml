@@ -17,7 +17,9 @@ services:
       - P2P_PORT=6430
     volumes:
       - ./backend:/app/backend # Hot Reload: Map source code
-      - ./orbis_ethica.db:/app/orbis_ethica.db # Persist SQLite DB
+      # DB is now inside backend/ folder in the container due to code path
+      # We map the host file to the container file
+      - ./backend/orbis_ethica.db:/app/backend/orbis_ethica.db
       - ./vector_memory.json:/app/vector_memory.json # Persist Vector Memory
       - ./.keys:/app/.keys # Persist Keys
     restart: unless-stopped

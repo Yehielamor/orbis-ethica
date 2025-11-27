@@ -500,8 +500,8 @@ def get_wallet_info():
     return {
         "address": my_address,
         "liquid_balance": ledger.get_balance(my_address),
-        "staked_balance": 0.0, # Staking not yet migrated to DB
-        "is_validator": False
+        "staked_balance": ledger.get_stake_balance(my_address),
+        "is_validator": ledger.get_stake_balance(my_address) > 0
     }
 
 @app.get("/api/ledger/blocks")
