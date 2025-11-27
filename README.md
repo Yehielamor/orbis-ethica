@@ -169,6 +169,8 @@ Every decision is evaluated across four dimensions:
 - **F (Fairness)**: Equity, justice, distribution.
 - **R (Rights)**: Autonomy, dignity, due process.
 
+*Note: The system uses a **Deductive Model** where proposals start at a perfect score (1.0) and are penalized for ethical deficits, ensuring robust and normalized scoring.*
+
 ### Cognitive Entities
 
 1. **Seeker**: Knowledge & utility maximization.

@@ -57,15 +57,6 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development/demo flexibility
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
     # 3.5 Authentication Middleware (Phase XVI)
 from .auth_middleware import SignatureAuthMiddleware
 app.add_middleware(
@@ -78,6 +69,15 @@ app.add_middleware(
         "/api/wallet/transfer",
         "/api/security/burn"
     ]
+)
+
+# Add CORS middleware (Must be last to be outermost)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development/demo flexibility
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/api/network/peers")

@@ -45,22 +45,29 @@ class ULFRScore(BaseModel):
     
     def calculate_weighted_score(self, weights: 'ULFRWeights') -> float:
         """
-        Calculate weighted decision score using ULFR formula:
-        Score = α·U + β·L - γ·F_penalty - δ·R_risk
+        Calculate weighted decision score using Deductive ULFR formula:
+        Score starts at 1.0 (Perfect) and is penalized for:
+        - Missing Utility (1-U)
+        - Missing Life/Care (1-L)
+        - Presence of Unfairness (F)
+        - Presence of Rights Risk (R)
+        
+        Score = 1.0 - α(1-U) - β(1-L) - γ(F) - δ(R)
         
         Args:
             weights: ULFRWeights object with α, β, γ, δ parameters
             
         Returns:
-            Weighted score (can be negative if penalties are high)
+            Weighted score in range [0.0, 1.0] (clamped)
         """
-        score = (
-            weights.alpha * self.utility +
-            weights.beta * self.life -
-            weights.gamma * self.fairness_penalty -
+        penalty = (
+            weights.alpha * (1.0 - self.utility) +
+            weights.beta * (1.0 - self.life) +
+            weights.gamma * self.fairness_penalty +
             weights.delta * self.rights_risk
         )
-        return score
+        
+        return max(0.0, 1.0 - penalty)
     
     def to_dict(self) -> dict:
         """Convert to dictionary representation."""

@@ -16,6 +16,7 @@ services:
       - NODE_ID=default_node
       - P2P_PORT=6430
     volumes:
+      - ./backend:/app/backend # Hot Reload: Map source code
       - ./orbis_ethica.db:/app/orbis_ethica.db # Persist SQLite DB
       - ./vector_memory.json:/app/vector_memory.json # Persist Vector Memory
       - ./.keys:/app/.keys # Persist Keys

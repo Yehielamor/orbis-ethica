@@ -74,8 +74,8 @@ class SignatureAuthMiddleware(BaseHTTPMiddleware):
             body_bytes = await request.body()
             try:
                 body_json = json.loads(body_bytes)
-                # Canonicalize exactly like the client does
-                body_str = json.dumps(body_json, sort_keys=True)
+                # Canonicalize exactly like the client does (no spaces!)
+                body_str = json.dumps(body_json, sort_keys=True, separators=(',', ':'))
             except json.JSONDecodeError:
                 # If not JSON, use raw body string? 
                 # For now, we assume all our protected endpoints consume JSON.
@@ -85,6 +85,12 @@ class SignatureAuthMiddleware(BaseHTTPMiddleware):
             # Format: METHOD:PATH:TIMESTAMP:BODY
             payload = f"{request.method}:{request.url.path}:{timestamp}:{body_str}"
             
+            # DEBUG: Print payload for troubleshooting
+            print(f"🔐 Auth Debug:")
+            print(f"   Payload: {payload}")
+            print(f"   Signature: {signature_hex}")
+            print(f"   Pubkey: {pubkey_hex}")
+
             # Verify
             verify_key = VerifyKey(pubkey_hex, encoder=HexEncoder)
             verify_key.verify(payload.encode('utf-8'), bytes.fromhex(signature_hex))

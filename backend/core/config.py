@@ -10,10 +10,10 @@ from pydantic import BaseModel, Field
 
 class ULFRWeights(BaseModel):
     """Dynamic weights for the ULFR scoring model."""
-    alpha: float = Field(default=0.25, description="Utility Weight")
-    beta: float = Field(default=0.40, description="Life/Care Weight")
+    alpha: float = Field(default=0.30, description="Utility Weight")
+    beta: float = Field(default=0.30, description="Life/Care Weight")
     gamma: float = Field(default=0.20, description="Fairness Penalty Weight")
-    delta: float = Field(default=0.15, description="Rights Risk Weight")
+    delta: float = Field(default=0.20, description="Rights Risk Weight")
 
 class SystemConfig(BaseModel):
     """Global system configuration."""

@@ -89,14 +89,28 @@
         const KEY_STORAGE_KEY = 'orbis_identity_v1';
 
         const cryptoUtils = {
+            // Helper for Hex encoding (since tweetnacl-util only has Base64)
+            toHex: (byteArray) => {
+                return Array.from(byteArray, function (byte) {
+                    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+                }).join('');
+            },
+            fromHex: (hexString) => {
+                var result = [];
+                for (var i = 0; i < hexString.length; i += 2) {
+                    result.push(parseInt(hexString.substr(i, 2), 16));
+                }
+                return new Uint8Array(result);
+            },
+
             getOrCreateIdentity: () => {
                 const stored = localStorage.getItem(KEY_STORAGE_KEY);
                 if (stored) {
                     try {
                         const data = JSON.parse(stored);
                         return {
-                            publicKey: data.publicKey,
-                            secretKey: nacl.util.decodeBase64(data.secretKey)
+                            publicKey: data.publicKey, // Hex string
+                            secretKey: cryptoUtils.fromHex(data.secretKey) // Convert Hex string back to Uint8Array
                         };
                     } catch (e) {
                         console.error("Failed to load identity", e);
@@ -107,39 +121,53 @@
 
             generateIdentity: () => {
                 const keyPair = nacl.sign.keyPair();
-                const publicKeyHex = nacl.util.encodeHex(keyPair.publicKey);
-                const secretKeyBase64 = nacl.util.encodeBase64(keyPair.secretKey);
+                const publicKeyHex = cryptoUtils.toHex(keyPair.publicKey);
+                const secretKeyHex = cryptoUtils.toHex(keyPair.secretKey);
 
                 const identity = {
                     publicKey: publicKeyHex,
-                    secretKey: secretKeyBase64
+                    secretKey: secretKeyHex
                 };
 
                 localStorage.setItem(KEY_STORAGE_KEY, JSON.stringify(identity));
-
                 return {
                     publicKey: publicKeyHex,
                     secretKey: keyPair.secretKey
                 };
             },
 
+
+
             signRequest: (method, path, body, identity) => {
                 const timestamp = Math.floor(Date.now() / 1000).toString();
 
-                // Canonicalize body
+                // Canonicalize body (Recursive Sort)
+                const canonicalize = (obj) => {
+                    if (obj === null || typeof obj !== 'object') {
+                        return obj;
+                    }
+                    if (Array.isArray(obj)) {
+                        return obj.map(canonicalize);
+                    }
+                    const sortedKeys = Object.keys(obj).sort();
+                    const result = {};
+                    sortedKeys.forEach(key => {
+                        result[key] = canonicalize(obj[key]);
+                    });
+                    return result;
+                };
+
                 let bodyStr = "";
                 if (body) {
-                    const sortedKeys = Object.keys(body).sort();
-                    const sortedObj = {};
-                    sortedKeys.forEach(k => sortedObj[k] = body[k]);
-                    bodyStr = JSON.stringify(sortedObj);
+                    const sortedBody = canonicalize(body);
+                    bodyStr = JSON.stringify(sortedBody);
                 }
 
                 const payload = `${method.toUpperCase()}:${path}:${timestamp}:${bodyStr}`;
                 const payloadBytes = nacl.util.decodeUTF8(payload);
 
                 const signatureBytes = nacl.sign.detached(payloadBytes, identity.secretKey);
-                const signatureHex = nacl.util.encodeHex(signatureBytes);
+                const signatureHex = cryptoUtils.toHex(signatureBytes);
 
                 return {
                     'X-Pubkey': identity.publicKey,
@@ -365,30 +393,26 @@
                 // 1. Get Identity
                 const identity = cryptoUtils.getOrCreateIdentity();
 
-                const proposalData = {
+                // 2. Construct FULL Payload (Must match what is sent exactly)
+                const fullPayload = {
                     title,
                     description,
                     category,
-                    author: identity.publicKey // Bind proposal to key
+                    author: identity.publicKey,
+                    submitter_id: 'DAO_Rep_1',
+                    domain: 'SECURITY',
+                    affected_parties: ['Citizens', 'Law enforcement'],
+                    context: {}
                 };
 
-                // 2. Sign Request
-                const headers = cryptoUtils.signRequest('POST', '/api/proposals/submit', proposalData, identity);
+                // 3. Sign Request
+                const headers = cryptoUtils.signRequest('POST', '/api/proposals/submit', fullPayload, identity);
 
-                // 3. Send via onStartDeliberation (which needs to handle the headers now)
-                // Actually, onStartDeliberation was just calling a parent function. 
-                // We should probably move the fetch logic here or pass headers up.
-                // For this refactor, let's assume onStartDeliberation handles the fetch.
-                // Wait, looking at the code, onStartDeliberation is a prop.
-                // Let's check where it's defined. It's likely in the App component (which is missing from the view).
-                // I'll assume I need to pass the signed headers or data.
-
-                // BUT, looking at the previous code, onStartDeliberation was just passing data.
-                // The fetch was likely done in the parent.
-                // Let's check the parent component (App) in index.html.
-                // Since I can't see App, I'll modify this to pass headers too.
-                onStartDeliberation(proposalData, headers);
+                // 4. Pass everything to parent
+                onStartDeliberation(fullPayload, headers);
             };
+
+
 
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
@@ -1317,26 +1341,19 @@
             const [events, setEvents] = useState([]);
             const [isStreaming, setIsStreaming] = useState(false);
 
-            const handleStartDeliberation = async (formData, headers = {}) => {
+            const handleStartDeliberation = async (fullPayload, headers = {}) => {
                 setIsStreaming(true);
                 setEvents([]);
 
                 try {
-                    const payload = {
-                        ...formData,
-                        submitter_id: 'DAO_Rep_1', // This should ideally come from identity too
-                        domain: 'SECURITY',
-                        affected_parties: ['Citizens', 'Law enforcement'],
-                        context: {}
-                    };
-
+                    // Payload is already constructed and signed by the child component
                     const response = await fetch(`${API_BASE_URL}/proposals/submit`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             ...headers
                         },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(fullPayload)
                     });
 
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);

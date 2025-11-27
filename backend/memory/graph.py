@@ -87,20 +87,26 @@ class MemoryGraph:
             
             # Anchor to Ledger (if available)
             if self.ledger:
-                block_data = {
-                    "node_id": node.id,
-                    "node_hash": node.node_hash,
-                    "type": type,
-                    "agent_id": agent_id
-                }
-                block = self.ledger.add_block(block_data)
+                # In a real blockchain, we don't mine a block for every memory node.
+                # But for this simulation/MVP, we trigger a block creation to anchor the state immediately.
                 
-                # Update DB with ledger info
-                sql_node.ledger_block_index = block.index
-                sql_node.ledger_block_hash = block.hash
-                db.commit()
+                # We need a validator identity to sign the block.
+                # In this context, the "System" or the "Agent" is the validator.
+                # We'll use the global identity if available, or a placeholder.
+                from ..api.app import identity as global_identity
                 
-                print(f"   🔗 Anchored to Ledger: Block #{block.index} ({block.hash[:8]}...)")
+                if global_identity:
+                    block = self.ledger.create_block(validator_id=global_identity.node_id, private_key=global_identity)
+                    
+                    if block:
+                        # Update DB with ledger info
+                        sql_node.ledger_block_index = block.index
+                        sql_node.ledger_block_hash = block.hash
+                        db.commit()
+                        
+                        print(f"   🔗 Anchored to Ledger: Block #{block.index} ({block.hash[:8]}...)")
+                else:
+                    print("   ⚠️ Cannot anchor to ledger: No active validator identity.")
                 
         except Exception as e:
             print(f"❌ Error saving node to DB: {e}")

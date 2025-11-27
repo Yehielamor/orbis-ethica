@@ -192,22 +192,22 @@ Every proposal is scored along four axes:
     \item \textbf{R (Rights)}: Respect for autonomy, dignity, privacy, and due process. Does the proposal violate fundamental rights?
 \end{itemize}
 
-\subsubsection{The Decision Function}
-The overall score for a proposal $a$ is computed as:
+\subsubsection{The Decision Function (Deductive Model)}
+The overall score for a proposal $a$ is computed using a \textbf{Deductive Model}, where a proposal starts with a perfect score (1.0) and loses points for deficiencies in Utility/Life or the presence of Unfairness/Risk:
 
 \begin{equation}
-Score(a) = \alpha U(a) + \beta L(a) - \gamma F_{penalty}(a) - \delta Risk(a)
+Score(a) = 1.0 - \alpha(1 - U(a)) - \beta(1 - L(a)) - \gamma F_{penalty}(a) - \delta Risk(a)
 \end{equation}
 
 Where:
 \begin{itemize}
-    \item $\alpha, \beta, \gamma, \delta$ are weights determined by the Ethical DAO during Recalibration Epochs.
-    \item $U(a)$ and $L(a)$ measure positive contributions.
-    \item $F_{penalty}(a)$ penalizes unfair distributions (higher when inequality is severe).
-    \item $Risk(a)$ captures uncertainty, irreversibility, and potential for catastrophic harm.
+    \item $\alpha, \beta, \gamma, \delta$ are weights (typically summing to 1.0).
+    \item $(1 - U(a))$ represents the \textit{Utility Deficit}.
+    \item $(1 - L(a))$ represents the \textit{Life/Care Deficit}.
+    \item $F_{penalty}(a)$ and $Risk(a)$ are direct penalties.
 \end{itemize}
 
-The weights are not fixed. During each Recalibration Epoch (quarterly, initially), the community reviews outcomes, identifies drift, and votes on parameter adjustments via OEPs.
+This ensures that the score is always normalized between 0.0 and 1.0, making thresholds (e.g., $\tau=0.70$) mathematically achievable while maintaining strict ethical standards.
 
 \subsubsection{Example Calculation}
 Consider a proposal to deploy autonomous medical triage in a resource-constrained hospital:
@@ -218,16 +218,16 @@ Consider a proposal to deploy autonomous medical triage in a resource-constraine
     \item $Risk=0.20$ (low risk—reversible, tested, human oversight available)
 \end{itemize}
 
-With initial weights $\alpha=0.25, \beta=0.40, \gamma=0.20, \delta=0.15$:
+With balanced weights $\alpha=0.30, \beta=0.30, \gamma=0.20, \delta=0.20$:
 
 \begin{equation}
-Score = 0.25(0.82) + 0.40(0.91) - 0.20(0.15) - 0.15(0.20)
+Score = 1.0 - 0.30(1 - 0.82) - 0.30(1 - 0.91) - 0.20(0.15) - 0.20(0.20)
 \end{equation}
 \begin{equation}
-Score = 0.205 + 0.364 - 0.030 - 0.030 = 0.509
+Score = 1.0 - 0.054 - 0.027 - 0.030 - 0.040 = 0.849
 \end{equation}
 
-If the threshold $\tau=0.50$ and quorum is met, the proposal advances to entity deliberation.
+Since $0.849 > 0.70$, the proposal is \textbf{Approved}.
 
 \subsection{Cognitive Entities}
 Orbis Ethica does not rely on a single ``oracle'' model for ethical reasoning. Instead, it instantiates six Cognitive Entities, each representing a distinct ethical perspective. Decisions emerge from adversarial deliberation among these entities.
