@@ -18,7 +18,7 @@ class DatabaseManager:
     
     _instance = None
     
-    def __new__(cls, db_url: str = "sqlite:///orbis_ethica.db"):
+    def __new__(cls, db_url: str = "sqlite:///backend/orbis_ethica.db"):
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
             cls._instance._init_db(db_url)
@@ -49,7 +49,7 @@ def get_db():
         db.close()
 
 # Helpers for compatibility with existing code
-def init_db(db_url: str = "sqlite:///orbis_ethica.db"):
+def init_db(db_url: str = "sqlite:///backend/orbis_ethica.db"):
     DatabaseManager(db_url)
 
 def SessionLocal():
