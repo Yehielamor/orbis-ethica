@@ -1,73 +1,38 @@
 # Orbis Ethica ⚖️
 > *A Moral Operating System for Artificial General Intelligence*
 
-**Current Status:** Phase XVIII Complete (Genesis Launch 🚀)
-**Version:** 0.5.0 (Pre-Alpha)
+**Version:** 1.0.0 (Genesis Release) 🚀
+**Status:** Live (Genesis Block Mined)
 
 Orbis Ethica is a decentralized framework designed to align AGI with human values through a "Moral Blockchain." It treats ethical reasoning not as a constraint, but as a cognitive dimension, using a consensus-based ledger to record, deliberate, and audit every AI decision.
 
-## 🚀 Latest Updates (Genesis Edition)
-- **Genesis Block (#0):** Successfully mined with the message *"Teaching silicon to care."*
-- **Moral Ledger:** Fully migrated to **SQLite** with Merkle Tree integrity.
-- **P2P Sync:** Implemented **Longest Chain Rule** for decentralized consensus.
-- **Tokenomics:** **Ethica (ETHC)** token live (10M Supply) for reputation staking.
-- **Whitepaper V5.0:** Updated architecture and economic model ([Read PDF](docs/whitepaper_v5.pdf)).
-- **Distributed Memory Graph**: Permanent record of moral reasoning.
-- **P2P Network**: Decentralized node communication with Gossip Protocol.
-- **Proof of Authority**: Cryptographic identity and block signing.
-- **Burn Protocol**: Transparent corruption detection and remediation.
-- **Decentralized Governance**: Global Assembly, DAO, and OEPs.
+## 🌟 Key Features
+
+- **Moral Ledger:** Immutable SQLite blockchain with Merkle Tree integrity.
+- **Cognitive Entities:** 6-agent system (Seeker, Healer, Guardian, Mediator, Creator, Arbiter) for balanced ethical reasoning.
+- **P2P Network:** Decentralized node communication via Libp2p & Gossip Protocol.
+- **Economic Security:** **Ethica (ETHC)** tokenomics with "Burn Protocol" for slashing malicious actors.
+- **Identity & Auth:** Ed25519 cryptographic identity with strict request signing.
+- **Real-Time Dashboard:** Glassmorphism UI with live deliberation feed and network visualization.
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap Status
 
 | Phase | Objective | Status |
 |-------|-----------|--------|
-| I-II | Core Engine & Entities | ✅ Complete |
-| III | Memory Graph & RAG | ✅ Complete |
+| I-III | Core Engine & Memory | ✅ Complete |
 | IV-V | DAO Governance | ✅ Complete |
-| VIII | P2P Networking (Libp2p) | ✅ Complete |
-| XII | Economic Security (Burn) | ✅ Complete |
-| XVII | Persistence (SQLite) | ✅ Complete |
-| XVIII | Consensus & Sync | ✅ Complete 🚀 |
-| XIX | Frontend Visualization | 🚧 Next |
-| XX | Docker Deployment | 📅 Upcoming |
+| VIII-XI | P2P Networking | ✅ Complete |
+| XII | Economic Security | ✅ Complete |
+| XV-XVI | Security & Auth | ✅ Complete |
+| XIX | Visualization | ✅ Complete |
+| XX | Deployment | ✅ Complete |
 
-### Phase VI: Dashboard Upgrade (Completed)
-- [x] Glassmorphism UI
-- [x] Real-time Deliberation Feed (SSE)
-- [x] Governance & Ledger Views
-
-### Phase VI.5: Clear Layer (Completed)
-- [x] **Knowledge Gateway**: Ingestion & Verification API.
-- [x] **Source Whitelisting**: Trusted registry for data providers.
-- [x] **Purity Scoring**: Automated content validation.
-
-### Phase VIII: P2P Decentralization (Completed)
-- [x] **Node Manager**: Peer discovery and management.
-- [x] **Gossip Protocol**: Broadcasting transactions and blocks.
-- [x] **Consensus**: Longest Chain Rule implementation.
-
-### Phase IX: Identity & Security (Completed)
-- [x] **Node Identity**: Ed25519 Keypair generation.
-- [x] **Proof of Authority**: Cryptographic block signing.
-- [x] **Tamper Evidence**: Signature verification for all blocks.
-
-### Phase XI: True P2P (In Progress)
-- [x] **Serverless Architecture**: Transition to Libp2p/WebRTC.
-- [x] **Libp2p Service**: Background service for decentralized communication.
-- [ ] **Discovery**: Kademlia DHT for peer finding.
-
-### Phase XII: Economic Security (Completed)
-- [x] **Vesting Contract**: 5-year lock for founder funds (Anti-Rugpull).
-- [x] **Ethical Pool**: Dedicated allocation for diversity grants.
-- [x] **Integrity Checks**: Protocol-level enforcement of economic rules.
-
-### Phase XIII: The Bridge (Completed)
-- [x] **Deliberation-Ledger Link**: Automatic rewards for approved proposals.
-- [x] **Value Generation**: "Ethical Consensus" -> "Economic Value" pipeline.
-- [x] **Wallet UI**: Real-time balance and staking interface.
+### Recent Milestones (v1.0.0)
+- **Genesis Launch:** Successfully mined Block #0 with 10M ETHC supply.
+- **Security Hardening:** Implemented "Encryption at Rest" and API Request Signing.
+- **Frontend Polish:** Added Blockchain Explorer Search and Interactive Network Map.
 
 ---
 
@@ -168,7 +133,28 @@ To run a 24/7 node (recommended for Validators), deploy the Docker container to 
 # Example: Running on a public server
 export NODE_HOST="203.0.113.1" # Your Public IP
 docker-compose up -d
+docker-compose up -d
 ```
+
+### 🔐 Backup & Recovery (Critical)
+
+**Where are my coins?**
+Your ETHC tokens are recorded on the public Ledger (the database). However, to **spend** them, you need your **Private Key**.
+
+**What do I need to save?**
+You must backup the `.keys` directory.
+*   **Location:** `orbis-ethica/.keys/`
+*   **File:** `node_identity.sk` (Encrypted Private Key)
+
+**How to move to a new computer:**
+1.  Install Orbis Ethica on the new machine.
+2.  **Before starting**, copy your `.keys` folder to the new `orbis-ethica/` directory.
+3.  Start the system with the **same** `KEY_PASSWORD` you used originally.
+4.  Your node will wake up with the same identity and full access to your funds.
+
+**Security Warning:**
+*   **Never share your `.keys` folder.**
+*   **Never forget your `KEY_PASSWORD`.** Without it, the `.sk` file is useless (AES-256 encrypted), and your funds are lost forever.
 
 ---
 

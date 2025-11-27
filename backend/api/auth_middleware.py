@@ -41,13 +41,12 @@ class SignatureAuthMiddleware(BaseHTTPMiddleware):
         signature_hex = request.headers.get("X-Signature")
         timestamp_str = request.headers.get("X-Timestamp")
 
-        # DEV BYPASS: Allow localhost to skip signature if headers are missing
-        # This is strictly for the frontend demo which doesn't implement signing yet
-        client_host = request.client.host
+        # DEV BYPASS REMOVED: Strict Auth Enforced
+        # client_host = request.client.host
         if not all([pubkey_hex, signature_hex, timestamp_str]):
-            if client_host in ["127.0.0.1", "localhost", "::1"]:
-                print(f"⚠️  AUTH BYPASS: Allowing unsigned request from {client_host}")
-                return await call_next(request)
+            # if client_host in ["127.0.0.1", "localhost", "::1"]:
+            #     print(f"⚠️  AUTH BYPASS: Allowing unsigned request from {client_host}")
+            #     return await call_next(request)
             
             return JSONResponse(
                 status_code=401, 

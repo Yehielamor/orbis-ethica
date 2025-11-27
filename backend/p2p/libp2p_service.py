@@ -67,7 +67,10 @@ class Libp2pService:
                 
         except Exception as e:
             logger.error(f"❌ Failed to start Libp2p host: {e}")
-            raise e
+            logger.warning("⚠️  P2P Networking disabled due to initialization error.")
+            self.is_running = False
+            # Do not raise, allow app to run without P2P
+            return
 
     async def _handle_block_messages(self):
         """Handle incoming block messages."""

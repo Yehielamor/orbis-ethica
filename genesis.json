@@ -3,7 +3,8 @@
     "timestamp": "2025-11-26T12:00:00Z",
     "governance_wallet": "GOVERNANCE_DAO_MULTI_SIG_V1",
     "initial_balances": {
-        "genesis_wallet": 1000000.0,
+        "d3be456fb17c12dbcf2b2d3a1b34fae6c904e3d5ac91469719ff53b92ad055de": 100000.0,
+        "community_treasury": 900000.0,
         "founder_vesting_contract": 8000000.0,
         "ethical_allocation_pool": 1000000.0
     },
@@ -14,7 +15,7 @@
         "vesting_schedule": {
             "duration_years": 5,
             "cliff_months": 12,
-            "release_per_year": 0.20
+            "release_per_year": 0.2
         },
         "junior_validator_program": {
             "enabled": true,

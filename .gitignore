@@ -29,9 +29,12 @@ system_config.json
 
 # Security
 .keys/
+.keys_backup*/
 identity.json
 *.pem
 *.key
+*.sk
+*.pk
 
 # Simulation & Runtime
 # scripts/simulation/

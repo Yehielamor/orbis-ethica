@@ -8,6 +8,24 @@ from datetime import datetime
 from pydantic import BaseModel
 from .database import DatabaseManager
 from .models.sql_models import LedgerEntryModel, SQLEntity as NodeModel
+from enum import Enum
+
+class TransactionType(str, Enum):
+    TRANSFER = "transfer"
+    STAKE = "stake"
+    UNSTAKE = "unstake"
+    REWARD = "reward"
+    PENALTY = "penalty"
+    MINT = "mint"
+
+class TokenTransaction(BaseModel):
+    id: str
+    type: TransactionType
+    sender: str
+    receiver: str
+    amount: float
+    signature: str
+    timestamp: datetime = None
 
 class Ledger:
     """
@@ -59,6 +77,30 @@ class Ledger:
             total_out = sum(tx.amount for tx in outgoing)
             
             return total_in - total_out
+        finally:
+            session.close()
+
+    def get_stake_balance(self, address: str) -> float:
+        """Calculate current staked amount."""
+        session = self.db_manager.get_session()
+        try:
+            # Sum stakes (sent to STAKING_CONTRACT)
+            stakes = session.query(LedgerEntryModel).filter_by(
+                sender=address, 
+                recipient="STAKING_CONTRACT",
+                transaction_type="stake"
+            ).all()
+            total_staked = sum(tx.amount for tx in stakes)
+            
+            # Sum unstakes (received from STAKING_CONTRACT)
+            unstakes = session.query(LedgerEntryModel).filter_by(
+                sender="STAKING_CONTRACT",
+                recipient=address,
+                transaction_type="unstake"
+            ).all()
+            total_unstaked = sum(tx.amount for tx in unstakes)
+            
+            return total_staked - total_unstaked
         finally:
             session.close()
 
@@ -205,26 +247,17 @@ class Ledger:
             last_block = session.query(BlockModel).order_by(BlockModel.index.desc()).first()
             expected_prev = last_block.hash if last_block else "0" * 64
             
-            if block_data['index'] > 0 and block_data['previous_hash'] != expected_prev:
+            if block_data['index'] > 0 and block_data.get('previous_hash') != expected_prev:
                 # This might be a fork or a future block.
                 # For MVP, we reject if it doesn't fit our tip.
                 # SyncManager should handle forks by requesting full chain.
-                print(f"❌ Invalid previous hash: {block_data['previous_hash']} != {expected_prev}")
+                print(f"❌ Invalid previous hash: {block_data.get('previous_hash')} != {expected_prev}")
                 session.close()
                 return False
                 
-            # 3. Verify Hash Integrity
-            # Reconstruct the string and hash it
-            # block_content = f"{index}{previous_hash}{timestamp}{merkle_root}{validator_id}"
-            # Note: We need the exact same formatting as create_block
-            # For MVP, we'll trust the hash if the signature is valid, 
-            # but strictly we should re-hash.
+            # 3. Verify Hash Integrity (Skipped for MVP speed)
             
-            # 4. Verify Signature
-            # We need the validator's public key.
-            # For MVP, we assume we can get it from the ID or it's included.
-            # If we don't have a PK infrastructure yet, we might skip this or use a mock.
-            # Let's skip strict signature verification for now to avoid complexity with PK distribution.
+            # 4. Verify Signature (Skipped for MVP speed)
             
             session.close()
             return True
@@ -232,6 +265,42 @@ class Ledger:
         except Exception as e:
             print(f"❌ Block validation error: {e}")
             return False
+
+    def add_block_from_peer(self, block_data: Dict[str, Any]) -> bool:
+        """Validate and save a block received from a peer."""
+        if not self.validate_block(block_data):
+            return False
+            
+        session = self.db_manager.get_session()
+        try:
+            from .models.sql_models import BlockModel
+            # Check existence again just in case
+            if session.query(BlockModel).filter_by(hash=block_data['hash']).first():
+                return True
+                
+            # Parse timestamp
+            ts = block_data.get('timestamp')
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                
+            new_block = BlockModel(
+                index=block_data['index'],
+                hash=block_data['hash'],
+                previous_hash=block_data.get('previous_hash'),
+                timestamp=ts,
+                validator_id=block_data.get('validator_id'),
+                signature=block_data.get('signature')
+            )
+            session.add(new_block)
+            session.commit()
+            print(f"🧱 Added block #{block_data['index']} from peer.")
+            return True
+        except Exception as e:
+            session.rollback()
+            print(f"❌ Failed to add peer block: {e}")
+            return False
+        finally:
+            session.close()
 
     def get_latest_block(self):
         """
@@ -271,6 +340,11 @@ class Ledger:
             # Check if genesis block exists
             if session.query(BlockModel).filter_by(index=0).first():
                 print("✅ Genesis block already exists.")
+                return
+
+            # Check if genesis transactions already exist (to prevent double minting on restart)
+            if session.query(LedgerEntryModel).filter_by(transaction_type="mint", description="Genesis Allocation").first():
+                print("✅ Genesis transactions already exist (waiting for block creation).")
                 return
 
             print("📜 Loading Genesis Configuration...")

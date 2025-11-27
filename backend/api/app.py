@@ -60,7 +60,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://localhost:4930", "http://127.0.0.1:4930"],  # Explicitly allow frontend
+    allow_origins=["*"],  # Allow all origins for development/demo flexibility
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -564,7 +564,7 @@ def stake_tokens(req: StakeRequest):
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    my_address = identity.public_key_hex if identity else "genesis_wallet"
     
     # Create STAKE transaction
     from ..core.ledger import TokenTransaction, TransactionType
@@ -578,7 +578,15 @@ def stake_tokens(req: StakeRequest):
         signature="simulated_sig" # In real app, sign with private key
     )
     
-    if ledger.add_block(data={"msg": "Staking Request"}, transactions=[tx]):
+    success = ledger.record_transaction(
+        sender=tx.sender,
+        recipient=tx.receiver,
+        amount=tx.amount,
+        tx_type=tx.type.value,
+        description="Staking Request"
+    )
+    
+    if success:
         return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
     else:
         raise HTTPException(status_code=400, detail="Staking failed (Insufficient funds?)")
@@ -590,21 +598,34 @@ def unstake_tokens(req: StakeRequest):
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    my_address = identity.public_key_hex if identity else "genesis_wallet"
     
+    # Check stake balance
+    current_stake = ledger.get_stake_balance(my_address)
+    if current_stake < req.amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient staked tokens. Current stake: {current_stake}")
+
     # Create UNSTAKE transaction
     from ..core.ledger import TokenTransaction, TransactionType
     
     tx = TokenTransaction(
         id=f"unstake_{uuid4().hex[:8]}",
         type=TransactionType.UNSTAKE,
-        sender=my_address,
-        receiver="STAKING_CONTRACT", # Receiver doesn't matter much for unstake logic
+        sender="STAKING_CONTRACT",
+        receiver=my_address,
         amount=req.amount,
         signature="simulated_sig"
     )
     
-    if ledger.add_block(data={"msg": "Unstaking Request"}, transactions=[tx]):
+    success = ledger.record_transaction(
+        sender=tx.sender,
+        recipient=tx.receiver,
+        amount=tx.amount,
+        tx_type=tx.type.value,
+        description="Unstaking Request"
+    )
+    
+    if success:
         return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
     else:
         raise HTTPException(status_code=400, detail="Unstaking failed (Insufficient stake?)")
@@ -621,7 +642,7 @@ def transfer_tokens(req: TransferRequest):
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = ledger.identity.public_key_hex if ledger.identity else "genesis_wallet"
+    my_address = identity.public_key_hex if identity else "genesis_wallet"
     
     # Check balance
     current_balance = ledger.get_balance(my_address)
@@ -643,7 +664,15 @@ def transfer_tokens(req: TransferRequest):
     # Add description if supported by model (it is in SQL but maybe not in TokenTransaction class yet)
     # We'll pass it in block data for now or rely on the transaction model update
     
-    if ledger.add_block(data={"msg": req.description}, transactions=[tx]):
+    success = ledger.record_transaction(
+        sender=tx.sender,
+        recipient=tx.receiver,
+        amount=tx.amount,
+        tx_type=tx.type.value,
+        description=req.description or "Token Transfer"
+    )
+    
+    if success:
         return {"status": "success", "tx_id": tx.id, "new_balance": ledger.get_balance(my_address)}
     else:
         raise HTTPException(status_code=400, detail="Transfer failed")

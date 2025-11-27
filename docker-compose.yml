@@ -12,6 +12,7 @@ services:
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - KEY_PASSWORD=${KEY_PASSWORD}
       - NODE_ID=default_node
       - P2P_PORT=6430
     volumes:
