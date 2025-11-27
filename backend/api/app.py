@@ -72,7 +72,11 @@ app.add_middleware(
     SignatureAuthMiddleware,
     protected_paths=[
         "/api/proposals/submit",
-        "/api/votes"
+        "/api/votes",
+        "/api/wallet/stake",
+        "/api/wallet/unstake",
+        "/api/wallet/transfer",
+        "/api/security/burn"
     ]
 )
 
@@ -223,15 +227,15 @@ async def startup_event():
     
     # Use a random port or fixed one
     p2p_port = int(os.getenv("P2P_PORT", 0))
-    p2p_service = Libp2pService(port=p2p_port)
-    p2p_service.start_background()
+    # p2p_service = Libp2pService(port=p2p_port)
+    # p2p_service.start_background()
     
     # Attach to app state for access
-    app.state.p2p_service = p2p_service
+    # app.state.p2p_service = p2p_service
     
     # Wait a bit for it to initialize (hacky but simple for now)
-    await asyncio.sleep(2)
-    print(f"   🕸️  Libp2p Node Started: {p2p_service.get_peer_id()}")
+    # await asyncio.sleep(2)
+    # print(f"   🕸️  Libp2p Node Started: {p2p_service.get_peer_id()}")
     
     # Legacy NodeManager (keeping for now to avoid breaking other parts, but it won't do much)
     # Use the random port we generated above if NODE_PORT is not set

@@ -21,12 +21,14 @@ sentence-transformers==2.2.2
 networkx==3.2.1
 py2neo==2021.2.4  # Neo4j driver (optional)
 
-# IPFS Integration
-ipfshttpclient==0.8.0a2
+# IPFS Integration (Unused)
+# ipfshttpclient==0.8.0a2
 
 # P2P (Phase XI)
-libp2p>=0.4.0
-trio>=0.22.0
+# libp2p (Disabled for v1.0.0 Release due to dependency instability)
+# multihash
+# multiaddr
+# trio
 
 # Web Framework
 fastapi==0.108.0
