@@ -22,7 +22,7 @@ def inspect():
         "ethical_allocation_pool",
         "mining_reward_pool",
         "slash_escrow_vault",
-        "system_stake"
+        "STAKING_CONTRACT"
     ]
     for w in wallets:
         bal = ledger.get_balance(w)

@@ -420,7 +420,7 @@ class Ledger:
                 
                 stake_tx = LedgerEntryModel(
                     sender=wallet,
-                    recipient="system_stake", # Locked in staking contract
+                    recipient="STAKING_CONTRACT", # Locked in staking contract
                     amount=amount,
                     transaction_type="stake",
                     description="Genesis Auto-Staking",

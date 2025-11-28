@@ -36,14 +36,82 @@ class NodeManager:
         """
         try:
             host, port = seed_address.split(":")
-            # In a real implementation, we would establish a persistent WebSocket connection here.
-            # For now, we just register it as a known peer.
-            # The actual connection logic will be handled by the WebSocket client.
-            logger.info(f"🌱 Registering seed node: {seed_address}")
-            # We don't know the ID yet, so we'll discover it during handshake
-            pass 
+            url = f"ws://{host}:{port}/ws/p2p"
+            logger.info(f"🌱 Connecting to seed node: {url}")
+            
+            session = aiohttp.ClientSession()
+            ws = await session.ws_connect(url)
+            
+            # 1. Send Handshake
+            handshake = P2PMessage(
+                type=MessageType.HANDSHAKE,
+                sender_id=self.node_id,
+                payload={
+                    "node_id": self.node_id,
+                    "host": self.host,
+                    "port": self.port,
+                    "reputation": 1.0,
+                    "status": "active"
+                }
+            )
+            await ws.send_str(handshake.json())
+            
+            # 2. Wait for ACK
+            ack_data = await ws.receive_str()
+            ack = P2PMessage.parse_raw(ack_data)
+            
+            if ack.type == MessageType.HANDSHAKE_ACK:
+                peer_id = ack.sender_id
+                logger.info(f"✅ Connected to seed {peer_id}")
+                
+                # Register peer
+                peer_info = PeerInfo(
+                    node_id=peer_id,
+                    host=host,
+                    port=int(port),
+                    status="connected",
+                    reputation=1.0,
+                    last_seen=time.time()
+                )
+                self.add_peer(peer_info)
+                self.active_connections[peer_id] = ws
+                
+                # Start listener task
+                asyncio.create_task(self._listen_to_peer(peer_id, ws))
+                
         except Exception as e:
-            logger.error(f"Failed to parse seed address {seed_address}: {e}")
+            logger.error(f"Failed to connect to seed {seed_address}: {e}")
+
+    async def _listen_to_peer(self, peer_id: str, ws: Any):
+        """Listen for messages from a connected peer (Client Side)."""
+        try:
+            async for msg_str in ws:
+                if msg_str.type == aiohttp.WSMsgType.TEXT:
+                    try:
+                        message = P2PMessage.parse_raw(msg_str.data)
+                        # Deduplicate
+                        msg_hash = f"{message.sender_id}:{message.timestamp}:{message.type}"
+                        if msg_hash in self.seen_messages:
+                            continue
+                        self.seen_messages.add(msg_hash)
+                        
+                        logger.info(f"📩 Client received {message.type} from {peer_id}")
+                        
+                        # Handle Gossip (Basic forwarding for now)
+                        # In a real app, we'd share the handler logic with app.py
+                        if message.type in [MessageType.GOSSIP_TX, MessageType.GOSSIP_BLOCK]:
+                             pass # Logic is currently in app.py server handler, need to unify
+                             
+                    except Exception as e:
+                        logger.error(f"Error parsing message from {peer_id}: {e}")
+                elif msg_str.type == aiohttp.WSMsgType.ERROR:
+                    logger.error(f"ws connection closed with exception {ws.exception()}")
+        except Exception as e:
+            logger.error(f"Connection lost with {peer_id}: {e}")
+        finally:
+            self.remove_peer(peer_id)
+            if peer_id in self.active_connections:
+                del self.active_connections[peer_id]
 
     def add_peer(self, peer: PeerInfo):
         """Register a new peer."""
