@@ -633,6 +633,23 @@
             const [ledger, setLedger] = useState({ blocks: [], transactions: [] });
             const [tab, setTab] = useState('BLOCKS'); // BLOCKS, TXS
 
+            const requestFaucet = async () => {
+                if (!identity) return;
+                try {
+                    const res = await fetch(`${API_BASE_URL}/faucet`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ recipient: identity.publicKey })
+                    });
+                    if (!res.ok) throw new Error("Faucet failed");
+                    alert("💰 100,000 ETHC Received!");
+                    // Trigger refresh if possible, or reload
+                    window.location.reload();
+                } catch (e) {
+                    alert("Faucet Error: " + e.message);
+                }
+            };
+
             useEffect(() => {
                 const fetchData = async () => {
                     try {
@@ -1233,9 +1250,8 @@
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg">
                             <div className="text-slate-400 text-sm font-medium mb-1">Liquid Balance</div>
-                            <div className="text-4xl font-bold flex items-baseline gap-2">
-                                {wallet ? wallet.liquid_balance.toLocaleString() : '...'}
-                                <span className="text-lg font-medium text-slate-500">ETHC</span>
+                            <div className="text-3xl font-bold mb-1 font-mono">
+                                {wallet ? wallet.liquid_balance.toLocaleString() : '0'} <span className="text-lg text-slate-400">ETHC</span>
                             </div>
                         </div>
                         <div className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">

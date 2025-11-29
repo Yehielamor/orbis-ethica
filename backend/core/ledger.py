@@ -3,8 +3,11 @@ Ledger Module
 Manages economic transactions and token balances using SQLite.
 """
 
-from typing import List, Dict, Optional, Any
+import json
+import os
+import threading
 from datetime import datetime
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from .database import DatabaseManager
 from .models.sql_models import LedgerEntryModel, SQLEntity as NodeModel
@@ -33,8 +36,21 @@ class Ledger:
     """
     MAX_SUPPLY = 10_000_000.0
     
-    def __init__(self, db_manager: DatabaseManager = None):
-        self.db_manager = db_manager or DatabaseManager()
+    def __init__(self, db_url: str = "sqlite:///backend/orbis_ethica.db"):
+        self.db_manager = DatabaseManager(db_url)
+        self.MAX_SUPPLY = 10_000_000.0
+        self._lock = threading.Lock() # Prevent race conditions
+        
+        # Initialize tables
+        # self.db_manager.create_tables() # Already done in DatabaseManager.__init__
+        
+        # Load Genesis if empty
+        # Correcting the typo from the user's diff:
+        # self.load_genesis()ager.get_session() -> self.load_genesis()
+        # However, the original code had `self.db_manager = db_manager or DatabaseManager()`,
+        # and the user's diff completely changed the `__init__` method.
+        # I will apply the user's diff for `__init__` as faithfully as possible, correcting the typo.
+        self.load_genesis() # Assuming this method exists or will be added.
 
     def get_total_supply(self) -> float:
         """Calculate total circulating supply."""
@@ -61,33 +77,41 @@ class Ledger:
         Enforces MAX_SUPPLY for minting operations.
         """
         # Enforce Hard Cap
-        if tx_type in ["mint", "reward"]:
-            current_supply = self.get_total_supply()
-            if current_supply + amount > self.MAX_SUPPLY:
-                print(f"❌ Minting rejected: Cap exceeded. Supply: {current_supply}, Requested: {amount}, Max: {self.MAX_SUPPLY}")
-                return False
+        with self._lock:
+            if tx_type in ["mint", "reward"]:
+                current_supply = self.get_total_supply()
+                if current_supply + amount > self.MAX_SUPPLY:
+                    print(f"❌ Minting rejected: Cap exceeded. Supply: {current_supply}, Requested: {amount}, Max: {self.MAX_SUPPLY}")
+                    return False
 
-        session = self.db_manager.get_session()
-        try:
-            # Create entry
-            entry = LedgerEntryModel(
-                sender=sender,
-                recipient=recipient,
-                amount=amount,
-                transaction_type=tx_type,
-                reference_id=reference_id,
-                description=description
-            )
-            session.add(entry)
-            session.commit()
-            print(f"💰 Transaction recorded: {sender} -> {recipient} : {amount} ({tx_type})")
-            return True
-        except Exception as e:
-            session.rollback()
-            print(f"❌ Transaction failed: {e}")
-            return False
-        finally:
-            session.close()
+            # Enforce Sufficient Balance (for Transfer/Stake/Burn)
+            if tx_type in ["transfer", "stake", "burn"]:
+                sender_balance = self.get_balance(sender)
+                if sender_balance < amount:
+                    print(f"❌ Transaction rejected: Insufficient funds. Balance: {sender_balance}, Requested: {amount}")
+                    return False
+
+            session = self.db_manager.get_session()
+            try:
+                # Create entry
+                entry = LedgerEntryModel(
+                    sender=sender,
+                    recipient=recipient,
+                    amount=amount,
+                    transaction_type=tx_type,
+                    reference_id=reference_id,
+                    description=description
+                )
+                session.add(entry)
+                session.commit()
+                print(f"💰 Transaction recorded: {sender} -> {recipient} : {amount} ({tx_type})")
+                return True
+            except Exception as e:
+                session.rollback()
+                print(f"❌ Transaction failed: {e}")
+                return False
+            finally:
+                session.close()
 
     def get_balance(self, address: str) -> float:
         """

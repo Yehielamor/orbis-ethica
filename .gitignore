@@ -1,3 +1,4 @@
+
 # Python
 __pycache__/
 *.py[cod]
@@ -6,44 +7,44 @@ venv/
 .env
 .DS_Store
 
-# Node.js
-node_modules/
-dist/
-build/
-.npm
-.eslintcache
+# Database
+*.db
+*.sqlite3
+
+# Keys & Secrets (CRITICAL)
+.keys/
+keys/
+secrets/
+.keys_backup*/
+test_node/
+*.sk
+*.pk
+
+# Runtime Data
+burn_ledger.json
+vector_memory.json
+system_config.json
+
+# Logs
+*.log
 
 # IDEs
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Runtime Artifacts
-memory_graph.json
-burn_ledger.json
-test_burn_ledger.json
-*.log
-system_config.json
-*.db
+# Node
+node_modules/
+dist/
+build/
 
-# Security
-.keys/
-.keys_backup*/
-identity.json
-*.pem
-*.key
-*.sk
-*.pk
+# Docker
+.docker/
 
-# Simulation & Runtime
-# scripts/simulation/
-*.json
-!package.json
-!tsconfig.json
-!manifest.json
-!genesis.json
-
-# Secret Docs
-agi_3.0_architecture.md
-docs/MULTI_NODE_SETUP.md
+# Temporary Scripts & Tests
+scripts/verify_*.py
+scripts/test_*.py
+scripts/check_keys.py
+scripts/fix_git_history.sh
+scripts/generate_stable_identity.py
+scripts/setup_swarm.sh
+swarm_dashboard.html

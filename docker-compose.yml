@@ -15,6 +15,8 @@ services:
       - KEY_PASSWORD=${KEY_PASSWORD}
       - NODE_ID=default_node
       - P2P_PORT=6430
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=tinyllama
     volumes:
       - ./backend:/app/backend # Hot Reload: Map source code
       # DB is now inside backend/ folder in the container due to code path
@@ -22,6 +24,15 @@ services:
       - ./backend/orbis_ethica.db:/app/backend/orbis_ethica.db
       - ./vector_memory.json:/app/vector_memory.json # Persist Vector Memory
       - ./.keys:/app/.keys # Persist Keys
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: orbis_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     restart: unless-stopped
 
   frontend:
@@ -37,3 +48,4 @@ services:
 
 volumes:
   orbis_data:
+  ollama_data:
