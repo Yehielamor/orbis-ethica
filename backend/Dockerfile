@@ -24,6 +24,7 @@ COPY backend/ ./backend/
 COPY simulation.py .
 COPY genesis.json .
 COPY system_config.json .
+COPY frontend/public ./frontend/public
 
 # Expose the port
 EXPOSE 6429
