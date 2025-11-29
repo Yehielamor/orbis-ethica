@@ -1,24 +1,38 @@
-import sys
 import os
+import sys
+from dotenv import load_dotenv
 
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path so we can import backend modules
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from backend.core.llm_provider import get_llm_provider, GeminiFreeTier, MockLLM
 
-def test_llm_config():
-    print("🤖 Verifying LLM Provider Configuration...")
+def verify_llm():
+    load_dotenv()
+    
+    print("🔍 Verifying LLM Provider Configuration...")
     
     provider = get_llm_provider()
     
     if isinstance(provider, GeminiFreeTier):
-        print("   ✅ SUCCESS: GeminiFreeTier initialized!")
-        print(f"   🔑 API Key loaded: {os.getenv('GEMINI_API_KEY')[:5]}... (masked)")
+        print("✅ Provider is GEMINI (Live API)")
     elif isinstance(provider, MockLLM):
-        print("   ⚠️  WARNING: Still using MockLLM.")
-        print("      Check if .env file exists and contains GEMINI_API_KEY.")
+        print("⚠️ Provider is MOCK (Fallback)")
     else:
-        print(f"   ❓ Unknown provider: {type(provider)}")
+        print(f"❓ Unknown Provider: {type(provider)}")
+        
+    print("\n🧪 Testing Generation...")
+    try:
+        response = provider.generate("Say 'Hello Orbis' if you can hear me.")
+        print(f"🤖 Response: {response}")
+        
+        if "Hello Orbis" in response or "Mock" in response:
+            print("✅ Generation Successful")
+        else:
+            print("⚠️ Generation output unexpected")
+            
+    except Exception as e:
+        print(f"❌ Generation Failed: {e}")
 
 if __name__ == "__main__":
-    test_llm_config()
+    verify_llm()

@@ -9,9 +9,10 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Body, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, Body, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -37,7 +38,10 @@ from ..entities.seeker import SeekerEntity
 from ..entities.healer import HealerEntity
 from ..entities.guardian import GuardianEntity
 from ..entities.mediator import MediatorEntity
+from ..entities.mediator import MediatorEntity
 from ..entities.creator import CreatorEntity
+
+from .swarm_routes import router as swarm_router, shard_manager
 from ..entities.arbiter import ArbiterEntity
 
 # --- P2P Imports ---
@@ -80,6 +84,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Routers
+app.include_router(swarm_router)
+
 @app.get("/api/network/peers")
 async def get_network_peers():
     """Get list of all known peers and their status."""
@@ -118,7 +125,7 @@ async def startup_event():
         print("   ⚠️  WARNING: Running in MOCK mode. Set GEMINI_API_KEY for live LLM.")
     
     # 1.5 Initialize Node Identity (Phase IX) - Moved to top for dependency injection
-    NODE_ID = os.getenv("NODE_ID", f"node_{os.urandom(4).hex()}")
+    NODE_ID = os.getenv("NODE_ID", "local_node_v1")
     KEY_PASSWORD = os.getenv("KEY_PASSWORD")
     
     from ..security.identity import NodeIdentity
@@ -136,6 +143,10 @@ async def startup_event():
     from ..core.ledger import Ledger
     ledger = Ledger() # Uses global DatabaseManager
     print(f"   ⛓️  Ledger: Initialized (SQLite Backend)")
+    
+    # Inject Ledger into Swarm Manager (Phase 3)
+    shard_manager.ledger = ledger
+    shard_manager.identity = identity
     
     # 3. Initialize Memory Graph (with Ledger)
     memory_graph = MemoryGraph(ledger=ledger)
@@ -467,20 +478,7 @@ async def p2p_websocket_endpoint(websocket: WebSocket):
 
 # --- API Endpoints ---
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Orbis Ethica API v0.1.3",
-        "docs": "/docs",
-        "endpoints": [
-            "/api/deliberate",
-            "/api/proposals/submit",
-            "/api/entities",
-            "/api/governance/config",
-            "/api/ledger",
-            "/api/memory/search"
-        ]
-    }
+# Root endpoint moved to bottom to serve Frontend
 
 # --- LEDGER ENDPOINTS ---
 
@@ -681,6 +679,70 @@ def transfer_tokens(req: TransferRequest):
     else:
         raise HTTPException(status_code=400, detail="Transfer failed")
 
+
+# --- LEDGER API (For Dashboard) ---
+@app.get("/api/ledger/blocks")
+def get_ledger_blocks(limit: int = 10):
+    """Get latest blocks."""
+    if not swarm_router.shard_manager.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+    
+    session = swarm_router.shard_manager.ledger.db_manager.get_session()
+    try:
+        from ..core.models.sql_models import BlockModel
+        blocks = session.query(BlockModel).order_by(BlockModel.index.desc()).limit(limit).all()
+        return {
+            "blocks": [
+                {
+                    "index": b.index,
+                    "hash": b.hash,
+                    "validator_id": b.validator_id,
+                    "transactions_count": 0, # Simplified
+                    "timestamp": b.timestamp.isoformat()
+                } for b in blocks
+            ]
+        }
+    finally:
+        session.close()
+
+@app.get("/api/ledger/transactions")
+def get_ledger_transactions(limit: int = 20):
+    """Get latest transactions."""
+    if not swarm_router.shard_manager.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+        
+    session = swarm_router.shard_manager.ledger.db_manager.get_session()
+    try:
+        from ..core.models.sql_models import LedgerEntryModel
+        txs = session.query(LedgerEntryModel).order_by(LedgerEntryModel.timestamp.desc()).limit(limit).all()
+        return {
+            "transactions": [
+                {
+                    "id": tx.id,
+                    "type": tx.transaction_type,
+                    "sender": tx.sender,
+                    "recipient": tx.recipient,
+                    "amount": tx.amount,
+                    "description": tx.description,
+                    "timestamp": tx.timestamp.isoformat()
+                } for tx in txs
+            ]
+        }
+    finally:
+        session.close()
+
+@app.get("/api/ledger/wallet/{address}")
+def get_wallet_balance(address: str):
+    """Get wallet details."""
+    if not swarm_router.shard_manager.ledger:
+        raise HTTPException(status_code=503, detail="Ledger not initialized")
+        
+    balance = swarm_router.shard_manager.ledger.get_balance(address)
+    return {
+        "address": address,
+        "liquid_balance": balance,
+        "is_validator": False # Placeholder
+    }
 
 # --- MEMORY ENDPOINTS ---
 class SearchQuery(BaseModel):
@@ -908,6 +970,18 @@ def health_check():
     return {"status": "healthy"}
 
 
+# --- FRONTEND SERVING (No Docker) ---
+# Mount static files (JS, CSS, Images)
+app.mount("/static", StaticFiles(directory="frontend/public"), name="static")
+
+@app.get("/")
+async def read_root():
+    """Serve the React Frontend."""
+    return FileResponse('frontend/public/index.html')
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=6429)
 # NOTE: To run this server:
 # cd backend
 # uvicorn api.app:app --reload --host 0.0.0.0 --port 8000

@@ -106,12 +106,54 @@ class GeminiFreeTier(LLMProvider):
         except Exception as e:
             return f"Error calling Gemini: {e}"
 
+class LocalLLM(LLMProvider):
+    """
+    Swarm Intelligence Provider.
+    Connects to a local Ollama instance running lightweight models (e.g., TinyLlama).
+    """
+    def __init__(self, model_name: str = "tinyllama"):
+        self.model_name = model_name
+        try:
+            import ollama
+            # quick check if model exists
+            host = os.getenv("OLLAMA_HOST", "localhost")
+            print(f"🧠 [LOCAL LLM] Connecting to Ollama ({model_name}) at {host}...")
+            # We don't block here, just assume it works.
+        except ImportError:
+            print("❌ Error: 'ollama' library not installed.")
+
+    def generate(self, prompt: str, system_role: str = "") -> str:
+        import ollama
+        try:
+            # Combine system role into the messages list
+            response = ollama.chat(model=self.model_name, messages=[
+                {
+                    'role': 'system',
+                    'content': system_role
+                },
+                {
+                    'role': 'user',
+                    'content': prompt
+                },
+            ])
+            return response['message']['content']
+        except Exception as e:
+            print(f"❌ Local Inference Failed: {e}")
+            return f"Error: {e}"
+
 # --- FACTORY ---
 def get_llm_provider() -> LLMProvider:
+    # 1. Priority: Local Swarm (if configured)
+    # For now, we enable it if OLLAMA_MODEL is set in env, otherwise fallback
+    ollama_model = os.getenv("OLLAMA_MODEL")
+    if ollama_model:
+        return LocalLLM(model_name=ollama_model)
+
+    # 2. Priority: Cloud (Gemini)
     gemini_key = os.getenv("GEMINI_API_KEY")
-    
     if gemini_key:
         return GeminiFreeTier(gemini_key)
-    else:
-        print("⚠️ No GEMINI_API_KEY found. Using Mock Provider.")
-        return MockLLM()
+    
+    # 3. Fallback: Mock
+    print("⚠️ No LLM Configured. Using Mock Provider.")
+    return MockLLM()

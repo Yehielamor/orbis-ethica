@@ -154,6 +154,8 @@ class DeliberationEngine:
         threshold = self.threshold_high_impact if proposal.category.value == "high_impact" else self.threshold_routine
         yield {"type": "config", "threshold": threshold, "category": proposal.category.value}
         
+        from starlette.concurrency import run_in_threadpool
+
         while current_round <= self.max_rounds:
             yield {"type": "round_start", "round": current_round}
             
@@ -165,19 +167,20 @@ class DeliberationEngine:
             for entity in self.entities:
                 yield {"type": "entity_thinking", "entity": entity.entity.name}
                 try:
-                    evaluation = entity.evaluate_proposal(proposal)
+                    # Run blocking LLM call in threadpool to keep UI responsive
+                    evaluation = await run_in_threadpool(entity.evaluate_proposal, proposal)
                     round_evaluations.append(evaluation)
                     
                     # Include reputation in the event
                     yield {
                         "type": "entity_vote", 
                         "entity": entity.entity.name, 
-                        "reputation": entity.entity.reputation,  # <--- Added reputation
+                        "reputation": entity.entity.reputation,
                         "vote": evaluation.vote,
                         "confidence": evaluation.confidence,
                         "ulfr": evaluation.ulfr_score.model_dump(),
                         "reasoning": evaluation.reasoning,
-                        "evidence_cited": evaluation.evidence_cited  # <--- Added evidence
+                        "evidence_cited": evaluation.evidence_cited
                     }
                 except Exception as e:
                     print(f"Error evaluating with {entity.entity.name}: {e}")
@@ -227,7 +230,8 @@ class DeliberationEngine:
                 if self.mediator and hasattr(self.mediator, 'refine_proposal'):
                     yield {"type": "mediator_thinking", "message": "Mediator is refining the proposal..."}
                     
-                    refined_description = self.mediator.refine_proposal(proposal, evaluations)
+                    # Run blocking LLM call in threadpool
+                    refined_description = await run_in_threadpool(self.mediator.refine_proposal, proposal, evaluations)
                     
                     # Update proposal with refined description
                     proposal.description = refined_description

@@ -62,25 +62,35 @@ orbis-ethica/
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+
-- Docker (optional)
-- **API Key (Optional)**: Google Gemini or Groq (System defaults to Mock LLM if no key provided)
+- Node.js (Optional, for development)
+- Ollama (for local inference)
+
+### 🧠 Swarm Intelligence (Phase II)
+Orbis Ethica now features a fully operational **Swarm Intelligence** layer:
+- **Cognitive Sharding:** Complex ethical dilemmas are decomposed into atomic "shards" (Utility, Law, Fairness, Rights).
+- **Distributed Inference:** Shards are processed in parallel by P2P nodes using local LLMs (Ollama/TinyLlama).
+- **Consensus Synthesis:** Results are aggregated to form a cohesive ethical verdict.
+
+## 💎 Tokenomics & Proof of Inference
+The system implements a sustainable economic model:
+- **Proof of Inference (POI):** Nodes must cryptographically sign their cognitive work (`ExecutionSeal`) to prove computation.
+- **Inference Rewards:** Validated shards earn **1.0 ETHC** from the `INFERENCE_REWARD_POOL`.
+- **Fixed Supply:** A hard cap of **10,000,000 ETHC** ensures long-term value preservation (Allocation Model).
+- **Burn Protocol:** Malicious nodes (Sybil attacks, lazy voting) are slashed, with tokens burned or recycled.
 
 ### Installation
-
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed instructions.
-
 ```bash
-# Clone repository
-git clone https://github.com/orbis-ethica/orbis-ethica.git
+git clone https://github.com/Yehielamor/orbis-ethica.git
 cd orbis-ethica
-
-# Backend setup
-pip install -r requirements.txt
-
-# Blockchain setup (Optional)
-cd blockchain && npm install
+./scripts/setup_swarm.sh  # Installs dependencies and sets up environment
 ```
+
+### Running the Node
+```bash
+# Start the Backend & UI (No Docker required)
+python -m uvicorn backend.api.app:app --reload --port 6429
+```
+Access the dashboard at: `http://localhost:6429/`
 
 ### 🔐 Security (New in Phase XV)
 Orbis Ethica now supports **Encryption at Rest** for node identities.
@@ -99,12 +109,19 @@ Run the full system simulation to verify the end-to-end flow:
 # Optional: Set API Key for generative responses
 export GEMINI_API_KEY="your_key_here" 
 
-# Option 1: Run with Docker (Recommended for Production)
+### Running the System
+
+**Option 1: Docker (Recommended - Full Stack)**
+This will start the Backend, Frontend, and a local Ollama instance for Swarm Intelligence.
+```bash
 docker-compose up --build
+```
+*Note: The first run will download the Ollama model (~4GB), which may take time.*
+
+**Option 2: Local Development**
 # Backend: http://localhost:6429
 # Frontend: http://localhost:3000
 
-# Option 2: Run Locally (Development)
 # Terminal 1: Start Backend
 python -m uvicorn backend.api.app:app --reload --host 0.0.0.0 --port 6429
 
