@@ -486,20 +486,25 @@ class StakeRequest(BaseModel):
     amount: float
 
 @app.get("/api/wallet")
-def get_wallet_info():
-    """Get current node's wallet status."""
+def get_wallet_info(address: str = None):
+    """
+    Get wallet status.
+    If 'address' is provided, returns balance for that specific address.
+    Otherwise, returns the Node's own wallet status.
+    """
     if not memory_graph or not memory_graph.ledger:
         raise HTTPException(status_code=503, detail="Ledger not initialized")
     
     ledger = memory_graph.ledger
-    # Use global identity
-    my_address = identity.public_key_hex if identity else "genesis_wallet"
+    
+    # Determine which address to query
+    target_address = address if address else (identity.public_key_hex if identity else "genesis_wallet")
     
     return {
-        "address": my_address,
-        "liquid_balance": ledger.get_balance(my_address),
-        "staked_balance": ledger.get_stake_balance(my_address),
-        "is_validator": ledger.get_stake_balance(my_address) > 0
+        "address": target_address,
+        "liquid_balance": ledger.get_balance(target_address),
+        "staked_balance": ledger.get_stake_balance(target_address),
+        "is_validator": ledger.get_stake_balance(target_address) > 0
     }
 
 @app.get("/api/ledger/blocks")

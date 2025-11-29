@@ -1181,7 +1181,8 @@
             const [tab, setTab] = useState('STAKE'); // STAKE, TRANSFER
 
             const fetchWallet = () => {
-                fetch(`${API_BASE_URL}/wallet`)
+                const identity = cryptoUtils.getOrCreateIdentity();
+                fetch(`${API_BASE_URL}/wallet?address=${identity.publicKey}`)
                     .then(res => res.json())
                     .then(data => setWallet(data))
                     .catch(err => console.error(err));
@@ -1273,6 +1274,68 @@
                             </div>
                             <div className="text-xs text-slate-400 mt-2">Min Stake: 32,000 ETHC</div>
                         </div>
+                    </div>
+
+                    {/* Your Address Card */}
+                    <div className="glass-panel rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="overflow-hidden w-full">
+                            <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Your Wallet Address</div>
+                            <div className="font-mono text-sm bg-slate-100 p-3 rounded-lg text-slate-600 break-all border border-slate-200">
+                                {cryptoUtils.getOrCreateIdentity().publicKey}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const text = cryptoUtils.getOrCreateIdentity().publicKey;
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(text).then(() => {
+                                        setMsg('Address copied to clipboard!');
+                                        setStatus('SUCCESS');
+                                        setTimeout(() => setStatus('IDLE'), 2000);
+                                    }).catch(err => {
+                                        console.error('Async: Could not copy text: ', err);
+                                        fallbackCopyTextToClipboard(text);
+                                    });
+                                } else {
+                                    fallbackCopyTextToClipboard(text);
+                                }
+
+                                function fallbackCopyTextToClipboard(text) {
+                                    var textArea = document.createElement("textarea");
+                                    textArea.value = text;
+
+                                    // Avoid scrolling to bottom
+                                    textArea.style.top = "0";
+                                    textArea.style.left = "0";
+                                    textArea.style.position = "fixed";
+
+                                    document.body.appendChild(textArea);
+                                    textArea.focus();
+                                    textArea.select();
+
+                                    try {
+                                        var successful = document.execCommand('copy');
+                                        if (successful) {
+                                            setMsg('Address copied to clipboard!');
+                                            setStatus('SUCCESS');
+                                            setTimeout(() => setStatus('IDLE'), 2000);
+                                        } else {
+                                            setMsg('Copy failed. Please copy manually.');
+                                            setStatus('ERROR');
+                                        }
+                                    } catch (err) {
+                                        console.error('Fallback: Oops, unable to copy', err);
+                                        setMsg('Copy failed. Please copy manually.');
+                                        setStatus('ERROR');
+                                    }
+
+                                    document.body.removeChild(textArea);
+                                }
+                            }}
+                            className="px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <span>📋</span> Copy
+                        </button>
                     </div>
 
                     <div className="glass-panel rounded-2xl p-6">
