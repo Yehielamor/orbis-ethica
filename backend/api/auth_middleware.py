@@ -95,6 +95,9 @@ class SignatureAuthMiddleware(BaseHTTPMiddleware):
             verify_key = VerifyKey(pubkey_hex, encoder=HexEncoder)
             verify_key.verify(payload.encode('utf-8'), bytes.fromhex(signature_hex))
             
+            # Attach user identity to request state for endpoints to use
+            request.state.user_public_key = pubkey_hex
+            
         except (BadSignatureError, ValueError) as e:
              return JSONResponse(
                 status_code=401, 

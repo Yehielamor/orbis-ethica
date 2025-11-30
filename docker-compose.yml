@@ -17,6 +17,7 @@ services:
       - P2P_PORT=6430
       - OLLAMA_HOST=http://ollama:11434
       - OLLAMA_MODEL=tinyllama
+      - SEED_NODES=${SEED_NODES}
     volumes:
       - ./backend:/app/backend # Hot Reload: Map source code
       # DB is now inside backend/ folder in the container due to code path

@@ -565,13 +565,17 @@ def get_transactions(limit: int = 20, offset: int = 0):
         session.close()
 
 @app.post("/api/wallet/stake")
-def stake_tokens(req: StakeRequest):
+def stake_tokens(req: StakeRequest, request: Request):
     """Stake tokens to become a validator."""
     if not memory_graph or not memory_graph.ledger:
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = identity.public_key_hex if identity else "genesis_wallet"
+    
+    # Use authenticated user if available, else server identity
+    sender_address = getattr(request.state, "user_public_key", None)
+    if not sender_address:
+        sender_address = identity.public_key_hex if identity else "genesis_wallet"
     
     # Create STAKE transaction
     from ..core.ledger import TokenTransaction, TransactionType
@@ -579,7 +583,7 @@ def stake_tokens(req: StakeRequest):
     tx = TokenTransaction(
         id=f"stake_{uuid4().hex[:8]}",
         type=TransactionType.STAKE,
-        sender=my_address,
+        sender=sender_address,
         receiver="STAKING_CONTRACT",
         amount=req.amount,
         signature="simulated_sig" # In real app, sign with private key
@@ -594,21 +598,25 @@ def stake_tokens(req: StakeRequest):
     )
     
     if success:
-        return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
+        return {"status": "success", "new_stake": ledger.get_stake_balance(sender_address)}
     else:
         raise HTTPException(status_code=400, detail="Staking failed (Insufficient funds?)")
 
 @app.post("/api/wallet/unstake")
-def unstake_tokens(req: StakeRequest):
+def unstake_tokens(req: StakeRequest, request: Request):
     """Unstake tokens."""
     if not memory_graph or not memory_graph.ledger:
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = identity.public_key_hex if identity else "genesis_wallet"
+    
+    # Use authenticated user if available, else server identity
+    sender_address = getattr(request.state, "user_public_key", None)
+    if not sender_address:
+        sender_address = identity.public_key_hex if identity else "genesis_wallet"
     
     # Check stake balance
-    current_stake = ledger.get_stake_balance(my_address)
+    current_stake = ledger.get_stake_balance(sender_address)
     if current_stake < req.amount:
         raise HTTPException(status_code=400, detail=f"Insufficient staked tokens. Current stake: {current_stake}")
 
@@ -619,7 +627,7 @@ def unstake_tokens(req: StakeRequest):
         id=f"unstake_{uuid4().hex[:8]}",
         type=TransactionType.UNSTAKE,
         sender="STAKING_CONTRACT",
-        receiver=my_address,
+        receiver=sender_address,
         amount=req.amount,
         signature="simulated_sig"
     )
@@ -633,7 +641,7 @@ def unstake_tokens(req: StakeRequest):
     )
     
     if success:
-        return {"status": "success", "new_stake": ledger.get_stake_balance(my_address)}
+        return {"status": "success", "new_stake": ledger.get_stake_balance(sender_address)}
     else:
         raise HTTPException(status_code=400, detail="Unstaking failed (Insufficient stake?)")
 
@@ -643,16 +651,20 @@ class TransferRequest(BaseModel):
     description: str = "Transfer"
 
 @app.post("/api/wallet/transfer")
-def transfer_tokens(req: TransferRequest):
+def transfer_tokens(req: TransferRequest, request: Request):
     """Transfer tokens to another address."""
     if not memory_graph or not memory_graph.ledger:
         raise HTTPException(status_code=503, detail="Ledger not initialized")
         
     ledger = memory_graph.ledger
-    my_address = identity.public_key_hex if identity else "genesis_wallet"
+    
+    # Use authenticated user if available, else server identity
+    sender_address = getattr(request.state, "user_public_key", None)
+    if not sender_address:
+        sender_address = identity.public_key_hex if identity else "genesis_wallet"
     
     # Check balance
-    current_balance = ledger.get_balance(my_address)
+    current_balance = ledger.get_balance(sender_address)
     if current_balance < req.amount:
         raise HTTPException(status_code=400, detail=f"Insufficient funds. Balance: {current_balance}")
 
@@ -662,7 +674,7 @@ def transfer_tokens(req: TransferRequest):
     tx = TokenTransaction(
         id=f"tx_{uuid4().hex[:8]}",
         type=TransactionType.TRANSFER,
-        sender=my_address,
+        sender=sender_address,
         receiver=req.recipient,
         amount=req.amount,
         signature="simulated_sig" # In real app, sign with private key
