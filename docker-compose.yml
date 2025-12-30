@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: orbis_backend
+    ports:
+      - "8000:8000" # API Port
+      - "6429:6429"
+      - "6430-6440:6430-6440" # Expose P2P ports range
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - LLM_PROVIDER=groq
+      - KEY_PASSWORD=${KEY_PASSWORD}
+      - NODE_ID=${NODE_ID:-default_node}
+      - P2P_PORT=6430
+      - SEED_NODES=77.42.30.95:8000
+      - MINING_ENABLED=${MINING_ENABLED:-true}
+      - FRONTEND_MODE=${FRONTEND_MODE:-full}
+      - STRICT_SECURITY=true
+      - ORACLE_SCAN_INTERVAL=60 # Speed up for demo (1 min)
+    volumes:
+      - ./backend:/app/backend # Hot Reload: Map source code
+      # DB is now inside backend/ folder in the container due to code path
+      # We map the host file to the container file
+      # - ./backend/orbis_ethica.db:/app/backend/orbis_ethica.db
+      - orbis_db_data:/app/data # Named volume for DB persistence (fixes permissions)
+      - ./vector_memory.json:/app/vector_memory.json # Persist Vector Memory
+      - ./genesis.json:/app/genesis.json # Ensure Genesis updates are reflected
+      - ./.keys:/app/.keys # Persist Keys
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: orbis_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: orbis_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/public:/usr/share/nginx/html
+    restart: unless-stopped
+
+volumes:
+  orbis_data:
+  ollama_data:
+  orbis_db_data:

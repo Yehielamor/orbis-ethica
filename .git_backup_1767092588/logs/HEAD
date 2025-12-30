@@ -1,0 +1,78 @@
+0000000000000000000000000000000000000000 bf89165ecf674b9aea84991264b59b46c3c97302 Yehielamor <yehielamor@gmail.com> 1763897736 +0200	commit (initial): Initial commit: Refactored Orbis Ethica backend
+bf89165ecf674b9aea84991264b59b46c3c97302 0000000000000000000000000000000000000000 Yehielamor <yehielamor@gmail.com> 1763897736 +0200	Branch: renamed refs/heads/main to refs/heads/main
+bf89165ecf674b9aea84991264b59b46c3c97302 bf89165ecf674b9aea84991264b59b46c3c97302 Yehielamor <yehielamor@gmail.com> 1763897736 +0200	Branch: renamed refs/heads/main to refs/heads/main
+bf89165ecf674b9aea84991264b59b46c3c97302 8686c8f336566a966f4e0ecdc1ca37d387541d64 Yehielamor <yehielamor@gmail.com> 1763900236 +0200	commit: Rebranding: Updated author to Yehiel Amor
+8686c8f336566a966f4e0ecdc1ca37d387541d64 e0b48e768009f6b9fd079ab45dd7049b96e46b87 Yehielamor <yehielamor@gmail.com> 1763900446 +0200	commit: Docs: Added CC-BY-SA 4.0 License
+e0b48e768009f6b9fd079ab45dd7049b96e46b87 6900ec4576b0f1ed4137b705122204a9fbc9cbc2 Yehielamor <yehielamor@gmail.com> 1763905422 +0200	commit: feat: Rename ULFR 'Love/Care' dimension to 'life/Care' and add Whitepaper V2.
+6900ec4576b0f1ed4137b705122204a9fbc9cbc2 6900ec4576b0f1ed4137b705122204a9fbc9cbc2 Yehielamor <yehielamor@gmail.com> 1763905990 +0200	checkout: moving from main to main
+6900ec4576b0f1ed4137b705122204a9fbc9cbc2 6900ec4576b0f1ed4137b705122204a9fbc9cbc2 Yehielamor <yehielamor@gmail.com> 1763906125 +0200	checkout: moving from main to main
+6900ec4576b0f1ed4137b705122204a9fbc9cbc2 f3ae38154f130067cee199b582b339ee19d54c41 Yehielamor <yehielamor@gmail.com> 1763906212 +0200	commit: Refactor: Update ULFR code terminology to Life/Care
+f3ae38154f130067cee199b582b339ee19d54c41 22fa91935ab9398ae2745f33f5ad3ad6c4806ea5 Yehielamor <yehielamor@gmail.com> 1763912445 +0200	commit: feat: Add Burn Protocol, Knowledge Gateway, and end-to-end simulation
+22fa91935ab9398ae2745f33f5ad3ad6c4806ea5 507f8c0bb4b0dfa0787508a62d6147ce5fe23dee Yehielamor <yehielamor@gmail.com> 1763912468 +0200	pull --rebase origin main (start): checkout 507f8c0bb4b0dfa0787508a62d6147ce5fe23dee
+507f8c0bb4b0dfa0787508a62d6147ce5fe23dee d36ee189c5e20ff99a0f5c09a3e090a5f3222707 Yehielamor <yehielamor@gmail.com> 1763912468 +0200	pull --rebase origin main (pick): feat: Add Burn Protocol, Knowledge Gateway, and end-to-end simulation
+d36ee189c5e20ff99a0f5c09a3e090a5f3222707 d36ee189c5e20ff99a0f5c09a3e090a5f3222707 Yehielamor <yehielamor@gmail.com> 1763912468 +0200	pull --rebase origin main (finish): returning to refs/heads/main
+d36ee189c5e20ff99a0f5c09a3e090a5f3222707 107af4375845a59741ae1aad85a96c75ad7d5c93 Yehielamor <yehielamor@gmail.com> 1763914544 +0200	commit: feat: Add LLM Provider abstraction and Memory Graph integration
+107af4375845a59741ae1aad85a96c75ad7d5c93 04491713d504f614545f0d5f2bf8fcf054244138 Yehielamor <yehielamor@gmail.com> 1763984308 +0200	commit: feat: Implement Mediator Entity and Deadlock Resolution logic (v0.1.1-alpha)
+04491713d504f614545f0d5f2bf8fcf054244138 88feb08fbdc474ef04ffd010ac5ecda593e31181 Yehielamor <yehielamor@gmail.com> 1763984416 +0200	commit: chore: Remove runtime artifacts from git and update .gitignore
+88feb08fbdc474ef04ffd010ac5ecda593e31181 e72ea91a382b588439da70b0f1748cd9e2e80ecf Yehielamor <yehielamor@gmail.com> 1763984487 +0200	commit: chore: Update .gitignore with runtime artifacts
+e72ea91a382b588439da70b0f1748cd9e2e80ecf a149ed9178f0f9c155855be617248c6ba0e50510 Yehielamor <yehielamor@gmail.com> 1763984487 +0200	pull --rebase (start): checkout a149ed9178f0f9c155855be617248c6ba0e50510
+a149ed9178f0f9c155855be617248c6ba0e50510 3c6aef55a5fe5e8609ae1057fe413d069d94abbe Yehielamor <yehielamor@gmail.com> 1763984487 +0200	pull --rebase (pick): chore: Remove runtime artifacts from git and update .gitignore
+3c6aef55a5fe5e8609ae1057fe413d069d94abbe fdcd68562fd249d91398c4fd95948917f0af854f Yehielamor <yehielamor@gmail.com> 1763984487 +0200	pull --rebase (pick): chore: Update .gitignore with runtime artifacts
+fdcd68562fd249d91398c4fd95948917f0af854f fdcd68562fd249d91398c4fd95948917f0af854f Yehielamor <yehielamor@gmail.com> 1763984487 +0200	pull --rebase (finish): returning to refs/heads/main
+fdcd68562fd249d91398c4fd95948917f0af854f cbcdb12ab46d9ae39f7a51b48e235965dcd2045c Yehielamor <yehielamor@gmail.com> 1763984606 +0200	commit: docs: Add CONTRIBUTING.md and documentation structure
+cbcdb12ab46d9ae39f7a51b48e235965dcd2045c cc74aebeb0774d6539b8f2d7ff8a87e12f81da9e Yehielamor <yehielamor@gmail.com> 1764006515 +0200	commit: feat: Implement real-time deliberation dashboard with SSE streaming and updated docs
+cc74aebeb0774d6539b8f2d7ff8a87e12f81da9e 77bce27a48aed26924da94ade8e560cb3791c3f0 Yehielamor <yehielamor@gmail.com> 1764074142 +0200	commit: feat: Complete Phase III (Blockchain) and Phase IV (Governance)
+77bce27a48aed26924da94ade8e560cb3791c3f0 dae0adba3138cb896a66fe813e4a47959f498dc2 Yehielamor <yehielamor@gmail.com> 1764104386 +0200	commit: Phase IX Complete: Identity, P2P Security, and Documentation Overhaul
+dae0adba3138cb896a66fe813e4a47959f498dc2 8718c8e0de5ae3b57ecd72db156a04256fff5ced Yehielamor <yehielamor@gmail.com> 1764104496 +0200	commit: SECURITY FIX: Remove .keys directory from version control and ignore it
+8718c8e0de5ae3b57ecd72db156a04256fff5ced e24aa332ce41b82a19bf1e6092e495da946a312b Yehielamor <yehielamor@gmail.com> 1764104496 +0200	filter-branch: rewrite
+e24aa332ce41b82a19bf1e6092e495da946a312b b9643436bc9a4b28d4f9db7fd63570610332384f Yehielamor <yehielamor@gmail.com> 1764105104 +0200	commit (amend): chore: update project configuration and gitignore
+b9643436bc9a4b28d4f9db7fd63570610332384f 82cd9261d0f2e48a9c42f3d4279d6a5b71292806 YehielMobilerl <yehiel@mobilerl.com> 1764167151 +0200	commit: feat: Complete Phase XIII & XIV - Bridge Implementation and Full System Verification
+82cd9261d0f2e48a9c42f3d4279d6a5b71292806 746ed03d7aac2d5c8fa4d98af679e7944595be81 YehielMobilerl <yehiel@mobilerl.com> 1764169629 +0200	commit: chore: Stop tracking vector_memory.json (security audit)
+746ed03d7aac2d5c8fa4d98af679e7944595be81 599e988bf027bdb3ecbac98683d0cf1bac4bc314 YehielMobilerl <yehiel@mobilerl.com> 1764186490 +0200	commit: feat: Genesis Launch 🚀 - Phase XVIII Complete (SQLite, P2P Sync, Tokenomics)
+599e988bf027bdb3ecbac98683d0cf1bac4bc314 8c9e69efca8c524848289722ad1c9fe9749ec0a1 YehielMobilerl <yehiel@mobilerl.com> 1764188247 +0200	commit: feat: Phase XX - Deployment & Code Freeze (v1.0.0 RC)
+8c9e69efca8c524848289722ad1c9fe9749ec0a1 9e1bd369380728cea9dd31975fb58119b933e4a3 YehielMobilerl <yehiel@mobilerl.com> 1764233215 +0200	commit: Release v1.0.0: Genesis Launch 🚀 - Final Security Hardening & UI Polish
+9e1bd369380728cea9dd31975fb58119b933e4a3 8c9e69efca8c524848289722ad1c9fe9749ec0a1 YehielMobilerl <yehiel@mobilerl.com> 1764233324 +0200	reset: moving to HEAD~1
+8c9e69efca8c524848289722ad1c9fe9749ec0a1 8c9e69efca8c524848289722ad1c9fe9749ec0a1 YehielMobilerl <yehiel@mobilerl.com> 1764233337 +0200	reset: moving to HEAD
+8c9e69efca8c524848289722ad1c9fe9749ec0a1 2448ee45d4f7b197a065d20e2ed68cde126e31b6 YehielMobilerl <yehiel@mobilerl.com> 1764233497 +0200	commit: Release v1.0.0: Genesis Launch 🚀 - Final Security Hardening & UI Polish (Fixes .gitignore)
+2448ee45d4f7b197a065d20e2ed68cde126e31b6 1d0299f0ca4a2cba966d9695444c46fa1390d069 YehielMobilerl <yehiel@mobilerl.com> 1764234085 +0200	commit: Fix P2P Dependencies: Remove conflicting multihash package 🐛
+1d0299f0ca4a2cba966d9695444c46fa1390d069 a6f2acb089c38dd0b3cc3fc35b2559139f4c83e2 YehielMobilerl <yehiel@mobilerl.com> 1764237280 +0200	commit: Release v1.0.0: Revert to Stable WebSocket P2P (Disable Experimental Libp2p) 🚀
+a6f2acb089c38dd0b3cc3fc35b2559139f4c83e2 d9fea5bebd3fdd7ba412760a215ef86f8db82e0e YehielMobilerl <yehiel@mobilerl.com> 1764237614 +0200	commit: Release v1.0.0: Security Hardening & Stable P2P Config 🚀
+d9fea5bebd3fdd7ba412760a215ef86f8db82e0e 83c3b076b638dab28227ed360c0268e9066808fe YehielMobilerl <yehiel@mobilerl.com> 1764238019 +0200	commit: Config: Make frontend port configurable via PORT env var 🔧
+83c3b076b638dab28227ed360c0268e9066808fe ebac439e51e2c16cbba498ed0279b6094aeea99d YehielMobilerl <yehiel@mobilerl.com> 1764248995 +0200	commit: feat: implement Deductive ULFR Model and fix auth/ledger integration
+ebac439e51e2c16cbba498ed0279b6094aeea99d a91df712cb1ee38aca0b7943299c9e451c5c7d4b YehielMobilerl <yehiel@mobilerl.com> 1764256550 +0200	commit: fix: UI colors, form defaults, and DB persistence
+a91df712cb1ee38aca0b7943299c9e451c5c7d4b e51fe3941a24db7a96fc7931f77eba819ab445bd YehielMobilerl <yehiel@mobilerl.com> 1764257115 +0200	commit: fix(frontend): sign wallet transactions to resolve 401 errors
+e51fe3941a24db7a96fc7931f77eba819ab445bd c5a0bfa89a6766445ef80c03ca035eafd7960424 YehielMobilerl <yehiel@mobilerl.com> 1764257401 +0200	commit: fix: final system stabilization (persistence, wallet, auth)
+c5a0bfa89a6766445ef80c03ca035eafd7960424 5b1fa627f6e202f806b1293d6947a5189c772937 YehielMobilerl <yehiel@mobilerl.com> 1764261229 +0200	commit: Update contact email to orbisethica@gmail.com
+5b1fa627f6e202f806b1293d6947a5189c772937 3414b540bf51af68452f337e0cd634a498ebdd08 YehielMobilerl <yehiel@mobilerl.com> 1764263508 +0200	commit: Add Discord community link and YouTube profile asset
+3414b540bf51af68452f337e0cd634a498ebdd08 3882eb2344ea72a7dbe219e8a1778460b1650b12 YehielMobilerl <yehiel@mobilerl.com> 1764283486 +0200	commit: feat: Tokenomics V5.1 - Hard Cap, Auto-Staking, Slash Escrow & Dashboard UI
+3882eb2344ea72a7dbe219e8a1778460b1650b12 93ea326c565f6a91c4c54b9a52a1723de12998d1 YehielMobilerl <yehiel@mobilerl.com> 1764329230 +0200	commit: fix: P2P connectivity and Ledger auto-staking
+93ea326c565f6a91c4c54b9a52a1723de12998d1 93ea326c565f6a91c4c54b9a52a1723de12998d1 Yehiel Amor <amor5511@gmail.com> 1764414142 +0200	reset: moving to HEAD
+93ea326c565f6a91c4c54b9a52a1723de12998d1 c09c2ddd3aafaef11fd14184084bd4cfcddf2184 Yehiel Amor <amor5511@gmail.com> 1764329230 +0200	filter-branch: rewrite
+c09c2ddd3aafaef11fd14184084bd4cfcddf2184 c09c2ddd3aafaef11fd14184084bd4cfcddf2184 Yehiel Amor <amor5511@gmail.com> 1764414549 +0200	checkout: moving from main to feature/swarm-intelligence
+c09c2ddd3aafaef11fd14184084bd4cfcddf2184 c09c2ddd3aafaef11fd14184084bd4cfcddf2184 Yehiel Amor <amor5511@gmail.com> 1764433642 +0200	reset: moving to HEAD
+c09c2ddd3aafaef11fd14184084bd4cfcddf2184 c09c2ddd3aafaef11fd14184084bd4cfcddf2184 Yehiel Amor <amor5511@gmail.com> 1764433717 +0200	reset: moving to HEAD
+c09c2ddd3aafaef11fd14184084bd4cfcddf2184 3bbf6f30e5153b722defbcf3cddaf187323a4864 Yehiel Amor <amor5511@gmail.com> 1764433790 +0200	commit: feat: Finalize Swarm Intelligence MVP (Docker, Security, Docs)
+3bbf6f30e5153b722defbcf3cddaf187323a4864 c09c2ddd3aafaef11fd14184084bd4cfcddf2184 Yehiel Amor <amor5511@gmail.com> 1764434517 +0200	checkout: moving from feature/swarm-intelligence to main
+c09c2ddd3aafaef11fd14184084bd4cfcddf2184 13961825698e2c4de361708f965855b2c370ac6b Yehiel Amor <amor5511@gmail.com> 1764434524 +0200	pull origin main: Fast-forward
+13961825698e2c4de361708f965855b2c370ac6b fd6b6936c0764cb803a35414d0d7aa934e4ebc2b Yehiel Amor <amor5511@gmail.com> 1764435004 +0200	commit: fix: Resolve Docker build dependencies (httpx) and missing frontend assets
+fd6b6936c0764cb803a35414d0d7aa934e4ebc2b 53a4123a1457ac6440d5d84536c7c894bf171357 Yehiel Amor <amor5511@gmail.com> 1764436309 +0200	commit: fix: Enable user-specific wallet balance query and UI display
+53a4123a1457ac6440d5d84536c7c894bf171357 0f4bcbbe59fce01d48289e80e5c123897d5c599b Yehiel Amor <amor5511@gmail.com> 1764462097 +0200	commit: feat: Genesis Launch - Multi-node consensus established, wallet security fixed, tokenomics verified
+0f4bcbbe59fce01d48289e80e5c123897d5c599b 2390a7994ab664332e76c55fab7f714147d9e6f1 Yehiel Amor <amor5511@gmail.com> 1764462230 +0200	commit: chore: Remove internal architecture docs from public repo
+2390a7994ab664332e76c55fab7f714147d9e6f1 6edce6d9c99976a880facf37c93344e330cbc272 Yehiel Amor <amor5511@gmail.com> 1764508211 +0200	commit: feat: Production Readiness & Deployment Fixes
+6edce6d9c99976a880facf37c93344e330cbc272 cc0c422d6b4a0344a13879a9fd532bb1f4af9cf0 Yehiel Amor <amor5511@gmail.com> 1764521616 +0200	commit: Critical Fixes: Async Deliberation, DB Volume, JSON Parsing
+cc0c422d6b4a0344a13879a9fd532bb1f4af9cf0 3257c0853ff86a619fd7bf0a23644ecd7e97b44b Yehiel Amor <amor5511@gmail.com> 1764522416 +0200	commit: Fix: Expose Port 80 & Genesis Allocation
+3257c0853ff86a619fd7bf0a23644ecd7e97b44b 64dc8a39cd6e323c1fa4403f4f88cf0267dd3587 Yehiel Amor <amor5511@gmail.com> 1764522731 +0200	commit: Fix: Remove hardcoded LocalLLM to enable Cloud fallback on Prod
+64dc8a39cd6e323c1fa4403f4f88cf0267dd3587 f833a91a1311de757ec04365f6b532990798ae35 Yehiel Amor <amor5511@gmail.com> 1764523477 +0200	commit: Fix: Implement Gemini Model Fallback on 429 Rate Limit
+f833a91a1311de757ec04365f6b532990798ae35 bfb23d18f11a2a82f104b0291c7bf98ef77cbd30 Yehiel Amor <amor5511@gmail.com> 1764523569 +0200	commit: Fix: Validate Gemini Fallback Models against API
+bfb23d18f11a2a82f104b0291c7bf98ef77cbd30 c73a1fb084d875ff9ca04b895421e4f554d337de Yehiel Amor <amor5511@gmail.com> 1764523671 +0200	commit: Fix: NameError in Gemini initialization
+c73a1fb084d875ff9ca04b895421e4f554d337de 10b27e14ef8b33018fd8f6f6678f5233b3bf8af7 Yehiel Amor <amor5511@gmail.com> 1764523786 +0200	commit: Fix: Bind P2P to 0.0.0.0 to allow external connections
+10b27e14ef8b33018fd8f6f6678f5233b3bf8af7 268be9ac9b4be2e3db6fb828c36eac99625d9c62 Yehiel Amor <amor5511@gmail.com> 1764578522 +0200	commit: Fix: Add unique Case ID to dilemmas to prevent Anti-Gaming lock
+268be9ac9b4be2e3db6fb828c36eac99625d9c62 2efff71705e3e74b4bd548186fecda7bf87eae26 Yehiel Amor <amor5511@gmail.com> 1764579897 +0200	commit: Fix: Allow NODE_ID configuration via env var to prevent P2P collisions
+2efff71705e3e74b4bd548186fecda7bf87eae26 7abb5ab3ef748285aecf3adb02eefacea1c865a0 Yehiel Amor <amor5511@gmail.com> 1764580259 +0200	commit: Fix: NameError in transfer_tokens endpoint
+7abb5ab3ef748285aecf3adb02eefacea1c865a0 e6db2b3cc180074958b2f72b57e1f26cfc11a57a Yehiel Amor <amor5511@gmail.com> 1764673767 +0200	commit: chore: final cleanup and production readiness
+e6db2b3cc180074958b2f72b57e1f26cfc11a57a d7c3219a2ba8c95fae285e8c302bbaa6af717add Yehiel Amor <amor5511@gmail.com> 1764673989 +0200	commit: chore: remove local dev files and secure repo
+d7c3219a2ba8c95fae285e8c302bbaa6af717add f9fd1df58e32ef26cba60f365f0962f7d5dfbeb0 Yehiel Amor <amor5511@gmail.com> 1764679183 +0200	commit: fix: restore correct founder address in genesis
+f9fd1df58e32ef26cba60f365f0962f7d5dfbeb0 db6b48da0a98e33cdb7b4e00db85308f8bafcb7e Yehiel Amor <amor5511@gmail.com> 1764769883 +0200	commit: 🔒 Critical Security & P0/P1 Fixes
+db6b48da0a98e33cdb7b4e00db85308f8bafcb7e b21a1ae9a147a98f5a271734d3100a74b985ca5b Yehiel Amor <amor5511@gmail.com> 1764770929 +0200	commit: fix: Miner init - use consensus_manager instead of identity parameter
+b21a1ae9a147a98f5a271734d3100a74b985ca5b 0edeebf8502b5c9774a7222dccc76783691afe50 Yehiel Amor <amor5511@gmail.com> 1764772293 +0200	commit: fix: Hide Node Operator in public mode, fix WebSocket compatibility, expose frontend_mode
+0edeebf8502b5c9774a7222dccc76783691afe50 68e7ed30128473f7edd0d37cabca7218fb994d34 Yehiel Amor <amor5511@gmail.com> 1764772387 +0200	commit: fix: Stop MemoryGraph from mining blocks when MINING_ENABLED=false

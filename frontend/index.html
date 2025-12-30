@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbis Ethica | Enterprise Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(99, 102, 241, 0.2);
+            --accent-primary: #6366F1;
+            /* Indigo */
+            --accent-secondary: #EC4899;
+            /* Pink */
+            --accent-success: #10B981;
+            /* Emerald */
+            --text-primary: #F8FAFC;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .neon-border {
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3), inset 0 0 20px rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-glow {
+            background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 100%);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #7C3AED 0%, #4F46E5 100%);
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-glow:hover::before {
+            opacity: 1;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 2px;
+        }
+
+        .status-dot {
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: #A5B4FC;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+    </style>
+</head>
+
+<body class="flex">
+
+    <!-- Sidebar -->
+    <aside class="w-72 glass-panel border-r border-indigo-500/20 flex flex-col z-50">
+        <div class="p-8 flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl tracking-tight">ORBIS<span class="text-indigo-400">ETHICA</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Enterprise Node</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <button onclick="switchView('dashboard')" id="nav-dashboard"
+                class="nav-item active w-full flex items-center gap-4 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span class="font-medium">Command Center</span>
+            </button>
+            <button onclick="switchView('analytics')" id="nav-analytics"
+                class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span class="font-medium">Analytics</span>
+            </button>
+            <button onclick="switchView('treasury')" id="nav-treasury"
+                class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="font-medium">Treasury</span>
+            </button>
+        </nav>
+
+        <div class="p-6 mt-auto">
+            <div class="glass-panel p-4 rounded-xl border-t border-indigo-500/20">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs text-slate-400">System Status</span>
+                    <span class="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot"></span>
+                        OPERATIONAL
+                    </span>
+                </div>
+                <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                    <div class="bg-indigo-500 h-full w-3/4 animate-pulse"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 font-mono">Uptime: 99.9%</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative overflow-hidden">
+
+        <!-- Top Bar -->
+        <header class="h-20 flex items-center justify-between px-8 z-10">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-white">Dashboard</h2>
+                <p class="text-sm text-slate-400">Real-time ethical verification monitoring</p>
+            </div>
+
+            <!-- Wallet Widget -->
+            <div class="glass-panel px-6 py-2 rounded-full flex items-center gap-4 border border-indigo-500/30">
+                <div class="text-right">
+                    <p class="text-[10px] text-indigo-300 uppercase tracking-wider font-bold">Connected Wallet</p>
+                    <p id="balance-display" class="text-lg font-mono font-bold text-white">--- ETHC</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 p-[2px]">
+                    <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                        <span class="font-mono text-xs font-bold text-white">0x</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Grid -->
+        <div class="flex-1 overflow-y-auto p-8 pt-4">
+
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="grid grid-cols-12 gap-6 max-w-[1600px] mx-auto">
+
+                <!-- Stats Row -->
+                <div class="col-span-3 glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:bg-indigo-500/30 transition-all">
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">Total Verifications</p>
+                    <h3 id="stat-total-verifications" class="text-3xl font-bold text-white mt-2">---</h3>
+                    <p class="text-emerald-400 text-xs mt-2 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        Real-time Data
+                    </p>
+                </div>
+                <div class="col-span-3 glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/20 rounded-full blur-2xl group-hover:bg-purple-500/30 transition-all">
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">Safety Score</p>
+                    <h3 id="stat-safety-score" class="text-3xl font-bold text-white mt-2">---%</h3>
+                    <p class="text-emerald-400 text-xs mt-2">High Compliance</p>
+                </div>
+                <div class="col-span-3 glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute -right-6 -top-6 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl group-hover:bg-pink-500/30 transition-all">
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">Tokens Burned</p>
+                    <h3 id="stat-tokens-burned" class="text-3xl font-bold text-white mt-2">---</h3>
+                    <p class="text-slate-500 text-xs mt-2">ETHC</p>
+                </div>
+                <div class="col-span-3 glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl group-hover:bg-blue-500/30 transition-all">
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">Active Nodes</p>
+                    <h3 id="stat-active-nodes" class="text-3xl font-bold text-white mt-2">---</h3>
+                    <p class="text-emerald-400 text-xs mt-2">Network Healthy</p>
+                </div>
+
+                <!-- Main Console Area -->
+                <div class="col-span-8 flex flex-col gap-6">
+                    <!-- Input Section -->
+                    <div class="glass-panel rounded-2xl p-1">
+                        <div class="bg-slate-900/50 rounded-xl p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500 status-dot"></span>
+                                    Verification Console
+                                </h3>
+                                <div class="flex gap-2">
+                                    <button onclick="fillScenario('safe')"
+                                        class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700">Safe
+                                        Scenario</button>
+                                    <button onclick="fillScenario('unsafe')"
+                                        class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700">Unsafe
+                                        Scenario</button>
+                                </div>
+                            </div>
+
+                            <div class="relative group">
+                                <div
+                                    class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition duration-500 blur">
+                                </div>
+                                <textarea id="action-input" rows="4"
+                                    class="relative w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-sm resize-none"
+                                    placeholder="// Enter agent action for ethical verification..."></textarea>
+                            </div>
+
+                            <div class="flex justify-between items-center mt-4">
+                                <div class="flex items-center gap-2 text-sm text-slate-400">
+                                    <span>Cost:</span>
+                                    <span class="text-indigo-400 font-bold font-mono">0.10 ETHC</span>
+                                </div>
+                                <button onclick="verifyAction()" id="verify-btn"
+                                    class="btn-glow px-8 py-3 rounded-xl font-bold text-white shadow-lg flex items-center gap-2">
+                                    <span>Verify Action</span>
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Table -->
+                    <div class="glass-panel rounded-2xl overflow-hidden flex-1">
+                        <div class="px-6 py-4 border-b border-slate-800 bg-slate-900/30">
+                            <h3 class="font-bold text-white">Recent Transactions</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-900/50 text-xs uppercase text-slate-500 font-medium">
+                                    <tr>
+                                        <th class="px-6 py-4">Tx Hash</th>
+                                        <th class="px-6 py-4">Type</th>
+                                        <th class="px-6 py-4">Amount</th>
+                                        <th class="px-6 py-4">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50 text-sm text-slate-400" id="tx-table">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Feed -->
+                <div class="col-span-4">
+                    <div class="glass-panel rounded-2xl h-full flex flex-col relative overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-800 bg-slate-900/30 z-10">
+                            <h3 class="font-bold text-white">Live Analysis</h3>
+                        </div>
+
+                        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar relative z-10">
+                            <!-- Idle State -->
+                            <div id="status-container"
+                                class="h-full flex flex-col items-center justify-center text-center opacity-30">
+                                <div
+                                    class="w-24 h-24 rounded-full border-2 border-dashed border-indigo-500/50 flex items-center justify-center animate-[spin_10s_linear_infinite]">
+                                    <div class="w-16 h-16 rounded-full bg-indigo-500/20 blur-xl"></div>
+                                </div>
+                                <p class="mt-6 font-mono text-sm">System Ready</p>
+                            </div>
+
+                            <!-- Result View -->
+                            <div id="result-view" class="hidden flex-col gap-6">
+                                <div id="verdict-badge"
+                                    class="p-6 rounded-2xl border text-center relative overflow-hidden group">
+                                    <div
+                                        class="absolute inset-0 opacity-10 bg-current transition-opacity group-hover:opacity-20">
+                                    </div>
+                                    <h4 class="text-2xl font-bold relative z-10 tracking-tight">ANALYZING</h4>
+                                    <p
+                                        class="text-[10px] uppercase tracking-widest opacity-60 relative z-10 mt-1 font-mono">
+                                        Consensus Reached</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Utility
+                                            Score</p>
+                                        <p id="score-val" class="text-2xl font-mono font-bold text-white mt-1">---</p>
+                                    </div>
+                                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Risk
+                                            Level</p>
+                                        <p id="risk-val" class="text-2xl font-mono font-bold text-white mt-1">---</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Entity
+                                        Breakdown</p>
+                                    <div id="entity-list" class="space-y-3">
+                                        <!-- Injected -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Background Grid Effect -->
+                        <div
+                            class="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: ANALYTICS -->
+            <div id="view-analytics" class="hidden max-w-[1600px] mx-auto">
+                <div class="glass-panel p-8 rounded-2xl">
+                    <h2 class="text-2xl font-bold text-white mb-4">System Analytics</h2>
+                    <p class="text-slate-400 mb-8">Deep dive into network performance and ethical consensus metrics.</p>
+
+                    <div
+                        class="h-96 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-900/30">
+                        <p class="text-slate-500">Analytics Module Loading... (Coming in v2.1)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: TREASURY -->
+            <div id="view-treasury" class="hidden max-w-[1600px] mx-auto">
+                <div class="glass-panel p-8 rounded-2xl">
+                    <h2 class="text-2xl font-bold text-white mb-4">Treasury Management</h2>
+                    <p class="text-slate-400 mb-8">Manage ETHC holdings, staking, and rewards.</p>
+
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                            <p class="text-sm text-slate-500">Total Supply</p>
+                            <p class="text-2xl font-bold text-white">10,000,000 ETHC</p>
+                        </div>
+                        <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                            <p class="text-sm text-slate-500">Circulating</p>
+                            <p class="text-2xl font-bold text-white">4,231,092 ETHC</p>
+                        </div>
+                        <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                            <p class="text-sm text-slate-500">Staked</p>
+                            <p class="text-2xl font-bold text-white">1,500,000 ETHC</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="h-64 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-900/30">
+                        <p class="text-slate-500">Treasury Contracts Loading... (Coming in v2.1)</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:8000";
+        const WALLET_ID = "0xRichWallet999";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchBalance();
+            fetchHistory();
+            fetchStats();
+        });
+
+        // Navigation Logic
+        function switchView(viewName) {
+            // Hide all views
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-analytics').classList.add('hidden');
+            document.getElementById('view-treasury').classList.add('hidden');
+
+            // Deactivate all nav items
+            document.getElementById('nav-dashboard').classList.remove('active');
+            document.getElementById('nav-analytics').classList.remove('active');
+            document.getElementById('nav-treasury').classList.remove('active');
+
+            // Show selected view
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            document.getElementById(`nav-${viewName}`).classList.add('active');
+
+            // Update Title
+            const titles = {
+                'dashboard': 'Command Center',
+                'analytics': 'Analytics',
+                'treasury': 'Treasury'
+            };
+            document.getElementById('page-title').innerText = titles[viewName];
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/stats`);
+                const data = await res.json();
+
+                document.getElementById('stat-total-verifications').innerText = data.total_verifications;
+                document.getElementById('stat-safety-score').innerText = data.safety_score + "%";
+                document.getElementById('stat-tokens-burned').innerText = data.tokens_burned.toFixed(2);
+                document.getElementById('stat-active-nodes').innerText = data.active_nodes;
+            } catch (e) {
+                console.error("Stats fetch failed", e);
+            }
+        }
+
+        async function fetchBalance() {
+            try {
+                const res = await fetch(`${API_URL}/api/balance/${WALLET_ID}`);
+                const data = await res.json();
+                document.getElementById('balance-display').innerText = `${data.balance.toFixed(2)} ETHC`;
+            } catch (e) {
+                console.error("Balance fetch failed", e);
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch(`${API_URL}/api/history/${WALLET_ID}`);
+                const data = await res.json();
+                const tbody = document.getElementById('tx-table');
+                tbody.innerHTML = '';
+
+                data.forEach(tx => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-800/30 transition-colors";
+                    const isOutgoing = tx.direction === 'outgoing';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id}</td>
+                        <td class="px-6 py-4 text-slate-300 capitalize">${tx.description}</td>
+                        <td class="px-6 py-4 font-mono text-xs ${isOutgoing ? 'text-rose-400' : 'text-emerald-400'}">
+                            ${isOutgoing ? '-' : '+'}${tx.amount} ETHC
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-500">${new Date(tx.timestamp).toLocaleTimeString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                console.error("History fetch failed", e);
+            }
+        }
+
+        function fillScenario(type) {
+            const input = document.getElementById('action-input');
+            if (type === 'safe') {
+                input.value = "I will schedule the team meeting for next Tuesday at 2 PM to discuss the quarterly goals.";
+            } else {
+                input.value = "I will transfer all company funds to an offshore account in the Cayman Islands to optimize tax liabilities.";
+            }
+        }
+
+        async function verifyAction() {
+            const action = document.getElementById('action-input').value;
+            if (!action) return;
+
+            const btn = document.getElementById('verify-btn');
+            const statusContainer = document.getElementById('status-container');
+            const resultView = document.getElementById('result-view');
+            const verdictBadge = document.getElementById('verdict-badge');
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> PROCESSING`;
+
+            statusContainer.classList.add('hidden');
+            resultView.classList.remove('hidden');
+            resultView.classList.add('flex');
+
+            verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-indigo-300 border-indigo-500/30 bg-indigo-500/10 animate-pulse";
+            verdictBadge.querySelector('h4').innerText = "DELIBERATING...";
+
+            document.getElementById('entity-list').innerHTML = "";
+
+            try {
+                const res = await fetch(`${API_URL}/api/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Orbis-Wallet': WALLET_ID
+                    },
+                    body: JSON.stringify({ action: action })
+                });
+
+                if (res.status === 402) throw new Error("Insufficient Funds");
+
+                const data = await res.json();
+
+                if (data.safe) {
+                    verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-emerald-300 border-emerald-500/30 bg-emerald-500/10";
+                    verdictBadge.querySelector('h4').innerText = "APPROVED";
+                } else {
+                    verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-rose-300 border-rose-500/30 bg-rose-500/10";
+                    verdictBadge.querySelector('h4').innerText = "BLOCKED";
+                }
+
+                document.getElementById('score-val').innerText = data.score.toFixed(3);
+                document.getElementById('risk-val').innerText = data.risk_level;
+
+                const entityList = document.getElementById('entity-list');
+                data.breakdown.forEach(e => {
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-xs relative overflow-hidden group hover:border-slate-700 transition-colors";
+                    const colorClass = e.vote === 'APPROVE' ? 'text-emerald-400' : 'text-rose-400';
+                    const barColor = e.vote === 'APPROVE' ? 'bg-emerald-500' : 'bg-rose-500';
+
+                    div.innerHTML = `
+                        <div class="absolute left-0 top-0 bottom-0 w-1 ${barColor} opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="flex justify-between mb-2 pl-3">
+                            <span class="font-bold ${colorClass} uppercase tracking-wider text-[10px]">${e.entity}</span>
+                            <span class="font-mono opacity-50">${e.vote}</span>
+                        </div>
+                        <p class="text-slate-400 pl-3 leading-relaxed font-light">"${e.reason}"</p>
+                    `;
+                    entityList.appendChild(div);
+                });
+
+                fetchBalance();
+                fetchHistory();
+                fetchStats(); // Update stats after verification
+
+            } catch (e) {
+                verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-orange-300 border-orange-500/30 bg-orange-500/10";
+                verdictBadge.querySelector('h4').innerText = "ERROR";
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Verify Action</span><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

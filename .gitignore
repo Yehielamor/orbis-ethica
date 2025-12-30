@@ -1,0 +1,99 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.DS_Store
+
+# Database
+*.db
+*.sqlite3
+
+# Keys & Secrets (CRITICAL)
+.keys/
+keys/
+secrets/
+.keys_backup*/
+test_node/
+*.sk
+*.pk
+
+# Runtime Data
+burn_ledger.json
+vector_memory.json
+system_config.json
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Docker
+.docker/
+
+# Temporary Scripts & Tests
+scripts/verify_*.py
+# scripts/test_*.py
+scripts/check_keys.py
+scripts/fix_git_history.sh
+scripts/generate_stable_identity.py
+scripts/setup_swarm.sh
+scripts/fund_user_prod.py
+scripts/run_prod_local.sh
+scripts/manual_verify_*.py
+
+# Cleanup (User Requested)
+.python-version
+adjust_ledger.py
+agi_3.0_architecture.md
+backend.log
+burn_ledger.json
+burn_ledger.json.bak
+check_balance.py
+compensate_user.py
+debug_auth.py
+# deploy.sh
+fix_fork.py
+force_sync.py
+force_wipe.sh
+repair_balance.py
+reset_local_node.sh
+setup_secure_identity.py
+simulation.py
+swarm_dashboard.html
+system_config.json
+test_p2p.py
+vector_memory.json
+memory_graph.json.bak
+orbis_ethica.db
+
+# Prevent Accidental Key Exposure (Extra Safety)
+**/export_*.py
+**/fund_*.py
+**/generate_*identity*.py
+**/*_secret*.py
+**/*_private*.py
+
+# Simulation Scripts (Keep only verified tests)
+scripts/simulation/*
+!scripts/simulation/consensus_test.py
+!scripts/simulation/swarm_training_test.py
+
+# Generated key files (runtime)
+node_key.json
+orchestrator_key.json
+
+# Log files (runtime)
+backend.log
+bootstrap.log
+miner.log
+orchestrator.log
