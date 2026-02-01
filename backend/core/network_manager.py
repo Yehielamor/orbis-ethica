@@ -15,10 +15,12 @@ import httpx
 
 from .ledger import Ledger
 
+import os
+
 # Configuration
 MAX_PEERS = 50          # Don't connect to the whole world
 GOSSIP_FANOUT = 3       # Send to 3 random peers (Epidemic Algorithm)
-PORT = 8000             # Default port
+PORT = int(os.getenv("PORT", 8000))             # Default port
 
 logger = logging.getLogger("P2P")
 
@@ -103,7 +105,42 @@ class NetworkManager:
             except:
                 pass
 
-    # --- 2. GOSSIP PROTOCOL (Viral Broadcast) ---
+    def add_peer(self, url: str):
+        """Manually add a peer (e.g. via Handshake)."""
+        try:
+            if url == self.my_url: return
+            clean = url.replace("http://", "").replace("/", "")
+            ip, port = clean.split(":")
+            new_node = NodeInfo(ip, int(port), time.time())
+            self.known_peers.add(new_node)
+            logger.info(f"🤝 [NET] Accepted active connection from: {url}")
+        except Exception as e:
+            logger.error(f"Failed to add peer {url}: {e}")
+
+    async def _handshake_with_seeds(self):
+        """Actively say hello to seeds."""
+        print(f"👋 [NET] Initiating Handshake with {len(self.known_peers)} seeds...")
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            for seed in self.known_peers: # Started with seeds
+                try:
+                    print(f"👉 [NET] Sending Handshake to {seed.url}")
+                    resp = await client.post(f"{seed.url}/api/p2p/handshake", json={"url": self.my_url})
+                    print(f"✅ [NET] Handshake response: {resp.status_code} {resp.text}")
+                except Exception as e:
+                    print(f"❌ [NET] Handshake failed with {seed.url}: {e}")
+                    logger.error(f"❌ [NET] Handshake failed with {seed.url}: {e}")
+                    pass
+    
+    # Update start to include handshake
+    async def start(self):
+        """Start the background P2P loops."""
+        logger.info(f"🕸️ [NET] Starting P2P Node at {self.my_url}")
+        
+        # 0. Initial Handshake
+        asyncio.create_task(self._handshake_with_seeds())
+        
+        asyncio.create_task(self._discovery_loop())
+        asyncio.create_task(self._health_check_loop())
     async def broadcast_block(self, block_data: dict[str, Any]):
         """
         The 'Infection' logic. 

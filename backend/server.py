@@ -10,6 +10,9 @@ from pydantic import BaseModel
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from backend.core.deliberation_engine import DeliberationEngine
 from backend.core.ledger import Ledger
 from backend.core.llm_provider import get_llm_provider
@@ -149,7 +152,7 @@ async def startup_event():
     """
     Start the P2P background tasks (Discovery & Health Checks)
     """
-    print(f"🚀 Server starting on {my_ip}:8000")
+    print(f"🚀 Server starting on {my_ip}:{os.getenv('PORT', '8000')}")
     print(f"🕸️ Joining Swarm with seeds: {bootstrap_nodes}")
     await network_manager.start()
 
@@ -184,6 +187,20 @@ async def receive_block_p2p(block_data: dict):
     
     print("❌ [P2P] Block validation failed")
     raise HTTPException(status_code=400, detail="Invalid Block or Signature")
+
+@app.post("/api/p2p/handshake")
+async def handshake(payload: dict):
+    """
+    Active Peer Registration.
+    Peers call this to say 'Hello, add me to your list'.
+    """
+    peer_url = payload.get("url")
+    if peer_url:
+        print(f"🤝 [P2P] Handshake received from {peer_url}")
+        network_manager.add_peer(peer_url)
+        return {"status": "connected", "my_url": network_manager.my_url}
+    return {"status": "ignored"}
+
 
 @app.get("/api/mining/info")
 async def get_mining_info():
@@ -386,4 +403,5 @@ def health():
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
