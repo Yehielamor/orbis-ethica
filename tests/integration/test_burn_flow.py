@@ -1,9 +1,10 @@
 
+
 import pytest
-from typing import Dict, Any
-from backend.security.burn.protocol import BurnProtocol
+
 from backend.security.burn.models import BurnOffenseType
-from backend.core.interfaces import ReputationManager
+from backend.security.burn.protocol import BurnProtocol
+
 
 # 1. Mock Reputation Manager (Implementing the Interface)
 class MockReputationManager:

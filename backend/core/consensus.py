@@ -4,13 +4,15 @@ Handles cryptographic signing and verification for Distributed Oracle Consensus.
 Uses Ed25519 signatures (via PyNaCl) to ensure proposal authenticity.
 """
 
-import os
 import json
 import logging
-from typing import Optional, Dict, Any
-from nacl.signing import SigningKey, VerifyKey
+import os
+from typing import Any
+
 from nacl.encoding import HexEncoder
 from nacl.exceptions import BadSignatureError
+from nacl.signing import SigningKey, VerifyKey
+
 from .models.proposal import Proposal
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class ConsensusManager:
         """Load Ed25519 keypair from disk or generate new one."""
         if os.path.exists(self.key_path):
             try:
-                with open(self.key_path, 'r') as f:
+                with open(self.key_path) as f:
                     data = json.load(f)
                     self.signing_key = SigningKey(data['private_key'], encoder=HexEncoder)
                     self.verify_key = self.signing_key.verify_key
@@ -85,7 +87,7 @@ class ConsensusManager:
         
         return proposal
 
-    def sign_data(self, data: Dict[str, Any]) -> str:
+    def sign_data(self, data: dict[str, Any]) -> str:
         """
         Sign an arbitrary dictionary. Returns the signature in hex.
         """
@@ -140,7 +142,7 @@ class ConsensusManager:
         # Sort keys for determinism
         return json.dumps(data, sort_keys=True)
 
-    def verify_poi(self, payload: Dict[str, Any], signature: str, miner_id: str) -> bool:
+    def verify_poi(self, payload: dict[str, Any], signature: str, miner_id: str) -> bool:
         """
         Verify a Proof of Inference (PoI) signature.
         Payload must include: shard_id, result_hash, miner_id, model, timestamp.

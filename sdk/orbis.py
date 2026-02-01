@@ -1,6 +1,7 @@
+from typing import Any
+
 import requests
-import json
-from typing import Dict, Any, Optional
+
 
 class Orbis:
     """
@@ -11,7 +12,7 @@ class Orbis:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
 
-    def verify(self, action: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def verify(self, action: str, context: dict[str, Any] = None) -> dict[str, Any]:
         """
         Verifies if an action is ethical.
         

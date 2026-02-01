@@ -1,11 +1,11 @@
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from backend.core.models import Proposal, ProposalCategory, ProposalDomainager
 from backend.governance.assembly_manager import PoolManager
+
 
 def test_pool_manager():
     print("Testing Pool Manager...")

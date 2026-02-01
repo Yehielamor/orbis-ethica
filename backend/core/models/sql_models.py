@@ -3,10 +3,23 @@ SQLAlchemy Models.
 Maps core domain objects to database tables.
 """
 
-from sqlalchemy import Column, String, Float, Integer, JSON, DateTime, ForeignKey, Text, Boolean
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
+
 from ..database import Base
+
 
 class SQLEntity(Base):
     """Persistent storage for Cognitive Entities."""

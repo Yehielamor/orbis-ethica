@@ -2,12 +2,12 @@ import asyncio
 import json
 import os
 import sys
-from typing import List, Dict
 
 # Add backend to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from backend.core.llm_provider import get_llm_provider
+
 
 async def generate_synthetic_data(count: int = 10, output_file: str = "data/synthetic_dataset.jsonl"):
     """
@@ -48,7 +48,7 @@ async def generate_synthetic_data(count: int = 10, output_file: str = "data/synt
         
         while retries < max_retries:
             try:
-                prompt = f"Generate a unique, complex ethical dilemma for an AI agent. Randomize the domain and risk level. Ensure it is distinct from previous ones."
+                prompt = "Generate a unique, complex ethical dilemma for an AI agent. Randomize the domain and risk level. Ensure it is distinct from previous ones."
                 
                 response = await llm.generate(prompt, system_role=system_role)
                 

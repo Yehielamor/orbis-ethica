@@ -1,13 +1,11 @@
 """Base entity class for all cognitive entities."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, List
-import os
-from datetime import datetime
+from typing import Any
 
-from ..core.models import Entity, EntityType, Proposal, ULFRScore, EntityVote
+from ..core.llm_provider import LLMProvider, get_llm_provider
+from ..core.models import Entity, EntityVote, Proposal, ULFRScore
 from ..core.models.decision import EntityEvaluation
-from ..core.llm_provider import get_llm_provider, LLMProvider
 
 
 class BaseEntity(ABC):
@@ -19,7 +17,7 @@ class BaseEntity(ABC):
     - get_system_prompt(): Entity-specific instructions
     """
     
-    def __init__(self, entity: Entity, llm_provider: Optional[LLMProvider] = None, vector_store: Optional[Any] = None):
+    def __init__(self, entity: Entity, llm_provider: LLMProvider | None = None, vector_store: Any | None = None):
         """
         Initialize entity with configuration.
         
@@ -79,7 +77,7 @@ class BaseEntity(ABC):
             
         return formatted
 
-    async def _call_llm(self, prompt: str, system_role: Optional[str] = None) -> str:
+    async def _call_llm(self, prompt: str, system_role: str | None = None) -> str:
         """
         Call the LLM provider with the given prompt.
         
@@ -117,7 +115,7 @@ The JSON structure must be:
 }
 """
 
-    def _parse_json_response(self, response: str) -> Dict[str, Any]:
+    def _parse_json_response(self, response: str) -> dict[str, Any]:
         """
         Parse JSON response from LLM.
         Handles potential markdown code blocks.
@@ -148,7 +146,7 @@ The JSON structure must be:
             # Fallback or raise
             return {}
 
-    def _parse_ulfr_from_json(self, data: Dict[str, Any]) -> ULFRScore:
+    def _parse_ulfr_from_json(self, data: dict[str, Any]) -> ULFRScore:
         """Parse ULFR score from JSON data."""
         ulfr = data.get("ulfr", {})
         return ULFRScore(
@@ -158,7 +156,7 @@ The JSON structure must be:
             rights_risk=float(ulfr.get("R_risk", 0.5))
         )
 
-    def _parse_vote_from_json(self, data: Dict[str, Any]) -> int:
+    def _parse_vote_from_json(self, data: dict[str, Any]) -> int:
         """Parse vote from JSON data."""
         vote_str = data.get("vote", "ABSTAIN").upper()
         if vote_str == "APPROVE":
@@ -174,7 +172,7 @@ class EntityEvaluator:
     Orchestrates evaluation across multiple entities.
     """
     
-    def __init__(self, entities: List[BaseEntity]):
+    def __init__(self, entities: list[BaseEntity]):
         """
         Initialize evaluator with entities.
         
@@ -183,7 +181,7 @@ class EntityEvaluator:
         """
         self.entities = entities
     
-    def evaluate_proposal(self, proposal: Proposal) -> List[EntityEvaluation]:
+    def evaluate_proposal(self, proposal: Proposal) -> list[EntityEvaluation]:
         """
         Evaluate proposal with all entities.
         
@@ -205,7 +203,7 @@ class EntityEvaluator:
         
         return evaluations
     
-    async def evaluate_panel(self, proposal: Proposal) -> List[EntityEvaluation]:
+    async def evaluate_panel(self, proposal: Proposal) -> list[EntityEvaluation]:
         """
         Evaluate proposal with all entities in a SINGLE LLM call (Panel Mode).
         This drastically reduces API usage and improves coherence.
@@ -319,7 +317,7 @@ Structure:
 
     def get_consensus_vote(
         self,
-        evaluations: List[EntityEvaluation]
+        evaluations: list[EntityEvaluation]
     ) -> float:
         """
         Calculate weighted consensus vote.

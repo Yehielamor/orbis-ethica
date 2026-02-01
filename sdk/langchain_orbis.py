@@ -1,7 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
+
 from .orbis import Orbis
+
 
 class OrbisSafetyChain(Runnable):
     """
@@ -22,7 +25,7 @@ class OrbisSafetyChain(Runnable):
         self.orbis = Orbis(api_key=api_key)
         self.behavior = behavior
         
-    def invoke(self, input: Any, config: Optional[RunnableConfig] = None) -> Any:
+    def invoke(self, input: Any, config: RunnableConfig | None = None) -> Any:
         """
         Intercepts input (which is the output of the previous chain step).
         """
@@ -51,7 +54,7 @@ class OrbisSafetyChain(Runnable):
                     return f"{input}\n\n[ORBIS WARNING: {result['reason']}]"
                 return input
 
-    async def ainvoke(self, input: Any, config: Optional[RunnableConfig] = None, **kwargs) -> Any:
+    async def ainvoke(self, input: Any, config: RunnableConfig | None = None, **kwargs) -> Any:
         """Async version."""
         # For MVP, we just call sync version. 
         # In prod, Orbis SDK should have async methods.

@@ -1,11 +1,10 @@
 """Entity model - represents cognitive entities in the deliberation system."""
 
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Any
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field
 
-from .ulfr import ULFRScore
+from pydantic import BaseModel, Field
 
 
 class EntityType(str, Enum):
@@ -85,7 +84,7 @@ class Entity(BaseModel):
     consistency_score: float = Field(default=0.5, ge=0.0, le=1.0)
     
     # Cryptographic identity
-    public_key: Optional[str] = Field(None, description="Public key for signatures")
+    public_key: str | None = Field(None, description="Public key for signatures")
     
     class Config:
         """Pydantic configuration."""
@@ -228,7 +227,7 @@ Ask: "What decision will future generations respect?"
         self.reputation *= (1 - decay_rate) ** days_inactive
         self.reputation = max(0.0, self.reputation)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "id": str(self.id),

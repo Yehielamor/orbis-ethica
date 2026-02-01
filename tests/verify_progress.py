@@ -1,7 +1,8 @@
-import requests
 import os
 import sys
-import json
+
+import requests
+
 
 def check_step(name, status, details=""):
     symbol = "✅" if status else "❌"

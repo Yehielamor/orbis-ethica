@@ -6,17 +6,18 @@ Verifies:
 2. Burn Protocol activation (Reputation slashing).
 """
 
-import sys
 import os
+import sys
 import time
 
 # Add parent directory to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.knowledge.gateway import KnowledgeGateway, IntegrityError
+from backend.knowledge.gateway import IntegrityError, KnowledgeGateway
 from backend.knowledge.models import RawKnowledge
-from backend.security.burn.protocol import BurnProtocol
 from backend.security.burn.models import BurnOffenseType
+from backend.security.burn.protocol import BurnProtocol
+
 
 def print_step(text):
     print(f"\n🔹 {text}...")
@@ -76,7 +77,7 @@ def run_adversarial_scenario():
 
     print(f"   🔥 BURN EXECUTED: {burn_event.perpetrator_id}")
     print(f"   ⚖️  Offense: {burn_event.offense_type.value}")
-    print(f"   📉 Reputation slashed to 0.0")
+    print("   📉 Reputation slashed to 0.0")
     
     print("\n✅ ADVERSARIAL TEST PASSED: System successfully defended and retaliated.")
 

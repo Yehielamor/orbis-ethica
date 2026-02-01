@@ -1,10 +1,8 @@
 """Healer Entity - Care ethics and harm minimization."""
 
-from typing import Optional
 
 from ..core.models import Proposal
 from ..core.models.decision import EntityEvaluation
-from ..core.llm_provider import LLMProvider
 from .base import BaseEntity
 
 

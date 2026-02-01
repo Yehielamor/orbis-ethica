@@ -3,16 +3,19 @@ Ledger Module
 Manages economic transactions and token balances using SQLite.
 """
 
+import hashlib
 import json
 import os
-import hashlib
 import threading
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
-from .database import DatabaseManager
-from .models.sql_models import LedgerEntryModel, SQLEntity as NodeModel
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel
+
+from .database import DatabaseManager
+from .models.sql_models import LedgerEntryModel
+
 
 class TransactionType(str, Enum):
     TRANSFER = "transfer"
@@ -229,7 +232,7 @@ class Ledger:
             print(f"♻️  Recycled {amount} ETHC to Public Sale Treasury (Non-Deflationary)")
         return success
         
-    def get_transaction_history(self, address: str = None) -> List[Dict]:
+    def get_transaction_history(self, address: str = None) -> list[dict]:
         """Get transaction history, optionally filtered by address."""
         session = self.db_manager.get_session()
         try:
@@ -275,7 +278,7 @@ class Ledger:
         
         return round(final_reward, 6)
 
-    def create_block(self, validator_id: str, private_key: Any, reward_recipient: str = None, reputation_score: float = 1.0) -> Optional[Any]:
+    def create_block(self, validator_id: str, private_key: Any, reward_recipient: str = None, reputation_score: float = 1.0) -> Any | None:
         """
         Create a new block from pending transactions.
         Optionally mints a reward to the validator/miner.
@@ -367,7 +370,7 @@ class Ledger:
         finally:
             session.close()
 
-    def finalize_block(self, block_hash: str, signatures: List[Dict[str, str]]) -> bool:
+    def finalize_block(self, block_hash: str, signatures: list[dict[str, str]]) -> bool:
         """
         Mark a block as finalized after receiving sufficient signatures.
         """
@@ -396,7 +399,7 @@ class Ledger:
             session.close()
 
     # Compatibility methods for MemoryGraph anchoring
-    def add_block(self, block_data: Dict[str, Any]):
+    def add_block(self, block_data: dict[str, Any]):
         """
         Mock method kept for MemoryGraph compatibility if it calls this directly.
         In the new flow, MemoryGraph should just read the ledger state.
@@ -407,7 +410,7 @@ class Ledger:
             hash: str
         return DummyBlock(index=999, hash="legacy_add_block_call")
 
-    def validate_block(self, block_data: Dict[str, Any]) -> bool:
+    def validate_block(self, block_data: dict[str, Any]) -> bool:
         """
         Validate a block received from a peer.
         Checks: Hash, Signature, Previous Hash, Merkle Root.
@@ -443,7 +446,7 @@ class Ledger:
             print(f"❌ Block validation error: {e}")
             return False
 
-    def add_block_from_peer(self, block_data: Dict[str, Any]) -> bool:
+    def add_block_from_peer(self, block_data: dict[str, Any]) -> bool:
         """Validate and save a block received from a peer."""
         if not self.validate_block(block_data):
             return False
@@ -507,7 +510,7 @@ class Ledger:
         finally:
             session.close()
 
-    def get_blocks_range(self, start_index: int, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_blocks_range(self, start_index: int, limit: int = 50) -> list[dict[str, Any]]:
         """Fetch a range of blocks starting from start_index."""
         session = self.db_manager.get_session()
         try:
@@ -575,7 +578,6 @@ class Ledger:
         """
         Load genesis configuration and initialize the chain if empty.
         """
-        import json
         import os
         
         if not os.path.exists(genesis_path):
@@ -597,7 +599,7 @@ class Ledger:
                 return
 
             print("📜 Loading Genesis Configuration...")
-            with open(genesis_path, 'r') as f:
+            with open(genesis_path) as f:
                 genesis_data = json.load(f)
                 
             # Create Genesis Transactions (Minting)

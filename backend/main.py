@@ -4,7 +4,9 @@ Main entry point for the Orbis Ethica backend.
 
 import os
 import sys
+
 import uvicorn
+
 
 def main():
     """

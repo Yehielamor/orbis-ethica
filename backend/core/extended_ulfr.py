@@ -3,8 +3,6 @@ Extended ULFR Core - Advanced mathematical models for ethical scoring.
 Based on Whitepaper V3.2 Appendix A.2.
 """
 
-import math
-from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 from .models.ulfr import ULFRScore, ULFRWeights
@@ -32,14 +30,14 @@ class ExtendedULFR:
     Implements the complex mathematical models for Fairness and Risk.
     """
     
-    def __init__(self, weights: Optional[ULFRWeights] = None):
+    def __init__(self, weights: ULFRWeights | None = None):
         self.weights = weights or ULFRWeights()
         # Constants from whitepaper
         self.rho = 0.5  # Irreversibility weight factor (example value)
         self.omega_r = 0.6  # Rawlsian weight in F_penalty
         self.omega_e = 0.4  # Equality weight in F_penalty
 
-    def calculate_gini(self, outcomes: List[float]) -> float:
+    def calculate_gini(self, outcomes: list[float]) -> float:
         """
         Calculate Gini coefficient for a list of outcomes.
         Range: [0, 1], where 0 is perfect equality and 1 is perfect inequality.
@@ -67,7 +65,7 @@ class ExtendedULFR:
                 
         return diff_sum / (2 * n**2 * mean)
 
-    def calculate_rawlsian_impact(self, groups: List[OutcomeGroup]) -> float:
+    def calculate_rawlsian_impact(self, groups: list[OutcomeGroup]) -> float:
         """
         Calculate Rawlsian component (F_Rawls).
         Measures negative impact on the least advantaged group.
@@ -97,7 +95,7 @@ class ExtendedULFR:
         rawls_score = -min_ratio
         return max(0.0, min(1.0, rawls_score))
 
-    def calculate_fairness_penalty(self, groups: List[OutcomeGroup]) -> float:
+    def calculate_fairness_penalty(self, groups: list[OutcomeGroup]) -> float:
         """
         Calculate total Fairness Penalty (F_penalty).
         F_penalty = ω_R * F_Rawls + ω_E * F_Equality
@@ -133,8 +131,8 @@ class ExtendedULFR:
     def calculate_score(self, 
                        utility: float, 
                        life_care: float, 
-                       groups: List[OutcomeGroup],
-                       risk_factors: RiskFactors) -> Dict[str, float]:
+                       groups: list[OutcomeGroup],
+                       risk_factors: RiskFactors) -> dict[str, float]:
         """
         Calculate final Extended ULFR Score.
         Returns dictionary with all components and final score.

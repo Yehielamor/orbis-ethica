@@ -1,5 +1,6 @@
 from typing import Protocol
 
+
 class ReputationManager(Protocol):
     """Interface for managing entity reputation and status."""
     

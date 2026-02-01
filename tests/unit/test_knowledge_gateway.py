@@ -1,7 +1,9 @@
 
 import pytest
+
+from backend.knowledge.gateway import AccessDenied, IntegrityError, KnowledgeGateway
 from backend.knowledge.models import RawKnowledge
-from backend.knowledge.gateway import KnowledgeGateway, AccessDenied, IntegrityError
+
 
 def test_valid_knowledge_flow():
     # Setup

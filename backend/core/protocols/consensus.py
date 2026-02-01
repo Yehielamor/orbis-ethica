@@ -1,10 +1,9 @@
 """Consensus Protocol - Weighted voting and decision logic."""
 
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-from ..models import Proposal, Decision, DecisionOutcome, ULFRWeights
+from ..models import Decision, DecisionOutcome, Proposal, ULFRWeights
 from ..models.decision import EntityEvaluation
 
 
@@ -26,8 +25,8 @@ class ConsensusResult:
     quorum_met: bool
     outcome: DecisionOutcome
     rationale: str
-    entity_votes: Dict[str, int]
-    entity_weights: Dict[str, float]
+    entity_votes: dict[str, int]
+    entity_weights: dict[str, float]
 
 
 class ConsensusProtocol:
@@ -47,7 +46,7 @@ class ConsensusProtocol:
         self,
         quorum: float = 0.6,
         refinement_margin: float = 0.15,
-        weights: Optional[ULFRWeights] = None
+        weights: ULFRWeights | None = None
     ):
         """
         Initialize consensus protocol.
@@ -96,7 +95,7 @@ class ConsensusProtocol:
     
     def check_quorum(
         self,
-        evaluations: List[EntityEvaluation],
+        evaluations: list[EntityEvaluation],
         total_entities: int
     ) -> bool:
         """
@@ -117,9 +116,9 @@ class ConsensusProtocol:
     
     def calculate_weighted_vote(
         self,
-        evaluations: List[EntityEvaluation],
-        entity_reputations: Optional[Dict[str, float]] = None
-    ) -> tuple[float, Dict[str, float]]:
+        evaluations: list[EntityEvaluation],
+        entity_reputations: dict[str, float] | None = None
+    ) -> tuple[float, dict[str, float]]:
         """
         Calculate weighted consensus vote.
         
@@ -201,7 +200,7 @@ class ConsensusProtocol:
         outcome: DecisionOutcome,
         weighted_vote: float,
         threshold: float,
-        evaluations: List[EntityEvaluation]
+        evaluations: list[EntityEvaluation]
     ) -> str:
         """
         Generate human-readable rationale for decision.
@@ -264,9 +263,9 @@ Key concerns to address:"""
     def evaluate(
         self,
         proposal: Proposal,
-        evaluations: List[EntityEvaluation],
+        evaluations: list[EntityEvaluation],
         total_entities: int = 3,
-        entity_reputations: Optional[Dict[str, float]] = None
+        entity_reputations: dict[str, float] | None = None
     ) -> ConsensusResult:
         """
         Run full consensus protocol evaluation.
@@ -322,7 +321,7 @@ Key concerns to address:"""
     def create_decision(
         self,
         proposal: Proposal,
-        evaluations: List[EntityEvaluation],
+        evaluations: list[EntityEvaluation],
         consensus_result: ConsensusResult
     ) -> Decision:
         """

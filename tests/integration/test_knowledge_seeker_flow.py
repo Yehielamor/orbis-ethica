@@ -1,11 +1,17 @@
 
-import pytest
 from unittest.mock import MagicMock
-from backend.knowledge.models import RawKnowledge
-from backend.knowledge.gateway import KnowledgeGateway
-from backend.core.models import Proposal, ProposalCategory, ProposalDomain
+
+from backend.core.models import (
+    Entity,
+    EntityType,
+    Proposal,
+    ProposalCategory,
+    ProposalDomain,
+)
 from backend.entities.seeker import SeekerEntity
-from backend.core.models import Entity, EntityType
+from backend.knowledge.gateway import KnowledgeGateway
+from backend.knowledge.models import RawKnowledge
+
 
 def test_knowledge_to_seeker_flow():
     # 1. Setup Knowledge Gateway

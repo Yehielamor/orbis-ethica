@@ -1,22 +1,25 @@
 """
 Deliberation Engine - Orchestrates the multi-round deliberation process.
-Integrates Extended ULFR scoring and Memory Graph storage.
+Integrates Extended ULFR scoring, Memory Graph storage, Researcher Agent, and Swarm Parallelism.
 """
-
-import time
 import asyncio
-from typing import List, Dict, Any, Optional
+import time
+from typing import Any
 from uuid import uuid4
-from datetime import datetime
 
-from .models import Proposal, Decision, ProposalStatus, DecisionOutcome
-from .models.decision import EntityEvaluation
-from .models.ulfr import ULFRScore
-from .extended_ulfr import ExtendedULFR, OutcomeGroup, RiskFactors
+# Entities & Logic
 from ..entities.base import BaseEntity, EntityEvaluator
-from .memory import MemoryGraph
+from ..entities.researcher import ResearcherEntity
 from ..security.reputation_manager import ReputationManager
 from .consensus import ConsensusManager
+from .extended_ulfr import ExtendedULFR
+from .memory import MemoryGraph
+
+# Models
+from .models import Decision, DecisionOutcome, Proposal
+from .models.decision import EntityEvaluation
+from .models.ulfr import ULFRScore
+
 
 class DeliberationEngine:
     """
@@ -25,17 +28,21 @@ class DeliberationEngine:
     
     def __init__(
         self,
-        entities: List[BaseEntity],
-        mediator: Optional[BaseEntity] = None,
-        memory_graph: Optional[MemoryGraph] = None,
-        reputation_manager: Optional[ReputationManager] = None,
-        config_manager: Optional[Any] = None,
-        node_manager: Optional[Any] = None, # Injected NodeManager
+        entities: list[BaseEntity],
+        mediator: BaseEntity | None = None,
+        memory_graph: MemoryGraph | None = None,
+        reputation_manager: ReputationManager | None = None,
+        config_manager: Any | None = None,
+        node_manager: Any | None = None, # Injected NodeManager
         max_rounds: int = 4
     ):
         self.entities = entities
         self.mediator = mediator
         self.entity_evaluator = EntityEvaluator(entities)
+        
+        # NEW: Initialize the Researcher
+        self.researcher = ResearcherEntity()
+        
         self.memory_graph = memory_graph or MemoryGraph()
         self.reputation_manager = reputation_manager or ReputationManager()
         self.config_manager = config_manager
@@ -52,11 +59,10 @@ class DeliberationEngine:
             self.threshold_routine = 0.50
             self.threshold_high_impact = 0.70
         
-    def _calculate_weighted_score(self, evaluations: List[EntityEvaluation]) -> float:
+    def _calculate_weighted_score(self, evaluations: list[EntityEvaluation]) -> float:
         """
         Calculate the final weighted score using Extended ULFR logic.
         Aggregates scores from all entities based on their REPUTATION.
-        Uses dynamic ULFR weights from ConfigManager if available.
         """
         if not evaluations:
             return 0.0
@@ -75,7 +81,7 @@ class DeliberationEngine:
             # Use reputation as weight (default to 0.5 if not found)
             weight = entity_obj.entity.reputation if entity_obj else 0.5
             
-            # Ensure minimal weight to avoid division by zero if all are 0
+            # Ensure minimal weight to avoid division by zero
             weight = max(0.01, weight)
             
             total_u += eval.ulfr_score.utility * weight
@@ -109,17 +115,32 @@ class DeliberationEngine:
             
         return aggregated_score.calculate_weighted_score(weights)
 
-    async def _evaluate_via_swarm(self, proposal: Proposal) -> List[EntityEvaluation]:
+    async def _evaluate_via_swarm(self, proposal: Proposal) -> list[EntityEvaluation]:
         """
-        Dispatch proposal to entities (Simulated Swarm).
-        Since we removed P2P, this now runs locally using the LLM.
+        TRUE PARALLEL SWARM DISPATCH.
+        Sends prompts to the LLMProvider (which handles the Round Robin).
+        Executes all agents simultaneously using asyncio.gather.
         """
-        # Fallback to Local Gemini/LLM
-        print("   🤖 Swarm (P2P) disabled. Using Local Brain.")
-        return await self.entity_evaluator.evaluate_panel(proposal)
+        tasks = []
+        print(f"🚀 [ENGINE] Dispatching {len(self.entities)} agents to the Swarm...")
+        
+        # Create a task for each entity (Guardian, Healer, Seeker)
+        for entity in self.entities:
+            # Note: evaluate_proposal calls llm_provider.generate internally.
+            tasks.append(entity.evaluate_proposal(proposal))
             
-        # P2P logic removed.
-        return []
+        # WAIT FOR ALL (Parallel Execution)
+        # This reduces wait time significantly compared to sequential execution.
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        valid_evaluations = []
+        for res in results:
+            if isinstance(res, Exception):
+                print(f"❌ [SWARM ERROR] Agent execution failed: {res}")
+            else:
+                valid_evaluations.append(res)
+                
+        return valid_evaluations
 
     def _determine_outcome(self, score: float, threshold: float, round_num: int) -> DecisionOutcome:
         """Determine decision outcome based on score and round."""
@@ -130,16 +151,58 @@ class DeliberationEngine:
         else:
             return DecisionOutcome.REJECTED
 
+    def _validate_quorum(self, evaluations: list[EntityEvaluation]) -> bool:
+        """
+        Ensures the returned evaluations meet the minimum standards for a valid vote.
+        1. Must have at least X responses (Min 2).
+        2. MUST include critical roles (Guardian).
+        """
+        if not evaluations:
+            return False
+            
+        # 1. Check Count (Minimum 2 agents for consensus)
+        if len(evaluations) < 2:
+            print("❌ [QUORUM FAIL] Not enough agents responded.")
+            return False
+
+        # 2. Check Critical Roles
+        responding_entities = [e.entity_type for e in evaluations]
+        # Guardian is critical for rights protection
+        # We need to handle potential case sensitivity or naming variations if they exist, 
+        # but typically it checks against the EntityType value or Name.
+        # Based on base.py, entity_type is usually the name (e.g. "Guardian").
+        # Let's check for "Guardian" substring to be safe or exact match if possible.
+        has_guardian = any("Guardian" in e for e in responding_entities)
+        
+        if not has_guardian:
+            print("❌ [QUORUM FAIL] The Guardian (Critical) is missing. Cannot proceed ethically.")
+            return False
+            
+        return True
+
     async def deliberate_generator(self, proposal: Proposal, submitter_id: str = "system"):
         """
         Generator that yields events during the deliberation process.
-        Useful for real-time streaming to the UI.
         """
         yield {"type": "init", "message": f"Starting deliberation for: {proposal.title}"}
         
-        # 0. Verify Signature (Distributed Oracle Consensus)
-        # If the proposal claims to be signed, we must verify it.
-        # For now, we enforce signatures for all proposals except internal system ones (optional).
+        # --- PHASE 0.5: RESEARCH (RAG) ---
+        yield {"type": "researching", "message": "The Researcher is gathering verified context..."}
+        try:
+            # 1. Fetch facts
+            rag_context = await self.researcher.research(proposal.model_dump())
+            
+            # 2. Inject into proposal description so all agents see it
+            original_desc = proposal.description
+            proposal.description = f"{original_desc}\n\n{rag_context}"
+            
+            yield {"type": "research_complete", "snippet": rag_context[:100] + "..."}
+        except Exception as e:
+            print(f"Research failed: {e}")
+            yield {"type": "warning", "message": "Research failed, using internal knowledge only."}
+        # ----------------------------------
+
+        # 0. Verify Signature
         if hasattr(self, 'consensus_manager') and proposal.signature:
             yield {"type": "verification", "message": "Verifying cryptographic signature..."}
             is_valid = self.consensus_manager.verify_proposal(proposal)
@@ -159,10 +222,6 @@ class DeliberationEngine:
             agent_id=submitter_id
         )
         yield {"type": "memory_added", "node_id": proposal_node_id, "node_type": "PROPOSAL"}
-        
-        # Broadcast Block (P2P)
-        # P2P Broadcast removed
-        pass
             
         current_round = 1
         final_outcome = DecisionOutcome.REJECTED
@@ -173,32 +232,26 @@ class DeliberationEngine:
         threshold = self.threshold_high_impact if proposal.category.value == "high_impact" else self.threshold_routine
         yield {"type": "config", "threshold": threshold, "category": proposal.category.value}
         
-        from starlette.concurrency import run_in_threadpool
-
         while current_round <= self.max_rounds:
             yield {"type": "round_start", "round": current_round}
             
-            # 2. Entity Evaluation
+            # 2. Entity Evaluation (Parallel Swarm)
             proposal.deliberation_round = current_round
-            round_evaluations = []
             
-            # Evaluate one by one to stream results
-            # 2. Entity Evaluation (Swarm Mode)
-            yield {"type": "entity_thinking", "entity": "The Swarm (Distributed Intelligence)"}
+            yield {"type": "swarm_dispatch", "message": "Broadcasting to Swarm Nodes..."}
             
             try:
-                # Dispatch to Swarm if NodeManager is active
-                if self.node_manager and len(self.node_manager.get_known_peers()) > 0:
-                    yield {"type": "swarm_dispatch", "message": "Dispatching shards to miners..."}
-                    round_evaluations = await self._evaluate_via_swarm(proposal)
-                else:
-                    # Fallback to Local Gemini
-                    yield {"type": "swarm_fallback", "message": "Swarm unavailable. Using Local Brain (Gemini)."}
-                    round_evaluations = await self.entity_evaluator.evaluate_panel(proposal)
+                # Use the new PARALLEL method
+                evaluations = await self._evaluate_via_swarm(proposal)
                 
-                # Stream results back to UI as if they happened sequentially
-                for evaluation in round_evaluations:
-                    # Find entity object to get reputation
+                # --- NEW: QUORUM CHECK ---
+                if not self._validate_quorum(evaluations):
+                    yield {"type": "error", "message": "Quorum Failed: Guardian missing or low participation."}
+                    break
+                # -------------------------
+                
+                # Stream results back to UI
+                for evaluation in evaluations:
                     entity_obj = next((e for e in self.entities if e.entity.name == evaluation.entity_type), None)
                     reputation = entity_obj.entity.reputation if entity_obj else 0.5
                     
@@ -212,18 +265,14 @@ class DeliberationEngine:
                         "reasoning": evaluation.reasoning,
                         "evidence_cited": evaluation.evidence_cited
                     }
-                    # Small delay to make UI feel natural
-                    await asyncio.sleep(0.5)
                     
             except Exception as e:
-                print(f"Error in Swarm/Panel Execution: {e}")
+                print(f"Error in Swarm Execution: {e}")
                 yield {"type": "error", "message": f"Execution Failed: {str(e)}"}
             
-            if not round_evaluations:
-                yield {"type": "error", "message": "No evaluations returned."}
+            if not evaluations:
+                yield {"type": "error", "message": "No evaluations returned from Swarm."}
                 break
-            
-            evaluations = round_evaluations
             
             # 3. Calculate Score
             weighted_score = self._calculate_weighted_score(evaluations)
@@ -261,19 +310,13 @@ class DeliberationEngine:
                 final_score = weighted_score
                 break
             else:
-                # Refinement needed
+                # Refinement logic
                 yield {"type": "refinement_needed", "round": current_round}
-                
                 if self.mediator and hasattr(self.mediator, 'refine_proposal'):
                     yield {"type": "mediator_thinking", "message": "Mediator is refining the proposal..."}
-                    
-                    # Run async LLM call directly
                     refined_description = await self.mediator.refine_proposal(proposal, evaluations)
-                    
-                    # Update proposal with refined description
                     proposal.description = refined_description
                     proposal.refinements_made.append(f"Round {current_round} Refinement: {refined_description[:100]}...")
-                    
                     yield {
                         "type": "proposal_refined", 
                         "snippet": refined_description[:150] + "...",
@@ -284,7 +327,7 @@ class DeliberationEngine:
                 
                 current_round += 1
         
-        # 6. Final Verdict
+        # 6. Final Verdict & Minting
         decision = Decision(
             id=uuid4(),
             proposal_id=proposal.id,
@@ -294,11 +337,10 @@ class DeliberationEngine:
             deliberation_rounds=current_round,
             entity_evaluations=evaluations,
             rationale=f"Reached score {final_score:.3f} after {current_round} rounds.",
-            weights_used=self.extended_ulfr.weights, # Should update this to use dynamic weights if I had access to them here easily, but it's fine for now
+            weights_used=self.extended_ulfr.weights,
             quorum_met=True
         )
         
-        # 7. Store Verdict in Memory
         verdict_node_id = self.memory_graph.add_node(
             type="VERDICT",
             content=decision.model_dump(mode='json'),
@@ -307,79 +349,37 @@ class DeliberationEngine:
         )
         decision.graph_node_id = verdict_node_id
         
-        # 8. Update Reputation (Reward/Penalty)
+        # Update Reputation
         reputation_updates = []
         for eval in evaluations:
             entity_obj = next((e for e in self.entities if e.entity.name == eval.entity_type), None)
             if entity_obj:
-                # Simple logic: If vote aligns with outcome, reward. Else, penalize.
-                # Outcome APPROVED (1) vs REJECTED (-1)
                 outcome_val = 1 if final_outcome == DecisionOutcome.APPROVED else -1
-                
-                # Check alignment
                 is_aligned = (eval.vote == outcome_val)
                 
-                # Reward/Penalty
                 if is_aligned:
-                    change = 0.02 # Small reward
-                    self.reputation_manager.update_reputation(entity_obj.entity, entity_obj.entity.reputation + change)
-                    action = "rewarded"
+                    self.reputation_manager.update_reputation(entity_obj.entity, entity_obj.entity.reputation + 0.02)
                 else:
-                    change = -0.01 # Small penalty
-                    # We use update_reputation which does EMA, but here we want direct modification for simplicity or use the manager's method
-                    # The manager's update_reputation uses EMA: new = old + alpha * (performance - old)
-                    # Let's just manually adjust for now to be explicit, or better, add a method to manager.
-                    # Actually, let's just modify the entity directly here as the manager method is a bit generic.
-                    # Or better, let's use the manager properly.
-                    # If we want to boost, we treat "performance" as 1.0. If penalty, performance as 0.0.
-                    performance = 1.0 if is_aligned else 0.0
-                    self.reputation_manager.update_reputation(entity_obj.entity, performance, learning_rate=0.05)
-                    
-                    # Calculate actual change for display
-                    # (This is an approximation for the UI event)
-                    action = "penalized"
+                    self.reputation_manager.update_reputation(entity_obj.entity, 0.0, learning_rate=0.05)
                 
                 reputation_updates.append({
                     "entity": entity_obj.entity.name,
-                    "old_reputation": eval.ulfr_score.utility, # Wait, we don't have old rep easily here unless we stored it.
-                    # Let's just send the new reputation.
                     "new_reputation": entity_obj.entity.reputation,
                     "aligned": is_aligned
                 })
 
-        # 9. Execute Constitutional Proposals (Phase IV)
-        if final_outcome == DecisionOutcome.APPROVED:
-            # A. Constitutional Changes
-            if proposal.category.value == "constitutional":
-                if self.config_manager and proposal.context.get("parameter_change"):
-                    change = proposal.context["parameter_change"]
-                    param = change.get("parameter")
-                    value = change.get("value")
-                    
-                    try:
-                        if param == "ulfr_weights":
-                            self.config_manager.update_ulfr_weights(**value)
-                            yield {"type": "system_update", "message": f"ULFR Weights updated: {value}"}
-                        else:
-                            self.config_manager.update_parameter(param, value)
-                            yield {"type": "system_update", "message": f"System Parameter '{param}' updated to {value}"}
-                    except Exception as e:
-                        print(f"❌ Error executing constitutional change: {e}")
-                        yield {"type": "error", "message": f"Constitutional execution failed: {e}"}
-            
-            # B. Economic Rewards (Phase XIII: The Bridge)
-            if self.memory_graph.ledger:
-                try:
-                    reward_tx = self._mint_proposal_reward(proposal, final_score)
-                    if reward_tx:
-                        yield {
-                            "type": "economic_reward", 
-                            "message": f"💰 Minted {reward_tx.amount} ETHC to {reward_tx.receiver}",
-                            "tx_id": reward_tx.id
-                        }
-                except Exception as e:
-                    print(f"❌ Error minting reward: {e}")
-                    yield {"type": "error", "message": f"Reward minting failed: {e}"}
+        # Mint Rewards
+        if final_outcome == DecisionOutcome.APPROVED and self.memory_graph.ledger:
+            try:
+                reward_tx = self._mint_proposal_reward(proposal, final_score)
+                if reward_tx:
+                    yield {
+                        "type": "economic_reward", 
+                        "message": f"💰 Minted {reward_tx.amount} ETHC to {reward_tx.receiver}",
+                        "tx_id": reward_tx.id
+                    }
+            except Exception as e:
+                print(f"❌ Error minting reward: {e}")
 
         yield {
             "type": "final_decision", 
@@ -388,46 +388,35 @@ class DeliberationEngine:
             "refinements_made": proposal.refinements_made,
             "reputation_updates": reputation_updates
         }
-        
-        # return decision
 
-    def _mint_proposal_reward(self, proposal: Proposal, score: float) -> Optional[Any]:
+    def _mint_proposal_reward(self, proposal: Proposal, score: float) -> Any | None:
         """
         Mint a reward for an approved proposal.
         """
         if not self.memory_graph.ledger:
             return None
             
-        # Calculate Reward
-        # Base reward + multiplier based on score (0.5 to 1.0)
         base_reward = 100.0
-        score_multiplier = max(1.0, score * 2) # e.g. score 0.8 -> 1.6x
+        score_multiplier = max(1.0, score * 2)
         amount = base_reward * score_multiplier
         
-        # Determine Receiver
-        # If proposal has a 'submitter_id' that looks like a wallet address (hex), use it.
-        # Otherwise, we can't mint to a generic name like "system".
-        # For MVP, we'll assume submitter_id IS the wallet address if it's long enough.
         receiver = proposal.submitter_id
-        if len(receiver) < 10: # Heuristic for non-wallet ID
-            print(f"⚠️ Cannot mint reward: Submitter ID '{receiver}' is not a valid wallet address.")
+        if len(receiver) < 10: 
+            print(f"⚠️ Cannot mint reward: Invalid wallet ID '{receiver}'")
             return None
             
-        # Use the ledger to TRANSFER from the Mining Reward Pool
-        # This preserves the 10M cap (no new minting).
         success = self.memory_graph.ledger.record_transaction(
             sender="mining_reward_pool",
             recipient=receiver,
             amount=amount,
-            tx_type="transfer", # Transfer, not Mint
+            tx_type="transfer",
             description=f"Reward for Proposal {proposal.id}"
         )
         
         if not success:
-            print("⚠️ Reward transfer failed. Check 'ethical_allocation_pool' balance.")
+            print("⚠️ Reward transfer failed.")
             return None
             
-        # Return a mock TX object for the event log
         from .ledger import TokenTransaction, TransactionType
         tx = TokenTransaction(
             id=f"reward_{proposal.id}_{int(time.time())}",
@@ -437,108 +426,21 @@ class DeliberationEngine:
             amount=amount,
             signature="system_auto_sig"
         )
-        
         return tx
 
-
     async def deliberate(self, proposal: Proposal, submitter_id: str = "system") -> Decision:
-        """
-        Run the full deliberation protocol (Async Wrapper).
-        Consumes the generator and prints output to stdout.
-        """
+        """Async wrapper for the generator."""
         print(f"\n🚀 STARTING DELIBERATION: {proposal.title}")
-        print(f"   Category: {proposal.category.value}")
-        
         generator = self.deliberate_generator(proposal, submitter_id)
         decision_data = None
-        
         try:
             async for event in generator:
-                event_type = event.get("type")
-                
-                if event_type == "round_start":
-                    print(f"\nROUND {event['round']} ---")
-                
-                elif event_type == "round_result":
-                    print(f"   Weighted Score: {event['score']:.3f} (Threshold: {event['threshold']})")
-                    print(f"   Outcome: {event['outcome'].upper()}")
-                    
-                elif event_type == "memory_added":
-                    pass
-                    
-                elif event_type == "refinement_needed":
-                    print("   ↻ Refinement needed...")
-                    
-                elif event_type == "mediator_thinking":
-                    print(f"   🤖 {event['message']}")
-                    
-                elif event_type == "proposal_refined":
-                    print(f"   ✨ Proposal refined: {len(event['full_text'])} chars")
-                    print(f"   📝 New Description Snippet: {event['snippet']}")
-                    
-                elif event_type == "final_decision":
-                    print(f"\n🏁 DELIBERATION COMPLETE: {event['outcome'].upper()}")
+                if event.get("type") == "final_decision":
                     decision_data = event['decision']
-                    
         except Exception as e:
             print(f"❌ Error during deliberation: {e}")
-            
         return Decision(**decision_data) if decision_data else None
 
     def print_detailed_report(self, decision: Decision) -> None:
-        """
-        Print detailed deliberation report.
-        
-        Args:
-            decision: Decision object
-        """
-        print("\n" + "="*80)
-        print("DETAILED DELIBERATION REPORT")
-        print("="*80 + "\n")
-        
-        print(f"Decision ID: {decision.id}")
-        print(f"Proposal ID: {decision.proposal_id}")
-        print(f"Outcome: {decision.outcome.value.upper()}")
-        print(f"Weighted Vote: {decision.weighted_vote:.3f}")
-        print(f"Threshold: {decision.threshold_required:.2f}")
-        print(f"Rounds: {decision.deliberation_rounds}")
-        # print(f"Decided At: {decision.decided_at.isoformat()}") # decided_at might not be in Decision model yet
-        
-        print("\n" + "-"*80)
-        print("ENTITY EVALUATIONS")
-        print("-"*80 + "\n")
-        
-        for eval in decision.entity_evaluations:
-            vote_str = "✓ APPROVE" if eval.vote == 1 else "✗ REJECT" if eval.vote == -1 else "○ ABSTAIN"
-            
-            print(f"\n{eval.entity_type.upper()} - {vote_str}")
-            print(f"Confidence: {eval.confidence:.2f}")
-            print(f"\nULFR Scores:")
-            print(f"  U (Utility): {eval.ulfr_score.utility:.2f}")
-            print(f"  L (life/Care): {eval.ulfr_score.life:.2f}")
-            print(f"  F (Fairness Penalty): {eval.ulfr_score.fairness_penalty:.2f}")
-            print(f"  R (Rights Risk): {eval.ulfr_score.rights_risk:.2f}")
-            
-            if eval.concerns:
-                print(f"\nConcerns:")
-                for concern in eval.concerns[:3]:
-                    print(f"  - {concern}")
-            
-            if eval.recommendations:
-                print(f"\nRecommendations:")
-                for rec in eval.recommendations[:3]:
-                    print(f"  - {rec}")
-        
-        print("\n" + "-"*80)
-        print("RATIONALE")
-        print("-"*80 + "\n")
-        print(decision.rationale)
-        
-        # Check if refinements_made exists on decision (it's not in the model definition I saw earlier, but I added it to Proposal)
-        # Decision model might need update too if we want to show refinements here.
-        # For now, I'll skip printing refinements from decision object directly unless I add it to Decision model.
-        # But wait, I added it to Proposal, not Decision. 
-        # The old code added it to decision dynamically: decision.refinements_made = proposal.refinements_made
-        # I should probably do the same or add it to the Decision model.
-        
-        print("\n" + "="*80 + "\n")
+        """Prints the report."""
+        print(f"\nDECISION REPORT: {decision.outcome.value.upper()} (Score: {decision.weighted_vote})")

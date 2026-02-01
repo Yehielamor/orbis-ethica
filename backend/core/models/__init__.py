@@ -1,9 +1,9 @@
 """Core models for Orbis Ethica."""
 
-from .ulfr import ULFRScore, ULFRWeights
-from .proposal import Proposal, ProposalStatus, ProposalCategory, ProposalDomain
 from .decision import Decision, DecisionOutcome
 from .entity import Entity, EntityType, EntityVote
+from .proposal import Proposal, ProposalCategory, ProposalDomain, ProposalStatus
+from .ulfr import ULFRScore, ULFRWeights
 
 __all__ = [
     "ULFRScore",

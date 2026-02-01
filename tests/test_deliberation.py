@@ -1,15 +1,22 @@
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from backend.core.models import Proposal, ProposalCategory, ProposalDomain, Entity, EntityType
-from backend.entities.seeker import SeekerEntity
-from backend.entities.guardian import GuardianEntity
-from backend.core.llm_provider import MockLLM
 from backend.core.deliberation_engine import DeliberationEngine
+from backend.core.llm_provider import MockLLM
+from backend.core.models import (
+    Entity,
+    EntityType,
+    Proposal,
+    ProposalCategory,
+    ProposalDomain,
+)
+from backend.entities.guardian import GuardianEntity
+from backend.entities.seeker import SeekerEntity
 from backend.memory.graph import MemoryGraph
+
 
 def test_deliberation_engine():
     print("Testing Deliberation Engine...")

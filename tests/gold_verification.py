@@ -1,7 +1,7 @@
-import requests
 import sys
-import json
 import time
+
+import requests
 
 BASE_URL = "http://46.62.199.4:8000"
 WALLET_ID = "demo_user"

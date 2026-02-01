@@ -1,7 +1,8 @@
 """Unit tests for ULFR Framework."""
 
 import pytest
-from backend.core.models.ulfr import ULFRScore, ULFRWeights, DEFAULT_WEIGHTS
+
+from backend.core.models.ulfr import DEFAULT_WEIGHTS, ULFRScore, ULFRWeights
 
 
 class TestULFRScore:

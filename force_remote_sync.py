@@ -1,6 +1,6 @@
-import requests
-import json
 import time
+
+import requests
 
 LOCAL_URL = "http://localhost:8000"
 REMOTE_URL = "http://77.42.30.95:8000"
@@ -53,7 +53,7 @@ async def main():
     # 3. Connect via WebSocket and push
     import aiohttp
     async with aiohttp.ClientSession() as session:
-        async with session.ws_connect(f"ws://77.42.30.95:8000/ws/p2p") as ws:
+        async with session.ws_connect("ws://77.42.30.95:8000/ws/p2p") as ws:
             # Handshake - Must match P2PMessage structure exactly
             handshake_payload = {
                 "type": "HANDSHAKE",

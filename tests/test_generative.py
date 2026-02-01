@@ -1,12 +1,20 @@
-from backend.core.models import Proposal, ProposalCategory, ProposalDomain, Entity, EntityType
-from backend.entities.seeker import SeekerEntity
-import sys
 import os
+import sys
+
+from backend.core.models import (
+    Entity,
+    EntityType,
+    Proposal,
+    ProposalCategory,
+    ProposalDomain,
+)
+from backend.entities.seeker import SeekerEntity
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
-from backend.core.llm_provider import GeminiProvider, MockLLM
+from backend.core.llm_provider import MockLLM
+
 
 def test_generative_entity():
     print("Testing Generative Entity (Seeker)...")

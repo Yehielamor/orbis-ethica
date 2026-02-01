@@ -7,8 +7,9 @@ Separates LLM roles according to the vision:
 """
 
 import os
-from typing import Optional
-from .llm_provider import LLMProvider, GeminiFreeTier, GroqProvider, OllamaProvider
+
+from .llm_provider import GeminiFreeTier, GroqProvider, LLMProvider, OllamaProvider
+
 
 class MultiLLMManager:
     """
@@ -17,9 +18,9 @@ class MultiLLMManager:
     """
     
     def __init__(self):
-        self.gemini: Optional[LLMProvider] = None
-        self.groq: Optional[LLMProvider] = None
-        self.ollama: Optional[LLMProvider] = None
+        self.gemini: LLMProvider | None = None
+        self.groq: LLMProvider | None = None
+        self.ollama: LLMProvider | None = None
         
         self._initialize_providers()
     

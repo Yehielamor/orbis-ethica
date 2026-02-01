@@ -1,8 +1,9 @@
 import os
-from datetime import datetime
-from typing import List, Optional, Any
-from sqlalchemy import create_engine, Column, String, Float, Integer, JSON, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
+
+from sqlalchemy import (
+    create_engine,
+)
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Base for models
 Base = declarative_base()
@@ -30,7 +31,6 @@ class DatabaseManager:
         self.SessionLocal = SessionLocal
         
         # Import models here to ensure they are registered
-        from .models import sql_models
         
         # Create tables
         Base.metadata.create_all(bind=self.engine)

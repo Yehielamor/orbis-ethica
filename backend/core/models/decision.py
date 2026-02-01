@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict, Any
+from typing import Any
 from uuid import UUID, uuid4
+
 from pydantic import BaseModel, Field
 
 from .ulfr import ULFRScore, ULFRWeights
@@ -35,14 +36,14 @@ class EntityEvaluation(BaseModel):
     
     # Reasoning
     reasoning: str = Field(description="Explanation of evaluation")
-    concerns: List[str] = Field(default_factory=list, description="Specific concerns raised")
-    recommendations: List[str] = Field(
+    concerns: list[str] = Field(default_factory=list, description="Specific concerns raised")
+    recommendations: list[str] = Field(
         default_factory=list,
         description="Suggestions for improvement"
     )
     
     # Evidence cited
-    evidence_cited: List[str] = Field(
+    evidence_cited: list[str] = Field(
         default_factory=list,
         description="Sources/precedents cited"
     )
@@ -51,9 +52,9 @@ class EntityEvaluation(BaseModel):
     evaluated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Cryptographic signature
-    signature: Optional[str] = Field(None, description="Entity's signature on evaluation")
+    signature: str | None = Field(None, description="Entity's signature on evaluation")
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "entity_id": str(self.entity_id),
@@ -84,7 +85,7 @@ class Decision(BaseModel):
     proposal_id: UUID = Field(description="Proposal being decided")
     
     # Evaluations
-    entity_evaluations: List[EntityEvaluation] = Field(
+    entity_evaluations: list[EntityEvaluation] = Field(
         default_factory=list,
         description="Evaluations from all entities"
     )
@@ -101,13 +102,13 @@ class Decision(BaseModel):
     
     # Deliberation history
     deliberation_rounds: int = Field(default=1, description="Number of rounds")
-    refinements_made: List[str] = Field(
+    refinements_made: list[str] = Field(
         default_factory=list,
         description="Refinements applied during deliberation"
     )
     
     # Precedent
-    precedents_cited: List[UUID] = Field(
+    precedents_cited: list[UUID] = Field(
         default_factory=list,
         description="Past decisions referenced"
     )
@@ -115,7 +116,7 @@ class Decision(BaseModel):
         default=False,
         description="Whether this creates new precedent"
     )
-    precedent_summary: Optional[str] = Field(
+    precedent_summary: str | None = Field(
         None,
         description="Summary of precedent if applicable"
     )
@@ -124,15 +125,15 @@ class Decision(BaseModel):
     decided_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Cryptographic provenance
-    merkle_root: Optional[str] = Field(
+    merkle_root: str | None = Field(
         None,
         description="Merkle root of all evaluations"
     )
-    content_hash: Optional[str] = Field(None, description="SHA-256 of decision")
-    ipfs_cid: Optional[str] = Field(None, description="IPFS content identifier")
+    content_hash: str | None = Field(None, description="SHA-256 of decision")
+    ipfs_cid: str | None = Field(None, description="IPFS content identifier")
     
     # Memory graph
-    graph_node_id: Optional[str] = Field(
+    graph_node_id: str | None = Field(
         None,
         description="Node ID in distributed memory graph"
     )
@@ -140,7 +141,7 @@ class Decision(BaseModel):
     # Appeal
     appealable: bool = Field(default=True, description="Can this be appealed?")
     appeal_window_days: int = Field(default=7, description="Days to appeal")
-    appeals: List[Dict[str, Any]] = Field(
+    appeals: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Appeals filed"
     )
@@ -225,7 +226,7 @@ class Decision(BaseModel):
             f"Outcome: {self.outcome.value.upper()}"
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "id": str(self.id),
@@ -239,7 +240,7 @@ class Decision(BaseModel):
             "entity_evaluations": [e.to_dict() for e in self.entity_evaluations],
         }
     
-    def get_explainability_report(self) -> Dict[str, Any]:
+    def get_explainability_report(self) -> dict[str, Any]:
         """
         Generate explainability report for transparency.
         

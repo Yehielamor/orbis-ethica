@@ -2,8 +2,8 @@
 Reputation Manager - Handles staking and slashing of reputation.
 """
 
-from typing import Dict, Optional
 from ..core.models.entity import Entity
+
 
 class ReputationManager:
     """
@@ -11,7 +11,7 @@ class ReputationManager:
     """
     
     def __init__(self):
-        self.stakes: Dict[str, float] = {}  # Map entity_id -> staked_amount
+        self.stakes: dict[str, float] = {}  # Map entity_id -> staked_amount
 
     def stake_reputation(self, entity: Entity, amount: float) -> bool:
         """

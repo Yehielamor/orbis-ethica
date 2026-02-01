@@ -2,9 +2,11 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict, Any
+from typing import Any
 from uuid import UUID, uuid4
+
 from pydantic import BaseModel, Field
+
 # from ...knowledge.models import VerifiedKnowledge (Removed)
 
 
@@ -69,15 +71,15 @@ class Proposal(BaseModel):
     domain: ProposalDomain = Field(description="Domain/field")
     
     # Context
-    context: Dict[str, Any] = Field(
+    context: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional context (stakeholders, constraints, etc.)"
     )
-    affected_parties: List[str] = Field(
+    affected_parties: list[str] = Field(
         default_factory=list,
         description="Groups/entities affected by this decision"
     )
-    precedents: List[UUID] = Field(
+    precedents: list[UUID] = Field(
         default_factory=list,
         description="Related past decisions"
     )
@@ -86,19 +88,19 @@ class Proposal(BaseModel):
     status: ProposalStatus = Field(default=ProposalStatus.DRAFT)
     
     # Metadata
-    submitter_id: Optional[str] = Field(None, description="Who submitted this")
-    submitted_at: Optional[datetime] = Field(None, description="Submission timestamp")
+    submitter_id: str | None = Field(None, description="Who submitted this")
+    submitted_at: datetime | None = Field(None, description="Submission timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Deliberation tracking
     deliberation_round: int = Field(default=0, description="Current round number")
-    entity_evaluations: Dict[str, Any] = Field(
+    entity_evaluations: dict[str, Any] = Field(
         default_factory=dict,
         description="Evaluations from each entity"
     )
     
     # Consensus
-    weighted_vote: Optional[float] = Field(
+    weighted_vote: float | None = Field(
         None,
         ge=-1.0,
         le=1.0,
@@ -112,24 +114,24 @@ class Proposal(BaseModel):
     )
     
     # Cryptographic provenance
-    content_hash: Optional[str] = Field(None, description="SHA-256 hash of content")
-    signature: Optional[str] = Field(None, description="Cryptographic signature")
-    ipfs_cid: Optional[str] = Field(None, description="IPFS content identifier")
+    content_hash: str | None = Field(None, description="SHA-256 hash of content")
+    signature: str | None = Field(None, description="Cryptographic signature")
+    ipfs_cid: str | None = Field(None, description="IPFS content identifier")
     
     # Outcome
-    decision_rationale: Optional[str] = Field(
+    decision_rationale: str | None = Field(
         None,
         description="Explanation of final decision"
     )
     
     # Knowledge Layer Integration
     # Knowledge Layer Integration (Removed for Pivot)
-    evidence: List[Any] = Field(
+    evidence: list[Any] = Field(
         default_factory=list,
         description="Verified knowledge atoms supporting this proposal"
     )
     
-    refinements_made: List[str] = Field(
+    refinements_made: list[str] = Field(
         default_factory=list,
         description="History of refinements made to the proposal"
     )
@@ -164,7 +166,7 @@ class Proposal(BaseModel):
         self.submitted_at = datetime.utcnow()
         self.set_threshold_by_category()
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "id": str(self.id),
@@ -191,7 +193,7 @@ class ProposalTemplate(BaseModel):
     category: ProposalCategory
     domain: ProposalDomain
     description_template: str = Field(description="Template with placeholders")
-    required_context_fields: List[str] = Field(
+    required_context_fields: list[str] = Field(
         default_factory=list,
         description="Required context fields"
     )

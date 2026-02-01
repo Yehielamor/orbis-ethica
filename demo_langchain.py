@@ -6,6 +6,7 @@ sys.path.append(os.getcwd())
 
 from sdk.langchain_orbis import OrbisSafetyChain
 
+
 class MockLLMChain:
     """Simulates a LangChain LLM that outputs text."""
     def __init__(self, output_text):

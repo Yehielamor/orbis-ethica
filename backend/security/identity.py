@@ -1,14 +1,14 @@
-import os
-import json
 import base64
-from typing import Optional, Tuple
-from nacl.signing import SigningKey, VerifyKey
-from nacl.encoding import HexEncoder, Base64Encoder
-from nacl.exceptions import BadSignatureError
+import json
+import os
 
 # Cryptography for KMS
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from nacl.encoding import HexEncoder
+from nacl.exceptions import BadSignatureError
+from nacl.signing import SigningKey, VerifyKey
+
 
 class NodeIdentity:
     """
@@ -17,12 +17,12 @@ class NodeIdentity:
     Supports AES-256-GCM encryption for private keys at rest.
     """
     
-    def __init__(self, key_dir: str = ".keys", node_id: str = "default_node", password: Optional[str] = None):
+    def __init__(self, key_dir: str = ".keys", node_id: str = "default_node", password: str | None = None):
         self.key_dir = key_dir
         self.node_id = node_id
         self.password = password
-        self.signing_key: Optional[SigningKey] = None
-        self.verify_key: Optional[VerifyKey] = None
+        self.signing_key: SigningKey | None = None
+        self.verify_key: VerifyKey | None = None
         
         # Ensure key directory exists
         os.makedirs(self.key_dir, exist_ok=True)

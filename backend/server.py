@@ -1,20 +1,35 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
-from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
-import uvicorn
+import asyncio  # Added for P2P background tasks
 import os
 import sys
+from typing import Any
+
+import uvicorn
+from fastapi import Depends, FastAPI, Header, HTTPException
+from pydantic import BaseModel
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.core.deliberation_engine import DeliberationEngine
-from backend.core.models import Proposal, ProposalCategory, ProposalDomain, Decision
-from backend.core.models import Entity, EntityType
+from backend.core.ledger import Ledger
+from backend.core.llm_provider import get_llm_provider
+from backend.core.memory import MemoryGraph
+from backend.core.models import (
+    Entity,
+    EntityType,
+    Proposal,
+    ProposalCategory,
+    ProposalDomain,
+)
+
+# 👇 NEW: Import the NetworkManager we created
+from backend.core.network_manager import NetworkManager
+from backend.entities.arbiter import ArbiterEntity
+from backend.entities.creator import CreatorEntity
 from backend.entities.guardian import GuardianEntity
 from backend.entities.healer import HealerEntity
-from backend.entities.arbiter import ArbiterEntity
-from backend.core.llm_provider import get_llm_provider, MockLLM
+from backend.entities.mediator import MediatorEntity
+from backend.entities.seeker import SeekerEntity
 
 # Use Real LLM Provider (Gemini/Groq)
 # Falls back to Mock only if API keys are missing
@@ -61,25 +76,126 @@ arbiter_config = Entity(
     bias_description="Favors stability and precedent"
 )
 
-from backend.core.ledger import Ledger
-from backend.core.memory import MemoryGraph
+# New entities (Phase II)
+seeker_config = Entity(
+    id=uuid4(),
+    name="Seeker",
+    type=EntityType.SEEKER,
+    primary_focus="Utility & Knowledge",
+    reputation=0.8,
+    bias_description="Prioritizes aggregate outcomes over individual rights"
+)
+mediator_config = Entity(
+    id=uuid4(),
+    name="Mediator",
+    type=EntityType.MEDIATOR,
+    primary_focus="Balance & Compromise",
+    reputation=0.75,
+    bias_description="May dilute strong positions to find middle ground"
+)
+creator_config = Entity(
+    id=uuid4(),
+    name="Creator",
+    type=EntityType.CREATOR,
+    primary_focus="Innovation & Long-term Value",
+    reputation=0.7,
+    bias_description="May be overly optimistic about speculative solutions"
+)
 
 # Initialize Core Components
 ledger = Ledger()
+
+# 👇 NEW: P2P Network Initialization
+# We assume specific env vars or defaults
+my_ip = os.getenv("MY_IP", "127.0.0.1")
+# Parse seed nodes (remove empty strings)
+seed_nodes_raw = os.getenv("SEED_NODES", "").split(",")
+bootstrap_nodes = [node for node in seed_nodes_raw if node]
+
+network_manager = NetworkManager(
+    ledger=ledger, 
+    my_ip=my_ip, 
+    bootstrap_nodes=bootstrap_nodes
+)
+
 memory_graph = MemoryGraph(ledger=ledger)
 
-# Instantiate Logic Agents
+# Instantiate Logic Agents (Full Council - 6 Entities)
 entities = [
     GuardianEntity(guardian_config, llm_provider=llm_provider),
     HealerEntity(healer_config, llm_provider=llm_provider),
-    ArbiterEntity(arbiter_config, llm_provider=llm_provider)
+    ArbiterEntity(arbiter_config, llm_provider=llm_provider),
+    SeekerEntity(seeker_config, llm_provider=llm_provider),
+    MediatorEntity(mediator_config, llm_provider=llm_provider),
+    CreatorEntity(creator_config, llm_provider=llm_provider),
 ]
 
 engine = DeliberationEngine(entities=entities, memory_graph=memory_graph)
 
 class VerifyRequest(BaseModel):
     action: str
-    context: Dict[str, Any] = {}
+    context: dict[str, Any] = {}
+
+class DecisionResponse(BaseModel):
+    safe: bool
+    reason: str
+    risk_level: str
+    score: float
+    breakdown: list[dict[str, Any]]
+
+# 👇 NEW: Startup Event to kick off P2P Discovery
+@app.on_event("startup")
+async def startup_event():
+    """
+    Start the P2P background tasks (Discovery & Health Checks)
+    """
+    print(f"🚀 Server starting on {my_ip}:8000")
+    print(f"🕸️ Joining Swarm with seeds: {bootstrap_nodes}")
+    await network_manager.start()
+
+# --- P2P ENDPOINTS (Satoshi Protocol) ---
+
+@app.get("/api/p2p/peers")
+async def get_peers():
+    """
+    Discovery Endpoint: Share my routing table with others.
+    """
+    # Return known peers + myself so they can add me
+    return network_manager.get_known_peers_urls() + [f"http://{my_ip}:8000"]
+
+@app.post("/api/p2p/receive_block")
+async def receive_block_p2p(block_data: dict):
+    """
+    Gossip Endpoint: Receive a block from a peer, validate, and re-broadcast.
+    """
+    print(f"📥 [P2P] Received Block {block_data.get('index')} from peer")
+    
+    # 1. Validate against local ledger
+    # FIX: Use correct method name 'validate_block' instead of 'validate_incoming_block'
+    if ledger.validate_block(block_data):
+        # 2. Add to local chain (Use real method, not the mock add_block)
+        if ledger.add_block_from_peer(block_data):
+            # 3. 🔥 Gossip: Re-Broadcast to MY peers (Viral Spread)
+            asyncio.create_task(network_manager.broadcast_block(block_data)) 
+            return {"status": "added_and_gossiped"}
+        else:
+             print("❌ [P2P] Block addition failed (DB error?)")
+             raise HTTPException(status_code=500, detail="Block addition failed")
+    
+    print("❌ [P2P] Block validation failed")
+    raise HTTPException(status_code=400, detail="Invalid Block or Signature")
+
+@app.get("/api/mining/info")
+async def get_mining_info():
+    """
+    Get information needed for a miner to mine the next block.
+    """
+    last_block = ledger.get_latest_block()
+    return {
+        "index": last_block.index + 1,
+        "previous_hash": last_block.hash,
+        "difficulty": 1 # Trivial for MVP
+    }
 
 async def verify_payment(x_orbis_wallet: str = Header(None, alias="X-Orbis-Wallet")):
     """
@@ -123,13 +239,6 @@ async def verify_payment(x_orbis_wallet: str = Header(None, alias="X-Orbis-Walle
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-class DecisionResponse(BaseModel):
-    safe: bool
-    reason: str
-    risk_level: str
-    score: float
-    breakdown: List[Dict[str, Any]]
-
 @app.post("/api/verify", response_model=DecisionResponse)
 async def verify_action(req: VerifyRequest, wallet_id: str = Depends(verify_payment)):
     """
@@ -157,6 +266,12 @@ async def verify_action(req: VerifyRequest, wallet_id: str = Depends(verify_paym
         raise HTTPException(status_code=500, detail="Deliberation failed to produce a verdict.")
 
     decision_data = final_decision_payload["decision"]
+    
+    # 3. 🔥 NEW: If successful, Broadcast the resulting Block/Verdict to P2P Swarm
+    # (Assuming deliberation_engine handles block creation, but we should ensure it triggers the broadcast)
+    # Since engine updates ledger internally, we might need a hook here or just rely on the miner loop.
+    # For now, this stays as is, assuming Mining Loop handles the main block creation.
+    
     return DecisionResponse(
         safe=decision_data["outcome"] == "approved",
         reason=decision_data["rationale"],
@@ -225,33 +340,28 @@ async def get_stats():
         tokens_burned = row[0] if row and row[0] is not None else 0.0
 
         # Calculate Supply Metrics
-        # 1. Total Supply (Minted - Burned)
-        # We can use ledger.get_total_supply() logic here directly or via helper if we had access to ledger methods easily
-        # But we are in server.py using session directly for speed/safety.
-        # Let's mirror ledger.get_total_supply logic:
         mints = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE transaction_type = 'mint'")).fetchone()[0] or 0.0
         perm_burns = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_burn'")).fetchone()[0] or 0.0
         total_supply = mints - perm_burns
 
-        # 2. Staked (Balance of STAKING_CONTRACT)
-        # Incoming to contract
+        # Staked
         staked_in = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
-        # Outgoing from contract (unstaked)
         staked_out = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE sender = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
         total_staked = staked_in - staked_out
 
-        # 3. Circulating (Total - Staked - Treasury)
-        # Assuming Treasury is also locked? For now just Total - Staked for simplicity as per UI
+        # Circulating
         circulating_supply = total_supply - total_staked
         
-        # Safety Score (Placeholder logic as before)
-        safety_score = 98.5 # High compliance default
+        safety_score = 98.5 
+        
+        # 👇 NEW: Include P2P stats
+        active_peers = len(network_manager.known_peers)
         
         return {
             "total_verifications": total_verifications,
             "safety_score": safety_score,
             "tokens_burned": tokens_burned,
-            "active_nodes": 1, 
+            "active_nodes": 1 + active_peers, # Me + Peers
             "total_supply": total_supply,
             "circulating_supply": circulating_supply,
             "staked_supply": total_staked
@@ -269,7 +379,11 @@ async def get_stats():
 
 @app.get("/health")
 def health():
-    return {"status": "active", "mode": "verification_core"}
+    return {
+        "status": "active", 
+        "mode": "verification_core",
+        "p2p_peers": len(network_manager.known_peers)
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

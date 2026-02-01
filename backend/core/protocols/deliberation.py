@@ -1,13 +1,13 @@
 """Deliberation Engine - Orchestrates multi-round entity deliberation."""
 
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from typing import Any
 
-from ..models import Proposal, Decision, ProposalStatus
-from ..models.decision import EntityEvaluation
 from ...entities.base import BaseEntity, EntityEvaluator
-from .consensus import ConsensusProtocol, ConsensusResult, DecisionOutcome
 from ...swarm.training import TrainingManager
+from ..models import Decision, Proposal, ProposalStatus
+from ..models.decision import EntityEvaluation
+from .consensus import ConsensusProtocol, ConsensusResult, DecisionOutcome
 
 
 class DeliberationEngine:
@@ -24,8 +24,8 @@ class DeliberationEngine:
     
     def __init__(
         self,
-        entities: List[BaseEntity],
-        consensus_protocol: Optional[ConsensusProtocol] = None,
+        entities: list[BaseEntity],
+        consensus_protocol: ConsensusProtocol | None = None,
         max_rounds: int = 4
     ):
         """
@@ -42,7 +42,7 @@ class DeliberationEngine:
         self.max_rounds = max_rounds
         
         # History tracking
-        self.deliberation_history: Dict[str, List[Dict[str, Any]]] = {}
+        self.deliberation_history: dict[str, list[dict[str, Any]]] = {}
         
         # Training Manager
         self.training_manager = TrainingManager()
@@ -70,7 +70,7 @@ class DeliberationEngine:
         self,
         proposal: Proposal,
         round_number: int
-    ) -> tuple[List[EntityEvaluation], ConsensusResult]:
+    ) -> tuple[list[EntityEvaluation], ConsensusResult]:
         """
         Run a single deliberation round.
         
@@ -128,7 +128,7 @@ class DeliberationEngine:
     def refine_proposal(
         self,
         proposal: Proposal,
-        evaluations: List[EntityEvaluation]
+        evaluations: list[EntityEvaluation]
     ) -> Proposal:
         """
         Refine proposal based on entity feedback.
@@ -215,7 +215,7 @@ class DeliberationEngine:
                     print(f"\n↻ REFINEMENT NEEDED (Round {round_num + 1} will follow)")
                     proposal = self.refine_proposal(proposal, evaluations)
                 else:
-                    print(f"\n✗ MAX ROUNDS REACHED - REJECTED")
+                    print("\n✗ MAX ROUNDS REACHED - REJECTED")
                     consensus_result.outcome = DecisionOutcome.REJECTED
                     proposal.status = ProposalStatus.REJECTED
                     break
@@ -245,7 +245,7 @@ class DeliberationEngine:
         
         return decision
     
-    def get_deliberation_summary(self, proposal_id: str) -> Dict[str, Any]:
+    def get_deliberation_summary(self, proposal_id: str) -> dict[str, Any]:
         """
         Get summary of deliberation process.
         
@@ -295,19 +295,19 @@ class DeliberationEngine:
             
             print(f"\n{eval.entity_type.upper()} - {vote_str}")
             print(f"Confidence: {eval.confidence:.2f}")
-            print(f"\nULFR Scores:")
+            print("\nULFR Scores:")
             print(f"  U (Utility): {eval.ulfr_score.utility:.2f}")
             print(f"  L (life/Care): {eval.ulfr_score.life:.2f}")
             print(f"  F (Fairness Penalty): {eval.ulfr_score.fairness_penalty:.2f}")
             print(f"  R (Rights Risk): {eval.ulfr_score.rights_risk:.2f}")
             
             if eval.concerns:
-                print(f"\nConcerns:")
+                print("\nConcerns:")
                 for concern in eval.concerns[:3]:
                     print(f"  - {concern}")
             
             if eval.recommendations:
-                print(f"\nRecommendations:")
+                print("\nRecommendations:")
                 for rec in eval.recommendations[:3]:
                     print(f"  - {rec}")
         

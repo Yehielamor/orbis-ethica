@@ -1,9 +1,11 @@
 """Burn Protocol Models."""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 
 class BurnOffenseType(str, Enum):
     """Types of offenses that trigger a burn."""
@@ -31,12 +33,12 @@ class BurnEvent(BaseModel):
     offense_type: BurnOffenseType
     description: str = Field(..., description="Detailed description of the offense")
     
-    evidence: Dict[str, Any] = Field(
+    evidence: dict[str, Any] = Field(
         ..., 
         description="Forensic evidence (e.g., p-values, logs, signatures)"
     )
     
-    penalty: Dict[str, Any] = Field(
+    penalty: dict[str, Any] = Field(
         ...,
         description="Applied penalties (e.g., reputation_burned, ban_duration)"
     )
@@ -73,5 +75,5 @@ class BurnEvent(BaseModel):
 > "No one is above the protocol."
 """
 
-    def _format_dict(self, d: Dict[str, Any]) -> str:
+    def _format_dict(self, d: dict[str, Any]) -> str:
         return "\n".join([f"- **{k}**: {v}" for k, v in d.items()])

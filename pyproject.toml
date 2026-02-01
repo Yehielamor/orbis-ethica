@@ -1,0 +1,127 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "orbis-ethica"
+version = "2.0.0"
+description = "AGI 3.0 Distributed Ethical Swarm - Decentralized AI Alignment Network"
+readme = "README.md"
+license = {text = "BUSL-1.1"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Orbis Ethica Team", email = "orbisethica@gmail.com"}
+]
+keywords = ["ai-safety", "alignment", "distributed", "ethics", "swarm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    
+    # AI/ML Providers
+    "openai>=1.12.0",
+    "anthropic>=0.18.0",
+    "langchain>=0.1.10",
+    "langchain-openai>=0.0.8",
+    "google-generativeai>=0.4.0",
+    "ollama>=0.3.2",
+    "groq>=0.4.2",
+    
+    # Security & Cryptography
+    "pynacl>=1.5.0",
+    "cryptography>=42.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    
+    # Web Framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+    "slowapi>=0.1.9",
+    "httpx>=0.26.0",
+    
+    # Database
+    "sqlalchemy>=2.0.25",
+    "aiosqlite>=0.19.0",
+    "alembic>=1.13.0",
+    
+    # Graph & Search
+    "networkx>=3.2.0",
+    "duckduckgo-search>=4.4.0",
+    
+    # Blockchain
+    "web3>=6.15.0",
+    "eth-account>=0.10.0",
+    
+    # Monitoring
+    "prometheus-client>=0.19.0",
+    "structlog>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+]
+
+# Build Configuration: Explicitly define package location
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.ruff]
+# Increase line length for wide monitors
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade (modern syntax)
+    "B",   # bugbear (common bugs)
+]
+
+# Ignore list for MVP/Production speed
+ignore = [
+    "E501", # Line too long
+    "B905", # zip() strict
+    "E722", # bare except
+    "S101", # assert
+    "F401", # unused imports
+    "S104", # binding to 0.0.0.0
+    "S113", # timeout
+    "S311", # random
+    "S605", # shell
+    "S607", # partial path
+    # 👇 תוספות חדשות:
+    "E711", # SQLAlchemy requires == None
+    "E402", # Imports not at top (needed for sys.path hack)
+    "E701", # Multiple statements on one line (if x: return)
+    "B904", # Raise from (too verbose for now)
+    "E741", # Variable name 'l' (ambiguous but harmless in tests)
+    "UP008" # super() parameters (harmless legacy style)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "sdk"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

@@ -5,8 +5,10 @@ Handles dynamic system parameters that can be modified via Governance Proposals.
 
 import json
 import os
-from typing import Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 
 class ULFRWeights(BaseModel):
     """Dynamic weights for the ULFR scoring model."""
@@ -37,7 +39,7 @@ class ConfigManager:
         """Load config from disk or create default."""
         if os.path.exists(self.config_path):
             try:
-                with open(self.config_path, 'r') as f:
+                with open(self.config_path) as f:
                     data = json.load(f)
                 return SystemConfig(**data)
             except Exception as e:

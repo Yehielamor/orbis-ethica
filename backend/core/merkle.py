@@ -1,12 +1,12 @@
 import hashlib
-from typing import List
+
 
 class MerkleTree:
     """
     Standard Merkle Tree implementation.
     Used to cryptographically verify the integrity of transactions in a block.
     """
-    def __init__(self, transactions: List[str]):
+    def __init__(self, transactions: list[str]):
         """
         Initialize with a list of transaction hashes (strings).
         """

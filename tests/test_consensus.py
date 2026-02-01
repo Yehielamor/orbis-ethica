@@ -1,13 +1,12 @@
-import sys
 import os
-import asyncio
-from uuid import uuid4
+import sys
 
 # Add backend to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.core.consensus import ConsensusManager
 from backend.core.models import Proposal, ProposalCategory, ProposalDomain
+
 
 def test_consensus_flow():
     print("🚀 Testing Consensus Manager...")

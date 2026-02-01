@@ -1,32 +1,17 @@
 """
-Cryptographic Signer mock.
+Real Ed25519 Signer utilizing the verified NodeIdentity system.
+Replaces the old stub.
 """
+from ...core.identity import NodeIdentity
 
-from typing import Optional
 
 class Signer:
-    """
-    Handles cryptographic signing of content.
-    """
-    
-    def __init__(self, private_key: Optional[str] = None):
-        self.private_key = private_key
+    def __init__(self):
+        self.identity = NodeIdentity() 
         
-    def sign(self, message: str) -> str:
-        """
-        Sign a message.
-        
-        Args:
-            message: Content to sign
-            
-        Returns:
-            Hex signature
-        """
-        # TODO: Implement Ed25519 signing
-        return "0xsignature123"
-        
-    def verify(self, message: str, signature: str, public_key: str) -> bool:
-        """
-        Verify a signature.
-        """
-        return True
+    def sign_message(self, message: str) -> str:
+        """Signs a message using the real Ed25519 private key."""
+        return self.identity.sign_data(message)
+
+    def get_public_key(self) -> str:
+        return self.identity.public_key

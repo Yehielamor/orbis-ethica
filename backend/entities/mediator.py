@@ -1,9 +1,9 @@
 """Mediator Entity - Conflict resolution and synthesis."""
 
-from typing import List, Dict, Any
 from ..core.models import Proposal
 from ..core.models.decision import EntityEvaluation
 from .base import BaseEntity
+
 
 class MediatorEntity(BaseEntity):
     """
@@ -83,7 +83,7 @@ Provide your evaluation in the required JSON format."""
             evidence_cited=data.get("evidence_cited", [])
         )
 
-    async def refine_proposal(self, proposal: Proposal, evaluations: List[EntityEvaluation]) -> str:
+    async def refine_proposal(self, proposal: Proposal, evaluations: list[EntityEvaluation]) -> str:
         """
         Generate a refined proposal description based on feedback.
         """

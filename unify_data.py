@@ -1,7 +1,6 @@
-import json
-import os
 import glob
-from typing import List, Dict
+import json
+
 
 def unify_data(output_file: str = "data/training_data.jsonl"):
     """
@@ -22,7 +21,7 @@ def unify_data(output_file: str = "data/training_data.jsonl"):
 
     for file_path in files:
         print(f"   📖 Reading {file_path}...")
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             for line in f:
                 try:
                     item = json.loads(line)

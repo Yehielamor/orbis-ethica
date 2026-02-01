@@ -4,21 +4,22 @@ Runs a high volume of deliberation rounds to test system stability and performan
 Uses Mock LLM to avoid API costs/rate limits.
 """
 
-import sys
 import os
-import time
 import random
+import sys
+import time
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.core.models.proposal import Proposal, ProposalCategory, ProposalDomain
 from backend.core.deliberation_engine import DeliberationEngine
-from backend.entities.seeker import SeekerEntity
-from backend.entities.guardian import GuardianEntity
-from backend.entities.arbiter import ArbiterEntity
-from backend.core.models.entity import Entity, EntityType
 from backend.core.llm_provider import MockLLMProvider
+from backend.core.models.entity import Entity, EntityType
+from backend.core.models.proposal import Proposal, ProposalCategory, ProposalDomain
+from backend.entities.arbiter import ArbiterEntity
+from backend.entities.guardian import GuardianEntity
+from backend.entities.seeker import SeekerEntity
+
 
 def run_stress_test(rounds=100):
     print("\n" + "="*60)
@@ -37,7 +38,7 @@ def run_stress_test(rounds=100):
     engine = DeliberationEngine(entities)
     
     print(f"   👥 Entities: {len(entities)}")
-    print(f"   🤖 LLM: MockProvider (Fast)")
+    print("   🤖 LLM: MockProvider (Fast)")
 
     start_time = time.time()
     success_count = 0
@@ -70,7 +71,7 @@ def run_stress_test(rounds=100):
     duration = end_time - start_time
     avg_time = duration / rounds
 
-    print(f"\n\n📊 RESULTS:")
+    print("\n\n📊 RESULTS:")
     print(f"   ✅ Successful Rounds: {success_count}/{rounds}")
     print(f"   ⏱️  Total Time: {duration:.2f}s")
     print(f"   ⚡ Average Latency: {avg_time*1000:.2f}ms per round")

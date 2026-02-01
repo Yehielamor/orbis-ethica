@@ -2,12 +2,12 @@
 
 import json
 import os
-from datetime import datetime
-from typing import Dict, Any, Optional
 import uuid
+from typing import Any, Optional
 
-from .models import BurnEvent, BurnOffenseType
 from ...core.interfaces import ReputationManager
+from .models import BurnEvent, BurnOffenseType
+
 
 class BurnProtocol:
     """
@@ -19,7 +19,7 @@ class BurnProtocol:
     3. Log events permanently
     """
     
-    def __init__(self, reputation_manager: Optional['ReputationManager'] = None, ledger: Optional[Any] = None, entity_lookup: Optional[Dict[str, Any]] = None):
+    def __init__(self, reputation_manager: Optional['ReputationManager'] = None, ledger: Any | None = None, entity_lookup: dict[str, Any] | None = None):
         self.reputation_manager = reputation_manager
         self.ledger = ledger
         self.entity_lookup = entity_lookup or {} # Map entity_id -> Entity object
@@ -36,7 +36,7 @@ class BurnProtocol:
         perpetrator_id: str, 
         offense: BurnOffenseType, 
         description: str,
-        evidence: Dict[str, Any],
+        evidence: dict[str, Any],
         council_vote: float
     ) -> BurnEvent:
         """
@@ -96,13 +96,13 @@ class BurnProtocol:
         Internal method to zero out reputation (Fallback).
         """
         print(f"🔥 [SYSTEM] BURNING REPUTATION FOR ENTITY: {entity_id}...")
-        print(f"🔥 [SYSTEM] REPUTATION RESET TO 0.0")
+        print("🔥 [SYSTEM] REPUTATION RESET TO 0.0")
         print(f"🚫 [SYSTEM] ENTITY {entity_id} QUARANTINED")
 
     def _append_to_ledger(self, event: BurnEvent):
         """Write the event to the permanent JSON ledger."""
         try:
-            with open(self.log_path, 'r') as f:
+            with open(self.log_path) as f:
                 ledger = json.load(f)
             
             ledger.append(json.loads(event.model_dump_json()))
@@ -110,7 +110,7 @@ class BurnProtocol:
             with open(self.log_path, 'w') as f:
                 json.dump(ledger, f, indent=2)
                 
-            print(f"📜 [BACKUP] Burn Event recorded in JSON.")
+            print("📜 [BACKUP] Burn Event recorded in JSON.")
             
         except Exception as e:
             print(f"CRITICAL ERROR WRITING TO JSON LEDGER: {e}")

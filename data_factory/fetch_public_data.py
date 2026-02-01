@@ -1,6 +1,6 @@
 import json
 import os
-import requests
+
 
 def fetch_public_data(output_file: str = "data/public_dataset.jsonl"):
     """
