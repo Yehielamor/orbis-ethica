@@ -445,7 +445,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             updateWalletUI();
-            fetchStats(); // Global stats always visible
+            fetchStats(); // Global stats
+            fetchAnalytics(); // NEW: Load Charts
+            fetchTreasury(); // NEW: Load Treasury
+
             if (WALLET_ID) {
                 fetchBalance();
                 fetchHistory();
@@ -589,6 +592,99 @@
                 });
             } catch (e) {
                 console.error("History fetch failed", e);
+            }
+        }
+
+        // 👇 NEW: Analytics & Treasury Logic
+
+        let activityChartInstance = null;
+        let distributionChartInstance = null;
+
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch(`${API_URL}/api/analytics/charts`);
+                const data = await res.json();
+
+                // Render Activity Chart
+                const ctx1 = document.getElementById('activityChart').getContext('2d');
+                if (activityChartInstance) activityChartInstance.destroy();
+
+                activityChartInstance = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: data.activity.labels,
+                        datasets: [{
+                            label: 'Verifications',
+                            data: data.activity.data,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // Render Distribution Chart
+                const ctx2 = document.getElementById('distributionChart').getContext('2d');
+                if (distributionChartInstance) distributionChartInstance.destroy();
+
+                distributionChartInstance = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.distribution.labels,
+                        datasets: [{
+                            data: data.distribution.data,
+                            backgroundColor: ['#6366F1', '#EC4899', '#A855F7'],
+                            borderColor: '#0f172a',
+                            borderWidth: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '70%',
+                        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Analytics fetch failed", e);
+            }
+        }
+
+        async function fetchTreasury() {
+            try {
+                const res = await fetch(`${API_URL}/api/treasury/ledger`);
+                const data = await res.json();
+                const tbody = document.getElementById('treasury-table');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500 text-xs">No treasury activity</td></tr>';
+                    return;
+                }
+
+                data.forEach(tx => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-800/30 transition-colors";
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-indigo-400" title="${tx.sender}">${tx.sender.substring(0, 6)}...</td>
+                        <td class="px-6 py-4 font-mono text-xs text-emerald-400">+${tx.amount} ETHC</td>
+                        <td class="px-6 py-4 text-xs text-slate-500">${new Date(tx.timestamp).toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                console.error("Treasury fetch failed", e);
             }
         }
 
