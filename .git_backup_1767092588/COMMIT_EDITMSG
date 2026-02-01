@@ -1,1 +1,0 @@
-fix: Stop MemoryGraph from mining blocks when MINING_ENABLED=false
