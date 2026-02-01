@@ -211,16 +211,18 @@ async def get_stats():
     if not hasattr(engine, 'memory_graph') or not engine.memory_graph:
          raise HTTPException(status_code=500, detail="Engine Memory Graph missing")
     
+    from sqlalchemy import text  # Import text for raw SQL
     ledger = engine.memory_graph.ledger
     session = ledger.db_manager.get_session()
     try:
         # Total Verifications
-        result = session.execute("SELECT COUNT(*) FROM ledger_entries WHERE description LIKE 'Verification Fee'")
+        result = session.execute(text("SELECT COUNT(*) FROM ledger_entries WHERE description LIKE 'Verification Fee'"))
         total_verifications = result.fetchone()[0]
         
         # Tokens Burned (Fees collected by system_treasury)
-        result = session.execute("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_treasury'")
-        tokens_burned = result.fetchone()[0] or 0.0
+        result = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_treasury'"))
+        row = result.fetchone()
+        tokens_burned = row[0] if row and row[0] is not None else 0.0
         
         # Safety Score (Placeholder logic as before)
         safety_score = 98.5 # High compliance default
