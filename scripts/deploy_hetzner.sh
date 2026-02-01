@@ -94,7 +94,7 @@ ssh -t $USER@$SERVER_IP << EOF
     export NODE_ID="genesis_hetzner"
     
     echo "🚀 Starting Server..."
-    nohup python backend/server.py > server.log 2>&1 &
+    nohup python -u backend/server.py > server.log 2>&1 &
     
     echo "⏳ Waiting for server to boot..."
     sleep 5
@@ -112,7 +112,7 @@ ssh -t $USER@$SERVER_IP << EOF
         pkill -f "genesis_miner.py" || true
         
         export NODE_URL="http://127.0.0.1:8000"
-        nohup python scripts/genesis_miner.py > miner.log 2>&1 &
+        nohup python -u scripts/genesis_miner.py > miner.log 2>&1 &
         echo "✅ Miner started! Check 'miner.log' for activity."
         
     else

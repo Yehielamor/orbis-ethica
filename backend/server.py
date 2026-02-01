@@ -214,6 +214,12 @@ async def get_mining_info():
     pending_txs = []
     try:
         from backend.core.models.sql_models import LedgerEntryModel
+        
+        # DEBUG: Count all txs
+        total_txs = session.query(LedgerEntryModel).count()
+        pending_count_check = session.query(LedgerEntryModel).filter(LedgerEntryModel.block_hash == None).count()
+        print(f"🐛 [DEBUG] Mining Info: Total TXs={total_txs}, Pending={pending_count_check}")
+        
         # Get up to 10 pending txs (Mempool)
         # Assuming block_hash IS NULL means it's pending
         results = session.query(LedgerEntryModel).filter(
@@ -221,6 +227,7 @@ async def get_mining_info():
         ).limit(10).all()
         
         for tx in results:
+            print(f"   -> Found pending tx: {tx.id} ({tx.transaction_type})")
             pending_txs.append({
                 "id": str(tx.id), # Use ID as unique handle
                 "sender": tx.sender,
