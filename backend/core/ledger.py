@@ -212,46 +212,22 @@ class Ledger:
 
     def release_from_escrow(self, amount: float, reason: str = "") -> bool:
         """
-        Smart multi-destination recycling (Hybrid Model):
-        - 50% -> Inference Reward Pool (Immediate redistribution)
-        - 30% -> Public Sale Treasury (Long-term reserves)
-        - 20% -> Permanent Burn (Deflationary pressure)
+        Purgatory Protocol Resolution (Whitepaper 5.4):
+        - Appeal Failed / No Appeal: Tokens are recycled to the Public Sale Treasury.
+        - Non-Deflationary: 100% of slashed funds stay in the ecosystem.
         """
-        to_rewards = amount * self.RECYCLE_RATIO_FAST
-        to_treasury = amount * self.RECYCLE_RATIO_SLOW
-        to_burn = amount * self.BURN_RATIO
-        
-        # 1. Fast Recycling (Rewards)
-        self.record_transaction(
+        # Recycle 100% to Public Sale Treasury
+        success = self.record_transaction(
             sender="slash_escrow_vault",
-            recipient="INFERENCE_REWARD_POOL",
-            amount=to_rewards,
-            tx_type="recycle_fast",
-            description=f"Fast Cycle: {reason}"
+            recipient="PUBLIC_SALE_TREASURY",
+            amount=amount,
+            tx_type="recycle",
+            description=f"Purgatory Expired: {reason} -> Recycled to Treasury"
         )
         
-        # 2. Slow Recycling (Treasury)
-        self.record_transaction(
-            sender="slash_escrow_vault",
-            recipient="public_sale_treasury",
-            amount=to_treasury,
-            tx_type="recycle_slow",
-            description=f"Slow Cycle: {reason}"
-        )
-        
-        # 3. Permanent Burn (Deflationary)
-        self.record_transaction(
-            sender="slash_escrow_vault",
-            recipient="system_burn",
-            amount=to_burn,
-            tx_type="burn",
-            description=f"Burned: {reason}"
-        )
-        
-        print(f"♻️ Recycled: {to_rewards} (Rewards), {to_treasury} (Treasury)")
-        print(f"🔥 Burned: {to_burn} (Deflationary)")
-        
-        return True
+        if success:
+            print(f"♻️  Recycled {amount} ETHC to Public Sale Treasury (Non-Deflationary)")
+        return success
         
     def get_transaction_history(self, address: str = None) -> List[Dict]:
         """Get transaction history, optionally filtered by address."""
