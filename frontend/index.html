@@ -422,7 +422,7 @@
 
         function connectWallet() {
             // For MVP: Simple prompt. In production: MetaMask/Hardware Wallet integration.
-            const input = prompt("Enter your Public Key (Wallet Address):", "0xde8037e96eadf0ae71b5b2b78b8754484afce931d78a1a19b63700f3a76b85eb");
+            const input = prompt("Enter your Public Key (Wallet Address):", "");
             if (input && input.startsWith("0x")) {
                 WALLET_ID = input;
                 localStorage.setItem('orbis_wallet_id', WALLET_ID);
