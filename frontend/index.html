@@ -180,16 +180,9 @@
             </div>
 
             <!-- Wallet Widget -->
-            <div class="glass-panel px-6 py-2 rounded-full flex items-center gap-4 border border-indigo-500/30">
-                <div class="text-right">
-                    <p class="text-[10px] text-indigo-300 uppercase tracking-wider font-bold">Connected Wallet</p>
-                    <p id="balance-display" class="text-lg font-mono font-bold text-white">--- ETHC</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 p-[2px]">
-                    <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                        <span class="font-mono text-xs font-bold text-white">0x</span>
-                    </div>
-                </div>
+            <div id="wallet-widget"
+                class="glass-panel px-6 py-2 rounded-full flex items-center gap-4 border border-indigo-500/30">
+                <!-- Injected via JS -->
             </div>
         </header>
 
@@ -416,13 +409,66 @@
 
     <script>
         const API_URL = `http://${window.location.hostname}:8000`;
-        const WALLET_ID = "0xde8037e96eadf0ae71b5b2b78b8754484afce931d78a1a19b63700f3a76b85eb";
+        let WALLET_ID = localStorage.getItem('orbis_wallet_id');
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetchBalance();
-            fetchHistory();
-            fetchStats();
+            updateWalletUI();
+            fetchStats(); // Global stats always visible
+            if (WALLET_ID) {
+                fetchBalance();
+                fetchHistory();
+            }
         });
+
+        function connectWallet() {
+            // For MVP: Simple prompt. In production: MetaMask/Hardware Wallet integration.
+            const input = prompt("Enter your Public Key (Wallet Address):", "0xde8037e96eadf0ae71b5b2b78b8754484afce931d78a1a19b63700f3a76b85eb");
+            if (input && input.startsWith("0x")) {
+                WALLET_ID = input;
+                localStorage.setItem('orbis_wallet_id', WALLET_ID);
+                updateWalletUI();
+                fetchBalance();
+                fetchHistory();
+            } else if (input) {
+                alert("Invalid address format. Must start with 0x");
+            }
+        }
+
+        function disconnectWallet() {
+            WALLET_ID = null;
+            localStorage.removeItem('orbis_wallet_id');
+            updateWalletUI();
+            // Clear personal data
+            document.getElementById('balance-display').innerText = "--- ETHC";
+            document.getElementById('tx-table').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Connect wallet to view history</td></tr>';
+        }
+
+        function updateWalletUI() {
+            const walletContainer = document.getElementById('wallet-widget');
+
+            if (WALLET_ID) {
+                // Connected State
+                const shortAddr = WALLET_ID.substring(0, 6) + "..." + WALLET_ID.substring(WALLET_ID.length - 4);
+                walletContainer.innerHTML = `
+                    <div class="text-right mr-4">
+                        <p class="text-[10px] text-indigo-300 uppercase tracking-wider font-bold">Connected</p>
+                        <p id="balance-display" class="text-lg font-mono font-bold text-white">Loading...</p>
+                    </div>
+                    <button onclick="disconnectWallet()" class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 p-[2px] hover:scale-105 transition-transform" title="Disconnect ${shortAddr}">
+                        <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                            <span class="font-mono text-xs font-bold text-white">0x</span>
+                        </div>
+                    </button>
+                `;
+            } else {
+                // Disconnected State
+                walletContainer.innerHTML = `
+                    <button onclick="connectWallet()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-sm transition-colors shadow-lg shadow-indigo-500/20">
+                        Connect Wallet
+                    </button>
+                `;
+            }
+        }
 
         // Navigation Logic
         function switchView(viewName) {
@@ -471,31 +517,39 @@
         }
 
         async function fetchBalance() {
+            if (!WALLET_ID) return;
             try {
                 const res = await fetch(`${API_URL}/api/balance/${WALLET_ID}`);
                 const data = await res.json();
-                document.getElementById('balance-display').innerText = `${data.balance.toFixed(2)} ETHC`;
+                const balEl = document.getElementById('balance-display');
+                if (balEl) balEl.innerText = `${data.balance.toLocaleString()} ETHC`;
             } catch (e) {
                 console.error("Balance fetch failed", e);
             }
         }
 
         async function fetchHistory() {
+            if (!WALLET_ID) return;
             try {
                 const res = await fetch(`${API_URL}/api/history/${WALLET_ID}`);
                 const data = await res.json();
                 const tbody = document.getElementById('tx-table');
                 tbody.innerHTML = '';
 
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500 text-xs">No transactions found</td></tr>';
+                    return;
+                }
+
                 data.forEach(tx => {
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-colors";
-                    const isOutgoing = tx.direction === 'outgoing';
+                    const isOutgoing = tx.sender === WALLET_ID;
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id}</td>
-                        <td class="px-6 py-4 text-slate-300 capitalize">${tx.description}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 text-slate-300 capitalize text-xs">${tx.description || tx.type}</td>
                         <td class="px-6 py-4 font-mono text-xs ${isOutgoing ? 'text-rose-400' : 'text-emerald-400'}">
-                            ${isOutgoing ? '-' : '+'}${tx.amount} ETHC
+                            ${isOutgoing ? '-' : '+'}${tx.amount}
                         </td>
                         <td class="px-6 py-4 text-xs text-slate-500">${new Date(tx.timestamp).toLocaleTimeString()}</td>
                     `;
@@ -516,6 +570,12 @@
         }
 
         async function verifyAction() {
+            if (!WALLET_ID) {
+                alert("Please connect your wallet first to pay the 0.1 ETHC verification fee.");
+                connectWallet();
+                return;
+            }
+
             const action = document.getElementById('action-input').value;
             if (!action) return;
 
@@ -546,7 +606,10 @@
                     body: JSON.stringify({ action: action })
                 });
 
-                if (res.status === 402) throw new Error("Insufficient Funds");
+                if (res.status === 402) {
+                    alert("Insufficient ETHC Balance (Or Wallet not recognized). Needed: 0.1 ETHC");
+                    throw new Error("Insufficient Funds");
+                }
 
                 const data = await res.json();
 
