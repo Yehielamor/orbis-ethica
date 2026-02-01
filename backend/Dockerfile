@@ -26,10 +26,10 @@ COPY backend/ ./backend/
 COPY simulation.py .
 COPY genesis.json .
 COPY system_config.json .
-COPY frontend/public ./frontend/public
+# COPY frontend/public ./frontend/public
 
 # Expose the port
 EXPOSE 8000
 
 # Run the application
-CMD ["uvicorn", "backend.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8000"]
