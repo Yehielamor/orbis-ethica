@@ -4,7 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Add backend to path so we can import models
-sys.path.append(os.getcwd())
+# Resolve project root relative to this script (scripts/inspect_db.py -> project_root)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
 
 from backend.core.models.sql_models import LedgerEntryModel, BlockModel
 
