@@ -1,7 +1,7 @@
 {
     "initial_balances": {
         "system_mint": 9999000.0,
-        "demo_user": 1000.0
+        "0xde8037e96eadf0ae71b5b2b78b8754484afce931d78a1a19b63700f3a76b85eb": 1000.0
     },
     "initial_stakes": {},
     "timestamp": "2026-02-01T10:55:00Z",
