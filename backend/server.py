@@ -208,10 +208,38 @@ async def get_mining_info():
     Get information needed for a miner to mine the next block.
     """
     last_block = ledger.get_latest_block()
+    
+    # NEW: Fetch pending transactions from DB
+    session = ledger.db_manager.get_session()
+    pending_txs = []
+    try:
+        from backend.core.models.sql_models import LedgerEntryModel
+        # Get up to 10 pending txs (Mempool)
+        # Assuming block_hash IS NULL means it's pending
+        results = session.query(LedgerEntryModel).filter(
+            LedgerEntryModel.block_hash == None
+        ).limit(10).all()
+        
+        for tx in results:
+            pending_txs.append({
+                "id": str(tx.id), # Use ID as unique handle
+                "sender": tx.sender,
+                "recipient": tx.recipient,
+                "amount": tx.amount,
+                "type": tx.transaction_type,
+                "description": tx.description,
+                "timestamp": tx.timestamp.isoformat()
+            })
+    except Exception as e:
+        print(f"⚠️ Error fetching mempool: {e}")
+    finally:
+        session.close()
+
     return {
         "index": last_block.index + 1,
         "previous_hash": last_block.hash,
-        "difficulty": 1 # Trivial for MVP
+        "difficulty": 1, # Trivial for MVP
+        "transactions": pending_txs
     }
 
 async def verify_payment(x_orbis_wallet: str = Header(None, alias="X-Orbis-Wallet")):

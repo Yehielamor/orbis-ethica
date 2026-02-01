@@ -20,8 +20,8 @@ Orbis Ethica is a decentralized framework designed to align AGI with human value
 ## 🗺️ System Status
 **Current State:** v2.0 (Genesis Live)
 - **Genesis Block:** Mined on 2026-02-01.
-- **Initial Supply:** 10,000,000 ETHC (System Mint) + 1,000 ETHC (Demo User).
-- **Consensus:** Single Validator Mode (Bootstrapping phase).
+- **Network:** P2P Hybrid Mesh (Hetzner Bootstrap + Local Peers).
+- **Consensus:** Proof of Work (MVP) + AI Verification.
 - **Deployment:** Dockerized on Hetzner Cloud.
 
 
@@ -29,25 +29,37 @@ Orbis Ethica is a decentralized framework designed to align AGI with human value
 
 ```
 orbis-ethica/
-├── backend/           # Python core engine
-│   ├── core/          # ULFR framework, Ledger, LLM providers
-│   ├── entities/      # 6 cognitive entities
-│   ├── memory/        # Distributed graph (DAG)
-│   ├── security/      # Identity, Crypto, Burn Protocol
-│   ├── p2p/           # Node Manager, Gossip Protocol
-│   ├── knowledge/     # Knowledge Gateway (Clear Layer)
-│   ├── governance/    # DAO, Assembly, OEPs
-│   ├── api/           # REST/GraphQL/WebSocket API
-│   └── main.py        # Entry point
+├── backend/           # Python core engine & P2P Router
+├── scripts/           # Mining & Simulation Tools
+│   ├── genesis_miner.py   # PoW Miner
+│   ├── data_stream.py     # Global Traffic Simulator
+│   └── deploy_hetzner.sh  # Remote Deployment
 ├── frontend/          # React + TypeScript UI
-├── scripts/           # Verification and utility scripts
-├── tests/             # Unit, integration, e2e tests
-└── docs/              # Documentation
+└── ...
 ```
 
-
-
 ## Quick Start
+
+### 🚀 P2P Mining & Data Stream
+Orbis Ethica is now live with a functioning P2P network. You can join the swarm, mine blocks, and simulate global ethical traffic.
+
+#### 1. Start Your Node
+```bash
+./scripts/start_node.sh
+```
+
+#### 2. Run the Data Stream (Traffic Generator)
+Simulate thousands of ethical dilemmas sent to the network:
+```bash
+python scripts/data_stream.py
+```
+
+#### 3. Watch the Block Propagation
+Your local node will automatically receive blocks mined by the Genesis Node (Hetzner) containing these transactions.
+```
+📥 [P2P] Received Block #542 from peer
+📦 Transactions: 10
+```
 
 ### Prerequisites
 - Python 3.11+

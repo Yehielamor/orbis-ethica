@@ -36,13 +36,22 @@ def calculate_hash(index, prev_hash, timestamp, merkle_root, validator, nonce):
 def mine_block(info):
     index = info['index']
     prev_hash = info['previous_hash']
+    transactions = info.get('transactions', [])
     
     print(f"\n⛏️  Mining Block #{index} [Target: starts with '{DIFFICULTY_TARGET}']")
     print(f"🔗 Parent: {prev_hash[:12]}...")
+    print(f"📦 Transactions: {len(transactions)}")
     
     timestamp = datetime.utcnow().isoformat()
     validator = MINER_ID
-    merkle_root = hashlib.sha256("".encode()).hexdigest() # Empty transactions for now
+    
+    # Calculate Merkle Root
+    if transactions:
+        # Simple string concat for MVP merkling
+        tx_data = "".join(sorted([tx['id'] for tx in transactions]))
+        merkle_root = hashlib.sha256(tx_data.encode()).hexdigest()
+    else:
+        merkle_root = hashlib.sha256("".encode()).hexdigest()
     
     nonce = 0
     start_time = time.time()
@@ -69,7 +78,7 @@ def mine_block(info):
                 "timestamp": timestamp,
                 "validator_id": validator,
                 "signature": "miner_sig_pow", # In real protocol, we sign the hash
-                "transactions": [],
+                "transactions": transactions, # Include the TXs so peers can validate/add them
                 "nonce": nonce  # Sending nonce so server can verify if it wants to
             }
         
