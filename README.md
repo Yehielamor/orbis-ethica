@@ -8,37 +8,21 @@ Orbis Ethica is a decentralized framework designed to align AGI with human value
 
 ## 🌟 Key Features
 
-- **Moral Ledger:** Immutable SQLite blockchain with Merkle Tree integrity.
-- **Cognitive Entities:** 6-agent system (Seeker, Healer, Guardian, Mediator, Creator, Arbiter) for balanced ethical reasoning.
-- **Hybrid P2P Networking**: Custom WebSocket-based mesh network with application-layer cryptography (Ed25519 signatures) for secure message propagation. (Libp2p integration planned for v2.0).
-- **Reputation Security:** **Ethica (ETHC)** reputation protocol with "Burn Protocol" for slashing malicious actors.
-- **Identity & Auth:** Ed25519 cryptographic identity with strict request signing.
-- **Real-Time Dashboard:** Glassmorphism UI with live deliberation feed and network visualization.
+## 🌟 Key Features
+- **Moral Ledger:** Immutable SQLite ledger secured by Merkle Trees and Ed25519 signatures.
+- **Cognitive Entities:** 3-agent core (Guardian, Healer, Arbiter) powered by LLMs (Gemini/Groq) for ethical consensus.
+- **Hybrid Security:** "Proof of Authority" mining where trusted nodes sign blocks based on reputation.
+- **Tokenomics:** Hard-capped supply (10M ETHC) with Genesis Allocation and deflationary burn mechanisms for API usage.
+- **Real-Time Dashboard:** Dynamic frontend reacting to live block creation and verification events.
 
 ---
 
-## 🗺️ Roadmap Status
-
-| Phase | Objective | Status |
-|-------|-----------|--------|
-| I-III | Core Engine & Memory | ✅ Complete |
-| IV-V | DAO Governance | ✅ Complete |
-| VIII-XI | P2P Networking | ✅ Complete |
-| XII | Economic Security | ✅ Complete |
-| XV-XVI | Security & Auth | ✅ Complete |
-| XIX | Visualization | ✅ Complete |
-| XX | Deployment | ✅ Complete |
-
-### Recent Milestones (v6.0 - Fair Launch)
-- **Genesis Launch:** Successfully mined Block #0 with 10M ETHC supply.
-- **Fair Launch:** **0% Founder Allocation**. 89% of supply moved to Inference Reward Pool.
-- **Multi-Node Consensus:** Validated P2P handshake and block synchronization.
-- **Wallet Security:** Fixed critical auth vulnerability; enabled secure browser-based signing.
-- **Production Ready:** Dockerized deployment with automated setup script (`install.sh`).
-- **Anti-Gaming:** Implemented SHA-256 content hashing to prevent reward farming.
-
-> 📖 **Read the full [Whitepaper (v6.0)](docs/whitepaper_v5.tex)** (Official LaTeX Source) or the [Markdown Summary](WHITEPAPER.md).
-
+## 🗺️ System Status
+**Current State:** v2.0 (Genesis Live)
+- **Genesis Block:** Mined on 2026-02-01.
+- **Initial Supply:** 10,000,000 ETHC (System Mint) + 1,000 ETHC (Demo User).
+- **Consensus:** Single Validator Mode (Bootstrapping phase).
+- **Deployment:** Dockerized on Hetzner Cloud.
 
 
 ## Architecture
