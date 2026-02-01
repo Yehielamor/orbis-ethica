@@ -19,23 +19,38 @@ ssh -t $USER@$SERVER_IP << EOF
     
     cd $REMOTE_DIR
     
-    echo "⬇️ Pulling latest code..."
-    git pull origin main
+    echo "⬇️ Forcing latest code (Nuclear Option)..."
+    git fetch origin
+    git reset --hard origin/main
     
-    # 2. Setup Virtual Environment (Fixes 'externally-managed-environment' error)
+    echo "🔍 Verifying update matches origin..."
+    git log -1 --oneline
+    
+    # Check explicitly for the handshake function
+    if grep -q "handshake" backend/server.py; then
+        echo "✅ CODE IS CORRECT: 'handshake' found."
+    else
+        echo "❌ CRITICAL FAILURE: Git update failed."
+        exit 1
+    fi
+    
+    # 2. Setup Virtual Environment
     if [ ! -d "venv" ]; then
-        echo "� Creating Python Virtual Environment..."
+        echo "🐍 Creating Python Virtual Environment..."
         python3 -m venv venv
     fi
     
-    # Activate Venv
     source venv/bin/activate
-    
-    echo "📦 Installing dependencies..."
     pip install -r requirements.txt
     
-    echo "🔄 Restarting Orbis Node..."
-    pkill -f "backend/server.py" || true
+    echo "� Killing EVERYTHING on port 8000..."
+    # Try friendly kill
+    pkill -f "server.py" || true
+    # Try aggressive port kill (fuser might not be installed, so we use python fallback again but simpler)
+    fuser -k 8000/tcp || true
+    killall python3 || true
+    sleep 3
+
     
     export PORT=8000
     # Use the Public IP we know

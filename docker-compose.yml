@@ -17,7 +17,7 @@ services:
       - KEY_PASSWORD=${KEY_PASSWORD}
       - NODE_ID=${NODE_ID:-default_node}
       - P2P_PORT=6430
-      - SEED_NODES=77.42.30.95:8000
+      - SEED_NODES=46.62.199.4:8000
       - MINING_ENABLED=${MINING_ENABLED:-true}
       - FRONTEND_MODE=${FRONTEND_MODE:-full}
       - STRICT_SECURITY=true

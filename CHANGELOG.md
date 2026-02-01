@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Localhost Connection:** Fixed `ERR_EMPTY_RESPONSE` by updating the frontend to point to the correct local backend port (8000).
-- **P2P Connection:** Fixed local node connection issues by updating the Seed Node IP to the new production server (`77.42.30.95`).
+- **P2P Connection:** Fixed local node connection issues by updating the Seed Node IP to the new production server (`46.62.199.4`).
 - **401 Unauthorized:** Resolved authentication errors for Hebrew proposals by aligning JSON serialization between Frontend (JS) and Backend (Python).
 
 ### Security
