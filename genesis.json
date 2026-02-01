@@ -1,0 +1,9 @@
+{
+    "initial_balances": {
+        "system_mint": 10000000.0,
+        "demo_user": 1000.0
+    },
+    "initial_stakes": {},
+    "timestamp": "2024-01-01T00:00:00Z",
+    "validator_id": "genesis_node"
+}

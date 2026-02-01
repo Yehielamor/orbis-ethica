@@ -1,0 +1,12 @@
+{
+    "ulfr_weights": {
+        "alpha": 0.3,
+        "beta": 0.3,
+        "gamma": 0.2,
+        "delta": 0.2
+    },
+    "deliberation_threshold": 0.7,
+    "reputation_decay": 0.05,
+    "governance_quorum": 0.6,
+    "governance_pass_threshold": 0.75
+}
