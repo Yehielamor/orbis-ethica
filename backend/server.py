@@ -50,6 +50,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 👇 NEW: Serve Frontend Static Files
+from fastapi.staticfiles import StaticFiles
+# Mount frontend folder to root
+# (Place this AFTER API routes if strict, but FastAPI handles explicit routes first generally)
+# Actually, to avoid overshadowing API, we typically do this last or rely on FastAPI priority.
+# But for typical SPA, we mount '/' to static.
+app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+
 # Initialize Engine
 from uuid import uuid4
 
