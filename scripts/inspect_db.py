@@ -13,11 +13,13 @@ from backend.core.models.sql_models import LedgerEntryModel, BlockModel
 def inspect_db():
     print("🔍 Inspecting Database...")
     
-    # Path used by server
-    db_url = "sqlite:///backend/orbis_ethica.db"
+    # Resolve DB path relative to script
+    # project_root is already defined above
+    db_path = os.path.join(project_root, "backend", "orbis_ethica.db")
+    db_url = f"sqlite:///{db_path}"
     
-    if not os.path.exists("backend/orbis_ethica.db"):
-        print(f"❌ Database not found at {os.path.abspath('backend/orbis_ethica.db')}")
+    if not os.path.exists(db_path):
+        print(f"❌ Database not found at {db_path}")
         return
 
     engine = create_engine(db_url)
