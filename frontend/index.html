@@ -546,7 +546,7 @@
                     row.className = "hover:bg-slate-800/30 transition-colors";
                     const isOutgoing = tx.sender === WALLET_ID;
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${String(tx.id).substring(0, 8)}</td>
                         <td class="px-6 py-4 text-slate-300 capitalize text-xs">${tx.description || tx.type}</td>
                         <td class="px-6 py-4 font-mono text-xs ${isOutgoing ? 'text-rose-400' : 'text-emerald-400'}">
                             ${isOutgoing ? '-' : '+'}${tx.amount}
