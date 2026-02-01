@@ -56,8 +56,6 @@ services:
       - "80:80"
     depends_on:
       - backend
-    volumes:
-      - ./frontend/public:/usr/share/nginx/html
     restart: unless-stopped
 
 volumes:
