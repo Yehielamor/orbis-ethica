@@ -429,6 +429,96 @@ async def get_stats():
     finally:
         session.close()
 
+# 👇 NEW: Analytics & Treasury Endpoints
+
+@app.get("/api/analytics/charts")
+async def get_analytics_charts():
+    """
+    Get time-series data for dashboard charts.
+    Returns:
+    - Activity (Verifications per hour)
+    - Token Distribution
+    """
+    if not hasattr(engine, 'memory_graph') or not engine.memory_graph:
+         raise HTTPException(status_code=500, detail="Engine Memory Graph missing")
+    
+    from sqlalchemy import text
+    from datetime import datetime, timedelta
+    
+    ledger = engine.memory_graph.ledger
+    session = ledger.db_manager.get_session()
+    
+    try:
+        # 1. Activity Chart (Last 24 Hours)
+        # We group by hour. SQLite dependent syntax via strftime.
+        # Ensure we cover the last 24h even if empty? 
+        # For MVP, we just return what we have.
+        
+        # Count transactions of type 'transfer' to 'system_treasury' (Verifications)
+        # Grouped by hour
+        activity_query = text("""
+            SELECT 
+                strftime('%H:00', timestamp) as hour,
+                COUNT(*) as count
+            FROM ledger_entries 
+            WHERE recipient = 'system_treasury'
+            AND timestamp > datetime('now', '-24 hours')
+            GROUP BY strftime('%H', timestamp)
+            ORDER BY timestamp ASC
+        """)
+        
+        results = session.execute(activity_query).fetchall()
+        
+        # Format for Chart.js
+        labels = []
+        data = []
+        for r in results:
+            labels.append(r[0])
+            data.append(r[1])
+            
+        # 2. Token Distribution (Doughnut)
+        # Reuse logic from stats
+        # Burned
+        burned = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_treasury'")).fetchone()[0] or 0.0
+        # Staked
+        staked_in = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
+        staked_out = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE sender = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
+        total_staked = staked_in - staked_out
+        # Minted (Total Supply approx)
+        minted = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE transaction_type = 'mint'")).fetchone()[0] or 0.0
+        
+        circulating = minted - burned - total_staked
+        
+        return {
+            "activity": {
+                "labels": labels,
+                "data": data
+            },
+            "distribution": {
+                "labels": ["Circulating", "Bunded (Fees)", "Staked"],
+                "data": [circulating, burned, total_staked]
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting charts: {e}")
+        return {"activity": {"labels":[], "data":[]}, "distribution": {"labels":[], "data":[]}}
+    finally:
+        session.close()
+
+@app.get("/api/treasury/ledger")
+async def get_treasury_ledger():
+    """
+    Get specific transaction history for the System Treasury.
+    """
+    if not hasattr(engine, 'memory_graph') or not engine.memory_graph:
+         raise HTTPException(status_code=500, detail="Engine Memory Graph missing")
+         
+    ledger = engine.memory_graph.ledger
+    # Reuse the existing history logic but force wallet_id
+    history = ledger.get_transaction_history("system_treasury")
+    return history
+
 @app.get("/health")
 def health():
     return {
