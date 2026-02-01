@@ -8,5 +8,13 @@
     "deliberation_threshold": 0.7,
     "reputation_decay": 0.05,
     "governance_quorum": 0.6,
-    "governance_pass_threshold": 0.75
+    "governance_pass_threshold": 0.75,
+    "swarm": {
+        "mode": "hybrid",
+        "worker_nodes": [
+            "http://100.x.y.z:11434/v1"
+        ],
+        "timeout": 1.0,
+        "fallback_enabled": true
+    }
 }
