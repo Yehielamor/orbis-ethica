@@ -1,6 +1,6 @@
 {
     "initial_balances": {
-        "system_mint": 10000000.0,
+        "system_mint": 9999000.0,
         "demo_user": 1000.0
     },
     "initial_stakes": {},

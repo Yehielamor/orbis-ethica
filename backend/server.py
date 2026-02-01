@@ -223,6 +223,26 @@ async def get_stats():
         result = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_treasury'"))
         row = result.fetchone()
         tokens_burned = row[0] if row and row[0] is not None else 0.0
+
+        # Calculate Supply Metrics
+        # 1. Total Supply (Minted - Burned)
+        # We can use ledger.get_total_supply() logic here directly or via helper if we had access to ledger methods easily
+        # But we are in server.py using session directly for speed/safety.
+        # Let's mirror ledger.get_total_supply logic:
+        mints = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE transaction_type = 'mint'")).fetchone()[0] or 0.0
+        perm_burns = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'system_burn'")).fetchone()[0] or 0.0
+        total_supply = mints - perm_burns
+
+        # 2. Staked (Balance of STAKING_CONTRACT)
+        # Incoming to contract
+        staked_in = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE recipient = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
+        # Outgoing from contract (unstaked)
+        staked_out = session.execute(text("SELECT SUM(amount) FROM ledger_entries WHERE sender = 'STAKING_CONTRACT'")).fetchone()[0] or 0.0
+        total_staked = staked_in - staked_out
+
+        # 3. Circulating (Total - Staked - Treasury)
+        # Assuming Treasury is also locked? For now just Total - Staked for simplicity as per UI
+        circulating_supply = total_supply - total_staked
         
         # Safety Score (Placeholder logic as before)
         safety_score = 98.5 # High compliance default
@@ -231,7 +251,10 @@ async def get_stats():
             "total_verifications": total_verifications,
             "safety_score": safety_score,
             "tokens_burned": tokens_burned,
-            "active_nodes": 1 # Single Miner
+            "active_nodes": 1, 
+            "total_supply": total_supply,
+            "circulating_supply": circulating_supply,
+            "staked_supply": total_staked
         }
     except Exception as e:
         print(f"❌ Error getting stats: {e}")

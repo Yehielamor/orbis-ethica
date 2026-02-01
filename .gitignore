@@ -16,6 +16,7 @@ venv/
 keys/
 secrets/
 .keys_backup*/
+.git_backup*/
 test_node/
 *.sk
 *.pk

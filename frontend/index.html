@@ -392,15 +392,15 @@
                     <div class="grid grid-cols-3 gap-6 mb-8">
                         <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
                             <p class="text-sm text-slate-500">Total Supply</p>
-                            <p class="text-2xl font-bold text-white">10,000,000 ETHC</p>
+                            <p id="stat-total-supply" class="text-2xl font-bold text-white">--- ETHC</p>
                         </div>
                         <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
                             <p class="text-sm text-slate-500">Circulating</p>
-                            <p class="text-2xl font-bold text-white">4,231,092 ETHC</p>
+                            <p id="stat-circulating-supply" class="text-2xl font-bold text-white">--- ETHC</p>
                         </div>
                         <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
                             <p class="text-sm text-slate-500">Staked</p>
-                            <p class="text-2xl font-bold text-white">1,500,000 ETHC</p>
+                            <p id="stat-staked-supply" class="text-2xl font-bold text-white">--- ETHC</p>
                         </div>
                     </div>
 
@@ -458,6 +458,13 @@
                 document.getElementById('stat-safety-score').innerText = data.safety_score + "%";
                 document.getElementById('stat-tokens-burned').innerText = data.tokens_burned.toFixed(2);
                 document.getElementById('stat-active-nodes').innerText = data.active_nodes;
+
+                // Supply Metrics (Treasury Tab)
+                if (data.total_supply) {
+                    document.getElementById('stat-total-supply').innerText = Math.floor(data.total_supply).toLocaleString() + " ETHC";
+                    document.getElementById('stat-circulating-supply').innerText = Math.floor(data.circulating_supply).toLocaleString() + " ETHC";
+                    document.getElementById('stat-staked-supply').innerText = Math.floor(data.staked_supply).toLocaleString() + " ETHC";
+                }
             } catch (e) {
                 console.error("Stats fetch failed", e);
             }
