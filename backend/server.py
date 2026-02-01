@@ -297,7 +297,7 @@ async def verify_action(req: VerifyRequest, wallet_id: str = Depends(verify_paym
     Verify an action's ethical alignment.
     Requires 0.1 ETHC payment.
     """
-    print(f"🔍 [ORBIS] Verifying Action: {req.action} (Paid by {wallet_id})")
+    print(f"🔍 [ORBIS] 🔥🔥 HIT verify_action for {req.action[:20]}... ")
     
     # 1. Create Proposal
     proposal = Proposal(

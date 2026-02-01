@@ -118,6 +118,7 @@ def stream_data():
             
             if res.status_code == 200:
                 print(f"   ✅ [SENT] Distributed to Swarm (Latency: {latency:.0f}ms)")
+                print(f"   🔎 [DEBUG] Connected to: {res.headers.get('server', 'Unknown')} | Header Date: {res.headers.get('date', 'Unknown')}")
             else:
                 print(f"   ❌ [FAIL] Node Rejected: {res.status_code}")
                 
