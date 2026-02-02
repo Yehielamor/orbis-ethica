@@ -14,6 +14,7 @@ from ..security.reputation_manager import ReputationManager
 from .consensus import ConsensusManager
 from .extended_ulfr import ExtendedULFR
 from .memory import MemoryGraph
+from .shard_manager import ShardManager
 
 # Models
 from .models import Decision, DecisionOutcome, Proposal
@@ -58,6 +59,12 @@ class DeliberationEngine:
         else:
             self.threshold_routine = 0.50
             self.threshold_high_impact = 0.70
+            
+        # Initialize ShardManager if NetworkManager is present
+        self.shard_manager = None
+        if self.node_manager:
+            self.shard_manager = ShardManager(self.node_manager)
+            self.node_manager.set_shard_manager(self.shard_manager)
         
     def _calculate_weighted_score(self, evaluations: list[EntityEvaluation]) -> float:
         """
@@ -121,26 +128,43 @@ class DeliberationEngine:
         Sends prompts to the LLMProvider (which handles the Round Robin).
         Executes all agents simultaneously using asyncio.gather.
         """
-        tasks = []
-        print(f"🚀 [ENGINE] Dispatching {len(self.entities)} agents to the Swarm...")
+        # tasks = []
+        # print(f"🚀 [ENGINE] Dispatching {len(self.entities)} agents to the Swarm...")
         
-        # Create a task for each entity (Guardian, Healer, Seeker)
-        for entity in self.entities:
-            # Note: evaluate_proposal calls llm_provider.generate internally.
-            tasks.append(entity.evaluate_proposal(proposal))
+        # # Create a task for each entity (Guardian, Healer, Seeker)
+        # for entity in self.entities:
+        #     # Note: evaluate_proposal calls llm_provider.generate internally.
+        #     tasks.append(entity.evaluate_proposal(proposal))
             
-        # WAIT FOR ALL (Parallel Execution)
-        # This reduces wait time significantly compared to sequential execution.
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # # WAIT FOR ALL (Parallel Execution)
+        # # This reduces wait time significantly compared to sequential execution.
+        # results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        valid_evaluations = []
-        for res in results:
-            if isinstance(res, Exception):
-                print(f"❌ [SWARM ERROR] Agent execution failed: {res}")
-            else:
-                valid_evaluations.append(res)
+        # valid_evaluations = []
+        # for res in results:
+        #     if isinstance(res, Exception):
+        #         print(f"❌ [SWARM ERROR] Agent execution failed: {res}")
+        #     else:
+        #         valid_evaluations.append(res)
                 
-        return valid_evaluations
+        # return valid_evaluations
+        
+        # --- NEW: Distributed Sharding with Local Fallback ---
+        if self.shard_manager:
+            return await self.shard_manager.create_and_dispatch_shards(
+                proposal, 
+                local_fallback_callback=self.process_remote_shard
+            )
+        else:
+            # Fallback to local if no network
+            print("⚠️ [ENGINE] ShardManager not available. Falling back to local swarm.")
+            
+            # EXCLUDE ARBITER from routine voting (White Paper Alignment)
+            # The Arbiter should only intervene if there is no clear consensus.
+            active_entities = [e for e in self.entities if e.entity.name != "Arbiter"]
+            
+            tasks = [e.evaluate_proposal(proposal) for e in active_entities]
+            return await asyncio.gather(*tasks)
 
     def _determine_outcome(self, score: float, threshold: float, round_num: int) -> DecisionOutcome:
         """Determine decision outcome based on score and round."""
@@ -280,6 +304,37 @@ class DeliberationEngine:
             # 4. Determine Outcome
             outcome = self._determine_outcome(weighted_score, threshold, current_round)
             
+            # --- ARBITER INTERVENTION (Tie-Breaker) ---
+            # If the vote is close to the threshold (e.g., +/- 10%), calling the Arbiter.
+            margin = 0.10
+            is_ambiguous = (threshold - margin) <= weighted_score <= (threshold + margin)
+            
+            if is_ambiguous and outcome != DecisionOutcome.APPROVED: # Only intervene if we are on the fence or rejected marginally
+                arbiter = next((e for e in self.entities if e.entity.name == "Arbiter"), None)
+                if arbiter:
+                    yield {"type": "arbiter_intervention", "message": "⚖️ Decision ambiguous. Summoning the Arbiter..."}
+                    
+                    # Arbiter evaluates based on previous evaluations (synthesizing)
+                    # For now, we ask for a direct evaluation
+                    arb_eval = await arbiter.evaluate_proposal(proposal)
+                    evaluations.append(arb_eval)
+                    
+                    # Recalculate Score with Arbiter's heavy weight
+                    weighted_score = self._calculate_weighted_score(evaluations)
+                    outcome = self._determine_outcome(weighted_score, threshold, current_round)
+                    
+                    yield {
+                        "type": "entity_vote", 
+                        "entity": "Arbiter", 
+                        "reputation": arbiter.entity.reputation,
+                        "vote": arb_eval.vote,
+                        "confidence": arb_eval.confidence,
+                        "ulfr": arb_eval.ulfr_score.model_dump(),
+                        "reasoning": f"[ARBITER RULING] {arb_eval.reasoning}",
+                        "evidence_cited": arb_eval.evidence_cited
+                    }
+            # ------------------------------------------
+
             yield {
                 "type": "round_result", 
                 "round": current_round, 
@@ -440,6 +495,69 @@ class DeliberationEngine:
         except Exception as e:
             print(f"❌ Error during deliberation: {e}")
         return Decision(**decision_data) if decision_data else None
+
+    async def process_remote_shard(self, shard_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        WORKER ROLE: Process a shard received from the network.
+        """
+        print(f"🛠️ [WORKER] Processing Shard {shard_data.get('id')} ({shard_data.get('dimension')})...")
+        
+        # 1. Select an Agent based on dimension (Simple mapping for V1)
+        # U -> Seeker, L -> Healer, F -> Mediator, R -> Guardian
+        dim = shard_data.get("dimension")
+        agent_map = {
+            "U": "Seeker",
+            "L": "Healer", 
+            "F": "Mediator",
+            "R": "Guardian"
+        }
+        target_agent_name = agent_map.get(dim, "Guardian")
+        
+        agent = next((e for e in self.entities if e.entity.name == target_agent_name), self.entities[0])
+        
+        # 2. Execute (using internal LLM call)
+        # We construct a synthetic prompt since we don't have a full Proposal object structure expected by evaluate_proposal
+        prompt = f"""
+        [SYSTEM: You are a distributed worker node.]
+        {shard_data.get('context')}
+        
+        Evaluate this strictly. Return JSON.
+        """
+        
+        try:
+            # We bypass evaluate_proposal to send raw prompt, 
+            # OR we create a dummy proposal. Let's try raw prompt access if possible.
+            # BaseEntity doesn't expose raw _call_llm easily publicly? 
+            # Actually evaluate_proposal calls _call_llm.
+            # Let's use the agent's llm_provider directly.
+            
+            response_text = await agent.llm_provider.generate(prompt, system_role="You are a system worker. You must return valid JSON.")
+            
+            # Parse it
+            eval_data = agent._parse_json_response(response_text)
+            
+            # 3. Sign Result (Proof of Inference)
+            # We need consensus manager for this.
+            signature = "auto_worker_sig" # Placeholder if no consensus manager linked in engine
+            if hasattr(self, 'consensus_manager'):
+                 signature = self.consensus_manager.sign_data(eval_data)
+
+            return {
+                "shard_id": shard_data.get("id"),
+                "evaluation": {
+                    "entity_type": f"{agent.entity.name} (Worker)",
+                    "vote": eval_data.get("vote", 0),
+                    "confidence": eval_data.get("confidence", 0.0),
+                    "reasoning": eval_data.get("reasoning", "No reasoning provided"),
+                    "ulfr_score": eval_data.get("ulfr_score", {})
+                },
+                "miner_id": "worker_node", # Should be public key
+                "signature": signature
+            }
+            
+        except Exception as e:
+            print(f"❌ [WORKER] Shard processing failed: {e}")
+            return {"error": str(e)}
 
     def print_detailed_report(self, decision: Decision) -> None:
         """Prints the report."""

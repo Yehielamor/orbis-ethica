@@ -53,8 +53,21 @@ class NetworkManager:
         # Parse bootstrap nodes
         for node in bootstrap_nodes:
             if node and node != self.my_url:
-                ip, port = node.split(":") if ":" in node else (node, 8000)
-                self.known_peers.add(NodeInfo(ip, int(port)))
+                # Cleaning: remove protocol and trailing slashes
+                clean_node = node.replace("http://", "").replace("https://", "").strip("/")
+                
+                # Split (handle port presence)
+                if ":" in clean_node:
+                    ip, port = clean_node.split(":") 
+                    self.known_peers.add(NodeInfo(ip, int(port)))
+                else:
+                    self.known_peers.add(NodeInfo(clean_node, 8000))
+        
+        # Dependency Injection (Circular)
+        self.shard_manager = None
+        
+    def set_shard_manager(self, manager):
+        self.shard_manager = manager
 
     async def start(self):
         """Start the background P2P loops."""
@@ -121,7 +134,9 @@ class NetworkManager:
         """Actively say hello to seeds."""
         print(f"👋 [NET] Initiating Handshake with {len(self.known_peers)} seeds...")
         async with httpx.AsyncClient(timeout=3.0) as client:
-            for seed in self.known_peers: # Started with seeds
+            # Create a snapshot list to avoid "Set changed size during iteration"
+            seed_snapshot = list(self.known_peers)
+            for seed in seed_snapshot: # Started with seeds
                 try:
                     print(f"👉 [NET] Sending Handshake to {seed.url}")
                     resp = await client.post(f"{seed.url}/api/p2p/handshake", json={"url": self.my_url})
@@ -164,6 +179,39 @@ class NetworkManager:
                 tasks.append(client.post(f"{peer.url}/api/p2p/receive_block", json=block_data))
             
             # Fire and forget
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def broadcast_shard(self, shard_data: dict[str, Any]):
+        """
+        Tasks (Shards) are also gossiped to find a willing worker.
+        """
+        active_peers = [p for p in self.known_peers if p.failed_attempts < 3]
+        if not active_peers:
+            logger.warning("🕸️ [NET] No peers to broadcast shard to!")
+            return
+
+        targets = random.sample(active_peers, min(GOSSIP_FANOUT, len(active_peers)))
+        logger.info(f"🧩 [GOSSIP] Broadcasting shard {shard_data['id'][:8]} to {len(targets)} peers...")
+        
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            tasks = []
+            for peer in targets:
+                tasks.append(client.post(f"{peer.url}/api/p2p/shard/process", json=shard_data))
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def broadcast_result(self, result_data: dict[str, Any]):
+        """
+        Send result back to the originator (or gossip it back).
+        For V1, we try to gossip back, but ideally we should send to specific origin.
+        Since we don't have direct routing, we gossip.
+        """
+        active_peers = [p for p in self.known_peers if p.failed_attempts < 3]
+        targets = random.sample(active_peers, min(GOSSIP_FANOUT, len(active_peers)))
+        
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            tasks = []
+            for peer in targets:
+                tasks.append(client.post(f"{peer.url}/api/p2p/shard/result", json=result_data))
             await asyncio.gather(*tasks, return_exceptions=True)
 
     # --- 3. SYNC LOGIC (Longest Chain Rule) ---
