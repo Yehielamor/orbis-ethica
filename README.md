@@ -1,7 +1,7 @@
 # Orbis Ethica ⚖️
 > *A Moral Operating System for Artificial General Intelligence*
 
-**Version:** 5.1 (Genesis Release) 🚀
+**Version:** 6.0 (Genesis Release) 🚀
 **Status:** Live (Genesis Block Mined & Multi-Node Consensus Active)
 
 Orbis Ethica is a decentralized framework designed to align AGI with human values through a "Moral Blockchain." It treats ethical reasoning not as a constraint, but as a cognitive dimension, using a consensus-based ledger to record, deliberate, and audit every AI decision.
@@ -18,7 +18,7 @@ Orbis Ethica is a decentralized framework designed to align AGI with human value
 ---
 
 ## 🗺️ System Status
-**Current State:** v2.0 (Genesis Live)
+**Current State:** v6.0 (Genesis Live)
 - **Genesis Block:** Mined on 2026-02-01.
 - **Network:** P2P Hybrid Mesh (Hetzner Bootstrap + Local Peers).
 - **Consensus:** Proof of Work (MVP) + AI Verification.

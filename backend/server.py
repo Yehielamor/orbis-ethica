@@ -4,6 +4,7 @@ import sys
 from typing import Any
 
 import uvicorn
+import json
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
@@ -50,13 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 👇 NEW: Serve Frontend Static Files
-from fastapi.staticfiles import StaticFiles
-# Mount frontend folder to root
-# (Place this AFTER API routes if strict, but FastAPI handles explicit routes first generally)
-# Actually, to avoid overshadowing API, we typically do this last or rely on FastAPI priority.
-# But for typical SPA, we mount '/' to static.
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+# StaticFiles moved to end to avoid shadowing API
 
 # Initialize Engine
 from uuid import uuid4
@@ -141,7 +136,11 @@ entities = [
     CreatorEntity(creator_config, llm_provider=llm_provider),
 ]
 
-engine = DeliberationEngine(entities=entities, memory_graph=memory_graph)
+engine = DeliberationEngine(
+    entities=entities, 
+    memory_graph=memory_graph,
+    node_manager=network_manager  # 🔌 Wire up the P2P Network for Sharding
+)
 
 class VerifyRequest(BaseModel):
     action: str
@@ -208,6 +207,31 @@ async def handshake(payload: dict):
         network_manager.add_peer(peer_url)
         return {"status": "connected", "my_url": network_manager.my_url}
     return {"status": "ignored"}
+
+# --- P2P SHARDING ENDPOINTS (Phase II) ---
+
+@app.post("/api/p2p/shard/process")
+async def process_shard_endpoint(shard_data: dict):
+    """
+    Worker Endpoint: Receives a shard to process.
+    Delegates to the Engine's new worker method.
+    """
+    # Verify shard structure? Engine handles it.
+    try:
+        result = await engine.process_remote_shard(shard_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/p2p/shard/result")
+async def receive_shard_result_endpoint(result_payload: dict):
+    """
+    Leader Endpoint: Receives a result for a shard I sent out.
+    """
+    if engine.shard_manager:
+        engine.shard_manager.handle_shard_result(result_payload)
+        return {"status": "accepted"}
+    return {"status": "ignored_no_manager"}
 
 
 @app.get("/api/mining/info")
@@ -345,6 +369,84 @@ async def verify_action(req: VerifyRequest, wallet_id: str = Depends(verify_paym
             }
             for e in decision_data["entity_evaluations"]
         ]
+    )
+
+# 👇 NEW: SSE Streaming Endpoint for Live UI
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/verify/stream")
+async def stream_verification(action: str, wallet_id: str = Header(None, alias="X-Orbis-Wallet")):
+    """
+    Server-Sent Events (SSE) endpoint for real-time deliberation updates.
+    """
+    # 0. Basic Validation
+    if not wallet_id:
+        # SSE doesn't handle 402 well on connection, but we can send an error event
+        async def auth_error():
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Payment Required: Connect Wallet'})}\n\n"
+        return StreamingResponse(
+            auth_error(), 
+            media_type="text/event-stream",
+            headers={
+                "X-Accel-Buffering": "no",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive"
+            }
+        )
+
+    print(f"📡 [SSE] Starting stream for {wallet_id} - Action: {action[:20]}...")
+
+    # 1. Create Proposal (Same logic as verify_action)
+    req_context = "Streaming Verification Request" # Default context/research will fill in
+    
+    proposal = Proposal(
+        title=f"Verify Action: {action[:50]}...",
+        description=f"Action: {action}\nContext: {req_context}",
+        submitter_id=wallet_id,
+        category=ProposalCategory.ROUTINE,
+        domain=ProposalDomain.OTHER
+    )
+
+    # 2. Generator Wrapper for SSE
+    async def event_generator():
+        try:
+            # Send immediate Keep-Alive to establish connection through Nginx
+            yield ": keep-alive\n\n"
+            
+            # Ensure Payment
+            if hasattr(engine, 'memory_graph') and engine.memory_graph.ledger:
+                balance = engine.memory_graph.ledger.get_balance(wallet_id)
+                if balance < 0.1:
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'Insufficient ETHC Balance'})}\n\n"
+                    return
+                # Record fee
+                engine.memory_graph.ledger.record_transaction(
+                    sender=wallet_id, recipient="system_treasury", amount=0.1, 
+                    tx_type="transfer", description="Verification Fee (Stream)"
+                )
+            
+            # Run Deliberation
+            async for event in engine.deliberate_generator(proposal):
+                yield f"data: {json.dumps(event)}\n\n"
+                
+                # If final decision, we are done
+                if event["type"] == "final_decision":
+                    break
+        except Exception as e:
+            print(f"❌ [SSE ERROR] Stream failed: {e}")
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'type': 'error', 'message': f'Server Error: {str(e)}'})}\n\n"
+
+    # CRITICAL: Nginx buffering often kills SSE. We must disable it.
+    return StreamingResponse(
+        event_generator(), 
+        media_type="text/event-stream",
+        headers={
+            "X-Accel-Buffering": "no",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
     )
 
 @app.get("/api/balance/{wallet_id}")
@@ -534,6 +636,10 @@ def health():
         "mode": "verification_core",
         "p2p_peers": len(network_manager.known_peers)
     }
+
+# 👇 NEW: Serve Frontend Static Files (Moved to bottom)
+from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

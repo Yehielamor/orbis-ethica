@@ -309,6 +309,12 @@
                         </div>
 
                         <div class="p-6 flex-1 overflow-y-auto custom-scrollbar relative z-10">
+                            <!-- Streaming Feed (Restored) -->
+                            <div id="stream-feed"
+                                class="flex-1 space-y-4 mb-4 hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <!-- Cards injected here -->
+                            </div>
+
                             <!-- Idle State -->
                             <div id="status-container"
                                 class="h-full flex flex-col items-center justify-center text-center opacity-30">
@@ -440,7 +446,9 @@
     </main>
 
     <script>
-        const API_URL = `http://${window.location.hostname}:8000`;
+        // Dynamic Port: Local uses 8001, Remote uses 8000
+        const API_PORT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '8001' : '8000';
+        const API_URL = `http://${window.location.hostname}:${API_PORT}`;
         let WALLET_ID = localStorage.getItem('orbis_wallet_id');
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -581,7 +589,7 @@
                     row.className = "hover:bg-slate-800/30 transition-colors";
                     const isOutgoing = tx.sender === WALLET_ID;
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${String(tx.id).substring(0, 8)}</td>
                         <td class="px-6 py-4 text-slate-300 capitalize text-xs">${tx.description || tx.type}</td>
                         <td class="px-6 py-4 font-mono text-xs ${isOutgoing ? 'text-rose-400' : 'text-emerald-400'}">
                             ${isOutgoing ? '-' : '+'}${tx.amount}
@@ -676,7 +684,7 @@
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-colors";
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${tx.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500 truncate max-w-[100px]" title="${tx.id}">#${String(tx.id).substring(0, 8)}</td>
                         <td class="px-6 py-4 font-mono text-xs text-indigo-400" title="${tx.sender}">${tx.sender.substring(0, 6)}...</td>
                         <td class="px-6 py-4 font-mono text-xs text-emerald-400">+${tx.amount} ETHC</td>
                         <td class="px-6 py-4 text-xs text-slate-500">${new Date(tx.timestamp).toLocaleString()}</td>
@@ -709,79 +717,210 @@
 
             const btn = document.getElementById('verify-btn');
             const statusContainer = document.getElementById('status-container');
+            const streamFeed = document.getElementById('stream-feed');
             const resultView = document.getElementById('result-view');
             const verdictBadge = document.getElementById('verdict-badge');
 
+            // Reset UI
             btn.disabled = true;
-            btn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> PROCESSING`;
+            btn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> DELIBERATING`;
 
             statusContainer.classList.add('hidden');
+            resultView.classList.add('hidden');
+            streamFeed.classList.remove('hidden');
+            streamFeed.innerHTML = ''; // Clear previous
+
+            // Initial Message
+            addStreamCard('system', 'Initializing Distributed Deliberation...', 'indigo');
+
+            // 📡 START SSE STREAM
+            // Note: EventSource doesn't support headers natively, so we pass wallet in Query Param for MVP
+            // OR use a polyfill. For this MVP, let's rely on Query Param fallback if we implement it, 
+            // BUT server expects Header. 
+            // FIX: We can use fetch() with reader for full control, or just modify server to accept query param.
+            // Let's modify the URL to include wallet_id as query param for robustness if header fails? 
+            // Wait, standard EventSource cannot send headers. 
+            // I will use `fetch` with `getReader()` to consume the stream, which IS robust and allows Headers.
+
+            try {
+                const response = await fetch(`${API_URL}/api/verify/stream?action=${encodeURIComponent(action)}`, {
+                    headers: {
+                        'X-Orbis-Wallet': WALLET_ID // Only works with fetch
+                    }
+                });
+
+                if (response.status === 402) throw new Error("Insufficient Funds");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // Keep incomplete chunk
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const eventData = JSON.parse(line.substring(6));
+                            handleStreamEvent(eventData);
+                        }
+                    }
+                }
+
+            } catch (e) {
+                console.error("Stream Error", e);
+                addStreamCard('error', `Connection Failed: ${e.message}`, 'rose');
+                btn.disabled = false;
+                btn.innerHTML = 'Verify Action';
+            }
+        }
+
+        function handleStreamEvent(event) {
+            const btn = document.getElementById('verify-btn');
+            const streamFeed = document.getElementById('stream-feed');
+            const resultView = document.getElementById('result-view');
+            const verdictBadge = document.getElementById('verdict-badge');
+
+            switch (event.type) {
+                case 'init':
+                    addStreamCard('system', event.message, 'slate');
+                    break;
+                case 'round_start':
+                    addStreamCard('system', `--- Round ${event.round} Started ---`, 'indigo', true);
+                    break;
+                case 'researching':
+                    addStreamCard('researcher', event.message, 'purple');
+                    break;
+                case 'research_complete':
+                    addStreamCard('researcher', `Found Context: "${event.snippet}"`, 'purple');
+                    break;
+                case 'swarm_dispatch':
+                    addStreamCard('system', "Broadcasting shards to P2P Swarm...", 'blue');
+                    break;
+                case 'entity_vote':
+                    // Agent "Chat Bubble"
+                    addAgentCard(event);
+                    break;
+                case 'mediator_thinking':
+                    addStreamCard('mediator', `Refining: ${event.message}`, 'amber');
+                    break;
+                case 'final_decision':
+                    // Done! Show Result View
+                    btn.disabled = false;
+                    btn.innerHTML = 'Verify Action';
+
+                    // Render Final Result
+                    streamFeed.classList.add('hidden'); // Hide feed or keep it? User wants stream.
+                    // Let's keep stream visible for a moment or append result TO stream?
+                    // User expectation: "Discussion then Result".
+                    // The original code hid feed and showed result? 
+                    // Let's Just SHOW result view at the TOP or overlay.
+
+                    renderFinalResult(event);
+
+                    // Refresh data
+                    fetchBalance();
+                    fetchHistory();
+                    fetchStats();
+                    break;
+                case 'error':
+                    addStreamCard('error', event.message, 'rose');
+                    break;
+            }
+
+            // Auto scroll
+            const container = document.getElementById('stream-feed').parentElement;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addStreamCard(role, message, color, isSystem = false) {
+            const div = document.createElement('div');
+            const colors = {
+                'indigo': 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300',
+                'slate': 'bg-slate-800/50 border-slate-700 text-slate-400',
+                'purple': 'bg-purple-500/10 border-purple-500/20 text-purple-300',
+                'blue': 'bg-blue-500/10 border-blue-500/20 text-blue-300',
+                'amber': 'bg-amber-500/10 border-amber-500/20 text-amber-300',
+                'rose': 'bg-rose-500/10 border-rose-500/20 text-rose-300',
+            };
+
+            div.className = `p-3 rounded-xl border text-xs font-mono animate-in fade-in slide-in-from-bottom-2 ${colors[color] || colors['slate']} ${isSystem ? 'text-center font-bold opacity-70' : ''}`;
+            div.innerText = isSystem ? message : `[${role.toUpperCase()}] ${message}`;
+            document.getElementById('stream-feed').appendChild(div);
+        }
+
+        function addAgentCard(e) {
+            const div = document.createElement('div');
+            const isApprove = e.vote > 0;
+            const color = isApprove ? 'emerald' : 'rose';
+
+            div.className = `bg-slate-900/80 p-4 rounded-xl border border-${color}-500/30 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 group`;
+            div.innerHTML = `
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-${color}-500 opacity-50"></div>
+                <div class="flex justify-between items-start mb-2 pl-3">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-${color}-400 uppercase tracking-wider text-xs">${e.entity}</span>
+                        <span class="text-[10px] text-slate-500">Rep: ${(e.reputation * 100).toFixed(0)}% | Conf: ${(e.confidence * 100).toFixed(0)}%</span>
+                    </div>
+                    <span class="px-2 py-1 rounded bg-${color}-500/10 text-${color}-400 text-[10px] font-bold border border-${color}-500/20">
+                        ${isApprove ? 'APPROVE' : 'REJECT'}
+                    </span>
+                </div>
+                <p class="text-slate-300 pl-3 leading-relaxed text-sm font-light">"${e.reasoning}"</p>
+            `;
+            document.getElementById('stream-feed').appendChild(div);
+        }
+
+        function renderFinalResult(event) {
+            const resultView = document.getElementById('result-view');
+            const verdictBadge = document.getElementById('verdict-badge');
+            const streamFeed = document.getElementById('stream-feed');
+
+            // Hide stream, show result
+            streamFeed.classList.add('hidden');
             resultView.classList.remove('hidden');
             resultView.classList.add('flex');
 
-            verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-indigo-300 border-indigo-500/30 bg-indigo-500/10 animate-pulse";
-            verdictBadge.querySelector('h4').innerText = "DELIBERATING...";
+            const data = event.decision;
+            const approved = event.outcome === 'approved';
 
-            document.getElementById('entity-list').innerHTML = "";
-
-            try {
-                const res = await fetch(`${API_URL}/api/verify`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Orbis-Wallet': WALLET_ID
-                    },
-                    body: JSON.stringify({ action: action })
-                });
-
-                if (res.status === 402) {
-                    alert("Insufficient ETHC Balance (Or Wallet not recognized). Needed: 0.1 ETHC");
-                    throw new Error("Insufficient Funds");
-                }
-
-                const data = await res.json();
-
-                if (data.safe) {
-                    verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-emerald-300 border-emerald-500/30 bg-emerald-500/10";
-                    verdictBadge.querySelector('h4').innerText = "APPROVED";
-                } else {
-                    verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-rose-300 border-rose-500/30 bg-rose-500/10";
-                    verdictBadge.querySelector('h4').innerText = "BLOCKED";
-                }
-
-                document.getElementById('score-val').innerText = data.score.toFixed(3);
-                document.getElementById('risk-val').innerText = data.risk_level;
-
-                const entityList = document.getElementById('entity-list');
-                data.breakdown.forEach(e => {
-                    const div = document.createElement('div');
-                    div.className = "bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-xs relative overflow-hidden group hover:border-slate-700 transition-colors";
-                    const colorClass = e.vote === 'APPROVE' ? 'text-emerald-400' : 'text-rose-400';
-                    const barColor = e.vote === 'APPROVE' ? 'bg-emerald-500' : 'bg-rose-500';
-
-                    div.innerHTML = `
-                        <div class="absolute left-0 top-0 bottom-0 w-1 ${barColor} opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="flex justify-between mb-2 pl-3">
-                            <span class="font-bold ${colorClass} uppercase tracking-wider text-[10px]">${e.entity}</span>
-                            <span class="font-mono opacity-50">${e.vote}</span>
-                        </div>
-                        <p class="text-slate-400 pl-3 leading-relaxed font-light">"${e.reason}"</p>
-                    `;
-                    entityList.appendChild(div);
-                });
-
-                fetchBalance();
-                fetchHistory();
-                fetchStats(); // Update stats after verification
-
-            } catch (e) {
-                verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-orange-300 border-orange-500/30 bg-orange-500/10";
-                verdictBadge.querySelector('h4').innerText = "ERROR";
-                console.error(e);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<span>Verify Action</span><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`;
+            if (approved) {
+                verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-emerald-300 border-emerald-500/30 bg-emerald-500/10";
+                verdictBadge.querySelector('h4').innerText = "APPROVED";
+            } else {
+                verdictBadge.className = "p-6 rounded-2xl border text-center relative overflow-hidden text-rose-300 border-rose-500/30 bg-rose-500/10";
+                verdictBadge.querySelector('h4').innerText = "BLOCKED";
             }
+
+            document.getElementById('score-val').innerText = data.weighted_vote.toFixed(3);
+            // Risk level isn't directly in data, infer it
+            document.getElementById('risk-val').innerText = data.weighted_vote > 0.8 ? 'LOW' : 'HIGH';
+
+            const entityList = document.getElementById('entity-list');
+            entityList.innerHTML = '';
+
+            // Re-render breakdown for persistence
+            data.entity_evaluations.forEach(e => {
+                const isApp = e.vote > 0;
+                const div = document.createElement('div');
+                div.className = "bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-xs relative overflow-hidden group hover:border-slate-700 transition-colors";
+                const colorClass = isApp ? 'text-emerald-400' : 'text-rose-400';
+                const barColor = isApp ? 'bg-emerald-500' : 'bg-rose-500';
+
+                div.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-1 ${barColor} opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="flex justify-between mb-2 pl-3">
+                        <span class="font-bold ${colorClass} uppercase tracking-wider text-[10px]">${e.entity_type}</span>
+                        <span class="font-mono opacity-50">${isApp ? 'APPROVE' : 'REJECT'}</span>
+                    </div>
+                    <p class="text-slate-400 pl-3 leading-relaxed font-light">"${e.reasoning}"</p>
+                `;
+                entityList.appendChild(div);
+            });
         }
     </script>
 </body>
