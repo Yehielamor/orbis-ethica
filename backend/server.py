@@ -115,8 +115,19 @@ ledger = Ledger()
 # We assume specific env vars or defaults
 my_ip = os.getenv("MY_IP", "127.0.0.1")
 # Parse seed nodes (remove empty strings)
-seed_nodes_raw = os.getenv("SEED_NODES", "").split(",")
-bootstrap_nodes = [node for node in seed_nodes_raw if node]
+# Parse seed nodes (handle JSON list or comma-separated)
+seed_nodes_env = os.getenv("SEED_NODES", "[]")
+try:
+    # Try parsing as JSON list first (["http://..."])
+    seed_nodes_raw = json.loads(seed_nodes_env)
+    if not isinstance(seed_nodes_raw, list):
+         seed_nodes_raw = [str(seed_nodes_raw)]
+except json.JSONDecodeError:
+    # Fallback to comma-separated string
+    seed_nodes_raw = seed_nodes_env.split(",")
+
+# Clean up (remove whitespace, quotes if malformed)
+bootstrap_nodes = [node.strip().strip('"\'') for node in seed_nodes_raw if node and node.strip()]
 
 network_manager = NetworkManager(
     ledger=ledger, 
