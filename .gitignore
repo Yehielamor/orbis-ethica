@@ -98,3 +98,4 @@ backend.log
 bootstrap.log
 miner.log
 orchestrator.log
+scripts/deploy_hetzner.sh
