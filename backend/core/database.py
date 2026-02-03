@@ -27,9 +27,10 @@ class DatabaseManager:
     
     def _init_db(self, db_url: str):
         if db_url is None:
-             # DEBUG: Force In-Memory DB to bypass FS issues
-             db_url = "sqlite://"
-             print(f"⚠️ DEBUG MODE: Using In-Memory Database (RAM only)")
+             # Determine absolute path for DB file
+             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+             db_path = os.path.join(base_dir, "orbis_ethica.db")
+             db_url = f"sqlite:///{db_path}"
 
              # Check for Docker/Env override
              if os.path.exists("/app/data"):
@@ -61,14 +62,18 @@ def get_db():
 # Helpers for compatibility with existing code
 # Use /app/data for Docker persistence, fallback to local backend/ for local dev without docker
 def init_db(db_url: str = None):
-    # DEBUG: Force In-Memory DB to bypass FS issues
-    final_url = "sqlite://" 
-    print(f"⚠️ DEBUG MODE: Using In-Memory Database (RAM only) due to FS permission issues.")
+    # Determine absolute path for DB file to avoid "unable to open database file"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # pointing to backend/
+    db_path = os.path.join(base_dir, "orbis_ethica.db")
+    
+    # Default to local file
+    final_url = f"sqlite:///{db_path}"
 
     # Check for Docket/Env override
     if os.path.exists("/app/data"):
          final_url = "sqlite:///data/orbis_ethica.db"
     
+    # Allow override
     if db_url and db_url.startswith("sqlite"):
          final_url = db_url
 
