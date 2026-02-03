@@ -48,11 +48,16 @@ class TestULFRScore:
             delta=0.15
         )
         
-        # Score = 0.25*0.8 + 0.40*0.9 - 0.20*0.1 - 0.15*0.2
-        # Score = 0.2 + 0.36 - 0.02 - 0.03 = 0.51
+        # Deductive Model: Score starts at 1.0
+        # Penalty U: 0.25 * (1.0 - 0.8) = 0.05
+        # Penalty L: 0.40 * (1.0 - 0.9) = 0.04
+        # Penalty F: 0.20 * 0.1 = 0.02
+        # Penalty R: 0.15 * 0.2 = 0.03
+        # Total Penalty = 0.14
+        # Final Score = 1.0 - 0.14 = 0.86
         weighted = score.calculate_weighted_score(weights)
         
-        assert abs(weighted - 0.51) < 0.01
+        assert abs(weighted - 0.86) < 0.01
     
     def test_to_dict(self):
         """Test conversion to dictionary."""

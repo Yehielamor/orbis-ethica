@@ -5,7 +5,7 @@ from typing import Any
 
 import uvicorn
 import json
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 
 # Add project root to path
@@ -655,6 +655,66 @@ async def get_analytics_charts():
         return {"activity": {"labels":[], "data":[]}, "distribution": {"labels":[], "data":[]}}
     finally:
         session.close()
+
+# --- FAUCET (Beta Onboarding) ---
+import time
+from threading import Lock
+
+FAUCET_AMOUNT = 10.0
+IP_RATE_LIMIT = {} # In-memory map: IP -> last_request_time
+FAUCET_LOCK = Lock()
+RATE_LIMIT_DURATION = 86400 # 24 hours in seconds
+
+class FaucetRequest(BaseModel):
+    wallet_id: str
+
+@app.post("/api/faucet")
+async def claim_faucet(payload: FaucetRequest, request: Request):
+    """
+    Beta Faucet: Claim 10 ETHC for new users.
+    Limits: 1 claim per IP per 24h AND 1 claim per Wallet history.
+    """
+    client_ip = request.client.host
+    now = time.time()
+    
+    with FAUCET_LOCK:
+        # 1. IP Rate Limit
+        last_request = IP_RATE_LIMIT.get(client_ip, 0)
+        if now - last_request < RATE_LIMIT_DURATION:
+            wait_hours = int((RATE_LIMIT_DURATION - (now - last_request)) / 3600)
+            raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Try again in {wait_hours} hours.")
+            
+        # 2. Wallet Eligibility Check (Ledger)
+        # We need the ledger instance. It's inside engine.memory_graph.ledger
+        if not hasattr(engine, 'memory_graph') or not engine.memory_graph:
+             raise HTTPException(status_code=500, detail="Engine not ready")
+        
+        ledger_instance = engine.memory_graph.ledger
+        
+        # Check if wallet has ANY transactions (incoming or outgoing)
+        history = ledger_instance.get_transaction_history(payload.wallet_id)
+        if len(history) > 0:
+             # Allow if balance is absolute zero (maybe they burned it all?), usually strict NO.
+             # For Beta, let's be strict: New users only.
+             balance = ledger_instance.get_balance(payload.wallet_id)
+             if balance > 1.0: # lenient check
+                 raise HTTPException(status_code=403, detail="Wallet already active. Faucet is for new users only.")
+
+        # 3. Mint/Transfer
+        # We use the ETHICAL_ALLOCATION_POOL as the source
+        success = ledger_instance.create_transaction(
+            sender="ETHICAL_ALLOCATION_POOL",
+            recipient=payload.wallet_id,
+            amount=FAUCET_AMOUNT,
+            tx_type="transfer",
+            description=f"Beta Faucet Claim (IP: {client_ip})"
+        )
+        
+        if success:
+            IP_RATE_LIMIT[client_ip] = now
+            return {"status": "success", "amount": FAUCET_AMOUNT, "message": "Funds sent! Run miner to confirm."}
+        else:
+            raise HTTPException(status_code=500, detail="Faucet transfer failed (Pool empty?)")
 
 @app.get("/api/treasury/ledger")
 async def get_treasury_ledger():

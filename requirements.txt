@@ -47,6 +47,7 @@ psycopg2-binary==2.9.9  # PostgreSQL
 web3==6.13.0
 eth-account==0.10.0
 eth-utils==2.3.1
+eth-typing<5.0.0
 
 # Testing
 pytest==7.4.3
