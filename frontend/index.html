@@ -150,6 +150,14 @@
                 </svg>
                 <span class="font-medium">Treasury</span>
             </button>
+            <button onclick="switchView('dilemmas')" id="nav-dilemmas"
+                class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span class="font-medium">Dilemma Archive</span>
+            </button>
         </nav>
 
         <div class="p-6 mt-auto">
@@ -442,6 +450,37 @@
                 </div>
             </div>
 
+            <!-- VIEW: DILEMMAS -->
+            <div id="view-dilemmas" class="hidden max-w-[1600px] mx-auto">
+                <div class="glass-panel p-8 rounded-2xl">
+                    <h2 class="text-2xl font-bold text-white mb-4">Dilemma Archive</h2>
+                    <p class="text-slate-400 mb-8">Full history of ethical verifications and AI verdicts.</p>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden flex-1">
+                        <div class="px-6 py-4 border-b border-slate-800 bg-slate-900/30">
+                            <h3 class="font-bold text-white">Verification History</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-900/50 text-xs uppercase text-slate-500 font-medium">
+                                    <tr>
+                                        <th class="px-6 py-4">ID</th>
+                                        <th class="px-6 py-4">Date</th>
+                                        <th class="px-6 py-4">Action</th>
+                                        <th class="px-6 py-4">Verdict</th>
+                                        <th class="px-6 py-4">Score</th>
+                                        <th class="px-6 py-4">Summary</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50 text-sm text-slate-400" id="dilemma-table">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -460,6 +499,7 @@
             if (WALLET_ID) {
                 fetchBalance();
                 fetchHistory();
+                fetchDilemmas(); // NEW
             }
         });
 
@@ -518,12 +558,17 @@
             // Hide all views
             document.getElementById('view-dashboard').classList.add('hidden');
             document.getElementById('view-analytics').classList.add('hidden');
+            document.getElementById('view-analytics').classList.add('hidden');
             document.getElementById('view-treasury').classList.add('hidden');
+            document.getElementById('view-dilemmas').classList.add('hidden');
 
             // Deactivate all nav items
             document.getElementById('nav-dashboard').classList.remove('active');
             document.getElementById('nav-analytics').classList.remove('active');
+            document.getElementById('nav-dashboard').classList.remove('active');
+            document.getElementById('nav-analytics').classList.remove('active');
             document.getElementById('nav-treasury').classList.remove('active');
+            document.getElementById('nav-dilemmas').classList.remove('active');
 
             // Show selected view
             document.getElementById(`view-${viewName}`).classList.remove('hidden');
@@ -533,7 +578,10 @@
             const titles = {
                 'dashboard': 'Command Center',
                 'analytics': 'Analytics',
-                'treasury': 'Treasury'
+                'dashboard': 'Command Center',
+                'analytics': 'Analytics',
+                'treasury': 'Treasury',
+                'dilemmas': 'Dilemma Archive'
             };
             document.getElementById('page-title').innerText = titles[viewName];
         }
@@ -921,6 +969,44 @@
                 `;
                 entityList.appendChild(div);
             });
+        }
+
+        async function fetchDilemmas() {
+            if (!WALLET_ID) return;
+            try {
+                const res = await fetch(`${API_URL}/api/dilemmas/history/${WALLET_ID}`);
+                const data = await res.json();
+                const tbody = document.getElementById('dilemma-table');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-slate-500 text-xs">No dilemmas found in archive</td></tr>';
+                    return;
+                }
+
+                data.forEach(d => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-800/30 transition-colors cursor-pointer group";
+                    const scoreColor = d.score > 85 ? 'text-emerald-400' : (d.score > 50 ? 'text-yellow-400' : 'text-rose-400');
+                    const verdictColor = d.verdict === 'SAFE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400';
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500">#${d.id}</td>
+                        <td class="px-6 py-4 text-xs text-slate-500 w-32">${new Date(d.timestamp).toLocaleString()}</td>
+                        <td class="px-6 py-4 text-slate-300 font-medium truncate max-w-[200px]" title="${d.prompt}">${d.prompt}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${verdictColor}">${d.verdict}</span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-xs font-bold ${scoreColor}">${d.score.toFixed(1)}%</td>
+                        <td class="px-6 py-4 text-slate-400 text-xs italic truncate max-w-[300px]" title="${d.summary}">
+                             "${d.summary}"
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                console.error("Dilemma fetch failed", e);
+            }
         }
     </script>
 </body>

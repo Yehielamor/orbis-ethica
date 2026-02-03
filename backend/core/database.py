@@ -26,6 +26,16 @@ class DatabaseManager:
         return cls._instance
     
     def _init_db(self, db_url: str):
+        if db_url is None:
+             # DEBUG: Force In-Memory DB to bypass FS issues
+             db_url = "sqlite://"
+             print(f"⚠️ DEBUG MODE: Using In-Memory Database (RAM only)")
+
+             # Check for Docker/Env override
+             if os.path.exists("/app/data"):
+                 db_url = "sqlite:///data/orbis_ethica.db"
+        
+        print(f"📂 DatabaseManager initializing with: {db_url}")
         self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self.SessionLocal = SessionLocal
@@ -50,13 +60,20 @@ def get_db():
 
 # Helpers for compatibility with existing code
 # Use /app/data for Docker persistence, fallback to local backend/ for local dev without docker
-def init_db(db_url: str = "sqlite:///data/orbis_ethica.db"):
-    # Check if /app/data exists (Docker), otherwise use local path
-    if not os.path.exists("/app/data") and not db_url.startswith("sqlite:///data"):
-         # Fallback for local python run
-         db_url = "sqlite:///backend/orbis_ethica.db"
-         
-    DatabaseManager(db_url)
+def init_db(db_url: str = None):
+    # DEBUG: Force In-Memory DB to bypass FS issues
+    final_url = "sqlite://" 
+    print(f"⚠️ DEBUG MODE: Using In-Memory Database (RAM only) due to FS permission issues.")
+
+    # Check for Docket/Env override
+    if os.path.exists("/app/data"):
+         final_url = "sqlite:///data/orbis_ethica.db"
+    
+    if db_url and db_url.startswith("sqlite"):
+         final_url = db_url
+
+    print(f"📂 initializing DB at: {final_url}")
+    DatabaseManager(final_url)
 
 def SessionLocal():
     return DatabaseManager().get_session()

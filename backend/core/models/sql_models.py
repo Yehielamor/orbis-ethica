@@ -137,5 +137,21 @@ class LedgerEntryModel(Base):
     block_hash = Column(String, ForeignKey("blocks.hash"), nullable=True)
     block = relationship("BlockModel", back_populates="transactions")
 
+class DilemmaModel(Base):
+    """Persistent storage for Ethical Dilemmas and their Verification results."""
+    __tablename__ = "dilemmas"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    wallet_id = Column(String, index=True, nullable=True)
+    prompt = Column(Text, nullable=False)
+    verdict = Column(String) # "SAFE" / "UNSAFE" / "CONDITIONAL"
+    safety_score = Column(Float)
+    analysis_summary = Column(Text)
+    full_report = Column(JSON) # Stores the complete analysis steps
+    
+    # Financial Link
+    transaction_id = Column(Integer, ForeignKey("ledger_entries.id"), nullable=True)
+
 # Update SQLProposal to include relationship
 SQLProposal.votes = relationship("VoteModel", back_populates="proposal")

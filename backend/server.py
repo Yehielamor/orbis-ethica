@@ -23,8 +23,12 @@ from backend.core.models import (
     EntityType,
     Proposal,
     ProposalCategory,
+    Proposal,
+    ProposalCategory,
     ProposalDomain,
 )
+# 👇 NEW: Import DilemmaModel
+from backend.core.models.sql_models import DilemmaModel, LedgerEntryModel
 
 # 👇 NEW: Import the NetworkManager we created
 from backend.core.network_manager import NetworkManager
@@ -442,6 +446,31 @@ async def stream_verification(action: str, wallet_id: str = Header(None, alias="
                 
                 # If final decision, we are done
                 if event["type"] == "final_decision":
+                    decision_data = event["decision"]
+                    # SAVE TO ARCHIVE
+                    try:
+                        session = engine.memory_graph.ledger.db_manager.get_session()
+                        
+                        # Find the transaction we just made (Verification Fee)
+                        # We assume it's the last one for this wallet within a few seconds, or just leave it nulled for now
+                        # Ideally we'd return the TX ID from record_transaction, but for MVP we skip linking perfectly.
+                        
+                        new_dilemma = DilemmaModel(
+                            wallet_id=wallet_id,
+                            prompt=action,
+                            verdict="SAFE" if decision_data["outcome"] == "approved" else "UNSAFE",
+                            safety_score=decision_data["weighted_vote"] * 100, # Convert 0-1 to %
+                            analysis_summary=decision_data["rationale"],
+                            full_report=decision_data, # Store full JSON
+                            timestamp=datetime.utcnow()
+                        )
+                        session.add(new_dilemma)
+                        session.commit()
+                        print(f"💾 Archived Dilemma #{new_dilemma.id}")
+                        session.close()
+                    except Exception as arch_err:
+                        print(f"⚠️ Failed to archive dilemma: {arch_err}")
+                    
                     break
         except Exception as e:
             print(f"❌ [SSE ERROR] Stream failed: {e}")
@@ -640,6 +669,31 @@ async def get_treasury_ledger():
     history = ledger.get_transaction_history("system_treasury")
     return history
 
+@app.get("/api/dilemmas/history/{wallet_id}")
+async def get_dilemma_history(wallet_id: str):
+    """
+    Get full dilemma archive for a user.
+    """
+    if not hasattr(engine, 'memory_graph'):
+         raise HTTPException(status_code=500, detail="Engine not ready")
+         
+    session = engine.memory_graph.ledger.db_manager.get_session()
+    try:
+        results = session.query(DilemmaModel).filter(
+            DilemmaModel.wallet_id == wallet_id
+        ).order_by(DilemmaModel.timestamp.desc()).all()
+        
+        return [{
+            "id": d.id,
+            "timestamp": d.timestamp.isoformat(),
+            "prompt": d.prompt,
+            "verdict": d.verdict,
+            "score": d.safety_score,
+            "summary": d.analysis_summary
+        } for d in results]
+    finally:
+        session.close()
+
 @app.get("/health")
 def health():
     return {
@@ -650,7 +704,12 @@ def health():
 
 # 👇 NEW: Serve Frontend Static Files (Moved to bottom)
 from fastapi.staticfiles import StaticFiles
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
+# Serve Frontend (SPA)
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
+else:
+    print(f"⚠️ Frontend directory not found at {frontend_dir}. Serving API only.")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

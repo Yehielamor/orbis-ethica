@@ -42,12 +42,7 @@ class Ledger:
     MAX_SUPPLY = 10_000_000.0
     
     def __init__(self, db_url: str = None):
-        if db_url is None:
-            if os.path.exists("/app/data"):
-                db_url = "sqlite:///data/orbis_ethica.db"
-            else:
-                db_url = "sqlite:///backend/orbis_ethica.db"
-                
+        # Delegate DB path resolution entirely to DatabaseManager
         self.db_manager = DatabaseManager(db_url)
         self.MAX_SUPPLY = 10_000_000.0
         self._lock = threading.Lock() # Prevent race conditions
@@ -565,7 +560,7 @@ class Ledger:
             else:
                 return BlockObj(
                     index=0, 
-                    hash="genesis_pending",
+                    hash="0" * 64, # Use proper genesis hash format
                     previous_hash="0"*64,
                     timestamp=datetime.utcnow(),
                     validator_id="genesis",
