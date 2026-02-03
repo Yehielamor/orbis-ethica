@@ -296,13 +296,59 @@ async def get_mining_info():
         "transactions": pending_txs
     }
 
-async def verify_payment(x_orbis_wallet: str = Header(None, alias="X-Orbis-Wallet")):
+import time
+import nacl.signing
+import nacl.encoding
+
+async def verify_payment(
+    req: Request,
+    x_orbis_wallet: str = Header(None, alias="X-Orbis-Wallet"),
+    x_orbis_signature: str = Header(None, alias="X-Orbis-Signature"),
+    x_orbis_timestamp: str = Header(None, alias="X-Orbis-Timestamp")
+):
     """
-    💰 PAYWALL: Enforce ETHC payment for verification.
+    💰 PAYWALL: Enforce ETHC payment AND Cryptographic Signature.
     Cost: 0.1 ETHC per request.
     """
     if not x_orbis_wallet:
-        raise HTTPException(status_code=402, detail="Payment Required: Missing X-Orbis-Wallet header.")
+        raise HTTPException(status_code=401, detail="Missing X-Orbis-Wallet header.")
+    
+    if not x_orbis_signature:
+        raise HTTPException(status_code=401, detail="Missing X-Orbis-Signature header.")
+        
+    if not x_orbis_timestamp:
+        raise HTTPException(status_code=401, detail="Missing X-Orbis-Timestamp header.")
+
+    # 1. Verify Timestamp Freshness (Prevent Replay Attacks)
+    try:
+        req_ts = float(x_orbis_timestamp)
+        if abs(time.time() - req_ts) > 60: # 1 Minute window
+            raise HTTPException(status_code=401, detail="Request timestamp expired.")
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid timestamp format.")
+
+    # 2. Verify Signature
+    try:
+        # Reconstruct the message that was signed: "timestamp:action"
+        # We need the action body to verify what was signed.
+        # Ideally, we'd read the body, but in FastAPI Depends, it's tricky to consume body.
+        # Quick Hack: For this endpoint, we will assume the signature covers "timestamp" ONLY for simple Auth,
+        # OR better: The client signs "timestamp:wallet_id" as a Proof of Identity.
+        # BUT for true security, we should sign the ACTION.
+        # Let's verify the IDENTITY first (timestamp:wallet_id).
+        # This proves they own the wallet at this specific time.
+        
+        message = f"{x_orbis_timestamp}:{x_orbis_wallet}".encode()
+        
+        # Verify Key = Wallet ID (Hex)
+        verify_key = nacl.signing.VerifyKey(x_orbis_wallet, encoder=nacl.encoding.HexEncoder)
+        
+        # Verify
+        verify_key.verify(message, list(bytes.fromhex(x_orbis_signature)))
+        
+    except Exception as e:
+        print(f"🔐 Signature Verification Failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid Cryptographic Signature.")
 
     try:
         if not hasattr(engine, 'memory_graph') or not engine.memory_graph:

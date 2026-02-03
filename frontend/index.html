@@ -10,6 +10,8 @@
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
     <style>
         :root {
             --bg-dark: #030712;
@@ -490,7 +492,71 @@
         const API_URL = `http://${window.location.hostname}:${API_PORT}`;
         let WALLET_ID = localStorage.getItem('orbis_wallet_id');
 
+        // Secure Wallet Manager
+        const WalletManager = {
+            keyPair: null,
+            walletId: null,
+
+            init() {
+                const stored = localStorage.getItem('orbis_keypair');
+                if (stored) {
+                    try {
+                        const data = JSON.parse(stored);
+                        this.keyPair = {
+                            publicKey: nacl.util.decodeBase64(data.publicKey),
+                            secretKey: nacl.util.decodeBase64(data.secretKey)
+                        };
+                        this.walletId = data.walletId;
+                        WALLET_ID = this.walletId;
+                    } catch (e) {
+                        console.error("Failed to load wallet", e);
+                        localStorage.removeItem('orbis_keypair');
+                    }
+                }
+            },
+
+            create() {
+                this.keyPair = nacl.sign.keyPair();
+                const pubHex = this.toHex(this.keyPair.publicKey);
+                this.walletId = pubHex;
+                WALLET_ID = this.walletId;
+
+                this.save();
+                return this.walletId;
+            },
+
+            save() {
+                const data = {
+                    publicKey: nacl.util.encodeBase64(this.keyPair.publicKey),
+                    secretKey: nacl.util.encodeBase64(this.keyPair.secretKey),
+                    walletId: this.walletId
+                };
+                localStorage.setItem('orbis_keypair', JSON.stringify(data));
+                localStorage.setItem('orbis_wallet_id', this.walletId); // Backward compat
+            },
+
+            disconnect() {
+                this.keyPair = null;
+                this.walletId = null;
+                WALLET_ID = null;
+                localStorage.removeItem('orbis_keypair');
+                localStorage.removeItem('orbis_wallet_id');
+            },
+
+            sign(message) {
+                if (!this.keyPair) throw new Error("No wallet connected");
+                const msgBytes = nacl.util.decodeUTF8(message);
+                const sig = nacl.sign.detached(msgBytes, this.keyPair.secretKey);
+                return this.toHex(sig);
+            },
+
+            toHex(bytes) {
+                return Array.prototype.map.call(bytes, x => ('00' + x.toString(16)).slice(-2)).join('');
+            }
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
+            WalletManager.init();
             updateWalletUI();
             fetchStats(); // Global stats
             fetchAnalytics(); // NEW: Load Charts
@@ -504,26 +570,46 @@
         });
 
         function connectWallet() {
-            // For MVP: Simple prompt. In production: MetaMask/Hardware Wallet integration.
-            const input = prompt("Enter your Public Key (Wallet Address):", "");
-            if (input && input.startsWith("0x")) {
-                WALLET_ID = input;
-                localStorage.setItem('orbis_wallet_id', WALLET_ID);
+            if (confirm("Create a new secure identity? (This will overwrite any existing key in this browser)")) {
+                const addr = WalletManager.create();
+                alert(`Identity Created!\nAddress: ${addr.substring(0, 10)}...`);
                 updateWalletUI();
                 fetchBalance();
                 fetchHistory();
-            } else if (input) {
-                alert("Invalid address format. Must start with 0x");
+
+                // Prompt for Faucet?
+                if (confirm("Do you want to claim 10 free ETHC from the Faucet to start?")) {
+                    claimFaucet();
+                }
+            }
+        }
+
+        async function claimFaucet() {
+            try {
+                const res = await fetch(`${API_URL}/api/faucet`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_id: WALLET_ID })
+                });
+                if (res.ok) {
+                    alert("Faucet Claim Successful! +10 ETHC");
+                    setTimeout(fetchBalance, 1000);
+                } else {
+                    const err = await res.json();
+                    alert(`Faucet Failed: ${err.detail}`);
+                }
+            } catch (e) {
+                alert(`Faucet Error: ${e.message}`);
             }
         }
 
         function disconnectWallet() {
-            WALLET_ID = null;
-            localStorage.removeItem('orbis_wallet_id');
-            updateWalletUI();
-            // Clear personal data
-            document.getElementById('balance-display').innerText = "--- ETHC";
-            document.getElementById('tx-table').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Connect wallet to view history</td></tr>';
+            if (confirm("Disconnect and delete keys from this browser? Ensure you have a backup if this was a real wallet.")) {
+                WalletManager.disconnect();
+                updateWalletUI();
+                document.getElementById('balance-display').innerText = "--- ETHC";
+                document.getElementById('tx-table').innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Connect wallet to view history</td></tr>';
+            }
         }
 
         function updateWalletUI() {
@@ -791,13 +877,22 @@
             // I will use `fetch` with `getReader()` to consume the stream, which IS robust and allows Headers.
 
             try {
+                // 🔐 SECURITY: Sign the request
+                const timestamp = (Date.now() / 1000).toString();
+                const signature = WalletManager.sign(`${timestamp}:${WALLET_ID}`);
+
                 const response = await fetch(`${API_URL}/api/verify/stream?action=${encodeURIComponent(action)}`, {
                     headers: {
-                        'X-Orbis-Wallet': WALLET_ID // Only works with fetch
+                        'X-Orbis-Wallet': WALLET_ID,
+                        'X-Orbis-Signature': signature,
+                        'X-Orbis-Timestamp': timestamp
                     }
                 });
 
-                if (response.status === 402) throw new Error("Insufficient Funds");
+                if (response.status === 402 || response.status === 401) {
+                    const err = await response.text(); // or json
+                    throw new Error(err || "Auth/Funds Failed");
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();

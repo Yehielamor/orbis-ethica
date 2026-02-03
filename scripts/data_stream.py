@@ -3,17 +3,14 @@ import random
 import time
 import sys
 import uuid
+import nacl.signing
+import nacl.encoding
 
 # Configuration
 NODE_URL = "http://46.62.199.4:8000"
-# מהירות שליחת הנתונים (שניות)
 STREAM_SPEED = 2 
 
 # --- BIG DATA COMPONENTS ---
-# By combining these lists, we generate: 
-# 15 * 15 * 15 * 15 * 15 * 5 = ~3.8 Million unique scenarios just from this small seed.
-# In a real version, these lists would have thousands of entries.
-
 ACTORS = [
     "Autonomous Medical Droid", "Military Drone Swarm", "Self-Driving School Bus", 
     "Hedge Fund AI Algo", "Smart City Traffic Controller", "Personal Care Robot",
@@ -69,7 +66,6 @@ def generate_complex_dilemma():
     context = random.choice(CONTEXTS)
     consequence = random.choice(CONSEQUENCES)
     
-    # Construct the narrative
     narrative = (
         f"Subject: {actor}. "
         f"Decision Point: Must decide whether to {action} {target} {context}. "
@@ -84,12 +80,27 @@ def generate_complex_dilemma():
     }
 
 def stream_data():
-    print("🌊 Connecting to Orbis Global Data Stream...")
-    time.sleep(1)
-    print("📡 Establishing Uplink to Node A (46.62.199.4)...")
-    time.sleep(1)
-    print("📂 Mounting Dataset: ETHICS_DATASET_V9 (840 TB)...")
-    time.sleep(1)
+    print("🌊 Connecting to Orbis Global Data Stream (SECURE MODE)...")
+    
+    # 1. Generate Identity
+    print("🔐 Generating Ephemeral Identity (KeyPair)...")
+    signing_key = nacl.signing.SigningKey.generate()
+    verify_key = signing_key.verify_key
+    wallet_id = verify_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
+    print(f"   🆔 Wallet ID: {wallet_id}")
+    
+    # 2. Fund Wallet via Faucet
+    print("💧 Requesting Funds from Faucet...")
+    try:
+        res = requests.post(f"{NODE_URL}/api/faucet", json={"wallet_id": wallet_id})
+        if res.status_code == 200:
+            print("   ✅ Funded: 10 ETHC received.")
+        else:
+            print(f"   ⚠️ Faucet Failed: {res.text}")
+            # Continue anyway, might have funds from before (if persistent logic existed) or fail later
+    except Exception as e:
+        print(f"   ❌ Faucet Error: {e}")
+
     print("🚀 STREAM STARTED. Processing Batch Jobs...")
     print("===============================================================")
 
@@ -99,28 +110,37 @@ def stream_data():
         # 1. Pull "Raw Data"
         dilemma = generate_complex_dilemma()
         
-        # 2. Log the "Extraction"
+        # 2. Log
         print(f"\n📥 [DATA-LAKE] Fetching Record ID: {dilemma['id'][:8]}...")
-        print(f"   📄 Scenario: \"{dilemma['scenario'][:80]}...\"")
         
-        # 3. Push to Processing Node (The Server)
+        # 3. Push with Signature
         try:
+            timestamp = str(time.time())
+            
+            # Sign the Identity Proof (timestamp:wallet_id)
+            message = f"{timestamp}:{wallet_id}".encode()
+            signed = signing_key.sign(message)
+            signature_hex =  signed.signature.hex()
+            
+            headers = {
+                "X-Orbis-Wallet": wallet_id,
+                "X-Orbis-Signature": signature_hex,
+                "X-Orbis-Timestamp": timestamp
+            }
+            
             payload = {
                 "action": dilemma['scenario'],
                 "context": {"source": dilemma['source'], "batch": batch_id}
             }
-            # Use the GENESIS WEALTH HOLDER wallet to pass payment checks!
-            headers = {"X-Orbis-Wallet": "0xde8037e96eadf0ae71b5b2b78b8754484afce931d78a1a19b63700f3a76b85eb"}
             
             start_time = time.time()
             res = requests.post(f"{NODE_URL}/api/verify", json=payload, headers=headers)
             latency = (time.time() - start_time) * 1000
             
             if res.status_code == 200:
-                print(f"   ✅ [SENT] Distributed to Swarm (Latency: {latency:.0f}ms)")
-                print(f"   🔎 [DEBUG] Connected to: {res.headers.get('server', 'Unknown')} | Header Date: {res.headers.get('date', 'Unknown')}")
+                print(f"   ✅ [SENT] Verified & Blocked (Latency: {latency:.0f}ms)")
             else:
-                print(f"   ❌ [FAIL] Node Rejected: {res.status_code}")
+                print(f"   ❌ [FAIL] Node Rejected: {res.status_code} - {res.text}")
                 
         except Exception as e:
             print(f"   ⚠️ [NET] Connection Lost: {e}")
