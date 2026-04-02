@@ -6,7 +6,7 @@
 
 Orbis Ethica is a decentralized framework designed to align AGI with human values through a "Moral Blockchain." It treats ethical reasoning not as a constraint, but as a cognitive dimension, using a consensus-based ledger to record, deliberate, and audit every AI decision.
 
-## 🌟 Key Features
+
 
 ## 🌟 Key Features
 - **Moral Ledger:** Immutable SQLite ledger secured by Merkle Trees and Ed25519 signatures.
