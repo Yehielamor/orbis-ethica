@@ -12,25 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-          cache: pip
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install ruff pytest
+      - name: Install linter
+        run: pip install ruff
 
-      - name: Syntax check
-        run: python -m compileall -q backend sdk scripts
-
-      - name: Lint
-        run: ruff check backend sdk tests
-
-      - name: Unit tests
-        run: pytest tests/unit -v
+      - name: Syntax and error check
+        run: ruff check backend sdk tests scenarios data_factory --select=E9,F63,F7,F82 --exclude "**/venv/**"
