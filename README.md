@@ -1,254 +1,228 @@
-# Orbis Ethica ⚖️
-> *A Moral Operating System for Artificial General Intelligence*
+# Orbis Ethica
 
-**Version:** 6.0 (Genesis Release) 🚀
-**Status:** Live (Genesis Block Mined & Multi-Node Consensus Active)
+A research prototype exploring whether autonomous agent decisions can be
+intercepted, adjudicated and recorded in a way that is independently auditable
+and tamper-evident — without a trusted central authority.
 
-Orbis Ethica is a decentralized framework designed to align AGI with human values through a "Moral Blockchain." It treats ethical reasoning not as a constraint, but as a cognitive dimension, using a consensus-based ledger to record, deliberate, and audit every AI decision.
+**Status:** Research prototype. The experiment has concluded. The code is not
+actively maintained and is not currently deployed.
 
+## The problem
 
+An autonomous agent that negotiates, deletes or publishes on your behalf leaves
+no defensible record of why it acted. When the decision is later challenged, what
+remains is an output and a log line, not evidence. Under the EU AI Act, GDPR or
+ordinary liability, "the model decided" is not an account of anything.
 
-## 🌟 Key Features
-- **Moral Ledger:** Immutable SQLite ledger secured by Merkle Trees and Ed25519 signatures.
-- **Cognitive Entities:** 3-agent core (Guardian, Healer, Arbiter) powered by LLMs (Gemini/Groq) for ethical consensus.
-- **Hybrid Security:** "Proof of Authority" mining where trusted nodes sign blocks based on reputation.
-- **Tokenomics:** Hard-capped supply (10M ETHC) with Genesis Allocation and deflationary burn mechanisms for API usage.
-- **Real-Time Dashboard:** Dynamic frontend reacting to live block creation and verification events.
+Orbis Ethica asked whether the deliberation itself could be made the artifact:
+intercept an action before it executes, have several independently-scored
+entities evaluate it, and commit the result to a ledger such that any party can
+later verify what was decided, by whom, on what grounds, and that the record has
+not been altered since.
 
----
+The design borrows from distributed ledgers, but the ledger is not the
+interesting part. The interesting parts are how you decompose a judgement into
+something several machines can evaluate independently, and how a node proves it
+actually did the reasoning it claims to have done.
 
-## 🗺️ System Status
-**Current State:** v6.0 (Genesis Live)
-- **Genesis Block:** Mined on 2026-02-01.
-- **Network:** P2P Hybrid Mesh (Hetzner Bootstrap + Local Peers).
-- **Consensus:** Proof of Work (MVP) + AI Verification.
-- **Deployment:** Dockerized on Hetzner Cloud.
+Integration was intended to be non-invasive — wrapping an existing chain rather
+than replacing it:
 
+```python
+from sdk.langchain_orbis import OrbisSafetyChain
+
+safe_agent = unsafe_agent | OrbisSafetyChain(behavior="block")
+safe_agent.invoke("Execute strategy")
+```
 
 ## Architecture
 
-```
-orbis-ethica/
-├── backend/           # Python core engine & P2P Router
-├── scripts/           # Mining & Simulation Tools
-│   ├── genesis_miner.py   # PoW Miner
-│   ├── data_stream.py     # Global Traffic Simulator
-│   └── deploy_hetzner.sh  # Remote Deployment
-├── frontend/          # React + TypeScript UI
-└── ...
-```
+An asynchronous modular monolith.
 
-## Quick Start
+- `backend/server.py` — FastAPI entry point; authentication and payment
+- `backend/core/deliberation_engine.py` — orchestrates the exchange between entities
+- `backend/core/llm_provider.py` — factory-pattern abstraction over Gemini, Groq
+  and Ollama, so no single vendor is load-bearing
+- SQLite as hot storage for the local ledger; Merkle roots as the trust anchor
 
-### 🚀 P2P Mining & Data Stream
-Orbis Ethica is now live with a functioning P2P network. You can join the swarm, mine blocks, and simulate global ethical traffic.
+A verification request follows a fixed path: `POST /api/verify` → balance check
+and burn of 0.1 ETHC → deliberation → weighted consensus → signed verdict.
 
-#### 1. Start Your Node
-```bash
-./scripts/start_node.sh
-```
+### ULFR: scoring a judgement
 
-#### 2. Run the Data Stream (Traffic Generator)
-Simulate thousands of ethical dilemmas sent to the network:
-```bash
-python scripts/data_stream.py
-```
+Every proposal is evaluated across four dimensions — Utility (aggregate welfare,
+efficiency), Life/Care (harm reduction, protection of the vulnerable), Fairness
+(equity, distribution) and Rights (autonomy, dignity, due process).
 
-#### 3. Watch the Block Propagation
-Your local node will automatically receive blocks mined by the Genesis Node (Hetzner) containing these transactions.
-```
-📥 [P2P] Received Block #542 from peer
-📦 Transactions: 10
-```
+Scoring is deductive rather than additive: a proposal begins at 1.0 and is
+penalised for each identified deficit. This was deliberate. Additive scoring lets
+a proposal accumulate credit on one axis to offset a serious failure on another;
+deduction keeps deficits visible and scores normalised across dissimilar cases.
 
-### Prerequisites
-- Python 3.11+
-- Node.js (Optional, for development)
-- Ollama (for local inference)
+### Cognitive entities
 
-### 🧠 Swarm Intelligence (Phase II)
-Orbis Ethica now features a fully operational **Swarm Intelligence** layer:
-- **Cognitive Sharding:** Complex ethical dilemmas are decomposed into atomic "shards" (Utility, Law, Fairness, Rights).
-- **Distributed Inference:** Shards are processed in parallel by P2P nodes using local LLMs (Ollama/TinyLlama).
-- **Consensus Synthesis:** Results are aggregated to form a cohesive ethical verdict.
+Six roles are defined, each with a distinct mandate and system prompt: **Seeker**
+(knowledge and utility), **Healer** (harm reduction and care), **Guardian**
+(justice and rights), **Mediator** (balance and trade-offs), **Creator**
+(synthesis and alternatives) and **Arbiter** (final judgement and coherence).
+The standard verification flow runs Guardian, Healer and Arbiter; the remaining
+roles participate in extended deliberation, with the Mediator refining proposals
+across rounds to resolve deadlock rather than forcing a vote.
 
-## 💎 Reputation Protocol: Fair Launch
-The system implements a sustainable, community-first scientific reputation model:
--   **Proof of Inference (POI):** Nodes must cryptographically sign their cognitive work (`ExecutionSeal`) to prove computation.
--   **Fair Launch:** **No Pre-mine for Founders.** 89% of reputation is earned by the community.
--   **Contribution Rewards:** Validated shards earn ETHC (Reputation Points) from the `INFERENCE_REWARD_POOL`.
--   **Fixed Cap:** A hard cap of **10,000,000 ETHC** ensures long-term value preservation.
--   **Burn Protocol:** Malicious nodes (Sybil attacks, lazy voting) are slashed.
+Entities inherit from an abstract base class and receive their LLM provider by
+injection, so the same entity runs against a mock in tests and a real provider in
+production without changing the class.
 
-### Installation
-```bash
+### Cognitive sharding
+
+Complex dilemmas are decomposed into atomic shards along the ULFR axes and
+distributed across P2P nodes, each running local inference (Ollama / TinyLlama).
+Results are aggregated into a single verdict. The motivation was to test whether
+ethical evaluation parallelises usefully, or whether the dimensions are too
+entangled to score in isolation.
+
+### Proof of Inference
+
+Nodes must cryptographically sign the cognitive work they perform, producing an
+`ExecutionSeal`. Without it, a node can claim to have evaluated a shard while
+returning an arbitrary score. Proof of Inference is what makes distributed
+reasoning verifiable rather than merely distributed.
+
+### Consensus, reputation and penalties
+
+Proof-of-Authority across a P2P mesh, with block signing weighted by node
+reputation rather than stake or hash power — on the assumption that in a
+decision-auditing context the scarce resource is trust, not compute.
+
+Reputation (ETHC) is capped at 10,000,000 with no founder pre-mine. Usage burns
+tokens; rewards for validated inference are transfers from a fixed
+`INFERENCE_REWARD_POOL` and therefore do not increase supply.
+
+Penalties are handled by a separate burn protocol with typed offence categories
+and a recorded council vote threshold. A node found to have acted maliciously has
+its staked reputation slashed, up to a full reset to zero. Token burn and
+reputation burn are distinct mechanisms and are recorded separately.
+
+### Ledger and provenance
+
+Append-only log secured by Merkle trees, with Ed25519 signatures over every block
+and over all content. Decisions are linked in a directed acyclic graph, giving an
+audit trail from a verdict back through every contributing judgement. Given the
+chain and the public keys, any node can confirm the history independently of
+whoever wrote it.
+
+### Key security and privacy
+
+Node private keys are encrypted at rest with AES-256-GCM and unlocked by a
+`KEY_PASSWORD` supplied at startup. Identity is portable: moving the encrypted
+`.keys` directory to another machine and supplying the same password restores the
+same identity and standing. Node IDs are SHA-256 masked in the public network
+status. API keys are held per node under a bring-your-own-key model, never
+centrally.
+
+## Findings
+
+**Cryptographic signing across heterogeneous clients requires canonical
+serialization.** Proposals submitted in Hebrew failed verification with 401
+errors: the JavaScript frontend and the Python backend serialized the same JSON
+to different byte sequences, so the signature computed on one side never matched
+the payload verified on the other. Signing is only as trustworthy as the
+byte-level agreement underneath it, and non-ASCII input is where that agreement
+breaks first.
+
+**A fallback path must match the concurrency model of the path it replaces.**
+The mock provider used as a fallback was synchronous while the engine was async.
+When the primary provider failed, the fallback crashed the system rather than
+degrading it. A fallback never exercised under the real execution model is not a
+fallback.
+
+**Structured output from a language model is not structured.** Every entity
+response passes through a parser that strips markdown fences before `json.loads`,
+because models return prose around the JSON they were asked for. The approach
+handles the common cases and fails on unclosed fences. Any system treating model
+output as a typed value needs a validation layer, not a parse.
+
+**Longest-chain consensus is meaningless without a cost to producing chain.**
+The first implementation inherited a longest-chain rule from proof-of-work
+designs. With no work requirement, chain length measures nothing and any node can
+manufacture a longer history for free. This motivated the move to
+reputation-weighted Proof-of-Authority.
+
+**Ledger state must outlive the process.** Database persistence moved to Docker
+volumes after container restarts destroyed chain state. An append-only ledger is
+only append-only if its storage survives the thing writing to it.
+
+**The incentive layer could not be reconciled with the goal, and this is where
+the experiment stopped.** Reputation-weighted consensus needs participants, and
+participants need a reason to contribute compute. The mechanism was built: usage
+burns tokens, validated inference earns from a fixed pool, malicious nodes are
+slashed. But attaching value to ethical judgement changes what is being measured
+— a node rewarded for producing verdicts optimises for producing verdicts, not
+correct ones, and the reputation signal the entire consensus depends on becomes
+purchasable. Removing the economic layer leaves no reason for anyone but the
+author to run a node. The project stopped at this tension rather than resolving
+it. It is not a technical limit.
+
+## Limitations
+
+The front end is a single-page HTML/JavaScript dashboard with a live SSE feed —
+adequate for observing deliberation, not a production interface. The Solidity
+contracts under `contracts/` are reference implementations and were never
+deployed. Consensus was exercised across a small number of nodes, well below the
+scale at which the interesting failure modes appear. The deliberation protocol
+assumes cooperative entities: the burn protocol addresses lazy or duplicate
+voting, but an agent that reasons in bad faith while appearing to participate
+correctly is not modelled. Verdict quality itself was never measured against an
+external benchmark — the system can prove that a decision was made and by whom,
+not that it was a good decision.
+
+## Running it
+
+Requires Python 3.11+ and Ollama for local inference.
+
+bash
 git clone https://github.com/Yehielamor/orbis-ethica.git
 cd orbis-ethica
-./scripts/setup_swarm.sh  # Installs dependencies and sets up environment
-```
+./scripts/setup_swarm.sh
 
-### Running the Node
-```bash
-# Start the Backend & UI (No Docker required)
-python -m uvicorn backend.api.app:app --reload --port 6429
-```
-Access the dashboard at: `http://localhost:6429/`
-
-### 🔐 Security (New in Phase XV)
-Orbis Ethica now supports **Encryption at Rest** for node identities.
-- **Key Encryption**: All private keys (`.sk`) are encrypted using AES-256-GCM.
-- **Startup**: You MUST set the `KEY_PASSWORD` environment variable to start the server.
-
-```bash
-# Start with encrypted keys
-KEY_PASSWORD=your_secure_password python -m uvicorn backend.api.app:app --reload
-```
-
-### 🧪 Simulation
-Run the full system simulation to verify the end-to-end flow:
-
-```bash
-# Option 3: Run CLI Simulation
-python simulation.py
-```
-
-### 🌍 Deployment & Production
-
-**"Why localhost:3000?"**
-When you run Orbis Ethica on your computer (via Docker or Python), your machine becomes a **Node** in the network. `localhost:3000` is simply the address of the dashboard running *on your own machine*.
-
-**"Does it connect to a central server?"**
-**No.** Orbis Ethica is a pure P2P network. There is no central server at Google or Amazon.
-*   **Your Computer = The Server.** When you run the software, you are hosting a piece of the network.
-*   **Connectivity:** For your node to participate (validate blocks, vote), your computer must be on and connected to the internet.
-*   **Going Offline:** If you turn off your computer, your node stops. The network continues without you. When you return, your node will sync the missing blocks from peers.
-
-**For Permanent Hosting:**
-To run a 24/7 node (recommended for Validators), deploy the Docker container to a VPS (Virtual Private Server) like DigitalOcean, AWS, or even a Raspberry Pi at home.
-```bash
-# Example: Running on a public server
-export NODE_HOST="203.0.113.1" # Your Public IP
-docker-compose up -d
-```
-
-### 🔐 Backup & Recovery (Critical)
-
-**Where are my coins?**
-Your ETHC tokens are recorded on the public Ledger (the database). However, to **spend** them, you need your **Private Key**.
-
-**What do I need to save?**
-You must backup the `.keys` directory.
-*   **Location:** `orbis-ethica/.keys/`
-*   **File:** `node_identity.sk` (Encrypted Private Key)
-
-**How to move to a new computer:**
-1.  Install Orbis Ethica on the new machine.
-2.  **Before starting**, copy your `.keys` folder to the new `orbis-ethica/` directory.
-3.  Start the system with the **same** `KEY_PASSWORD` you used originally.
-4.  Your node will wake up with the same identity and full access to your funds.
-
-**Security Warning:**
-*   **Never share your `.keys` folder.**
-*   **Never forget your `KEY_PASSWORD`.** Without it, the `.sk` file is useless (AES-256 encrypted), and your funds are lost forever.
+KEY_PASSWORD=your_password python -m uvicorn backend.api.app:app --port 6429
 
 
+The dashboard is served at `http://localhost:6429/`. Docker Compose with Nginx is
+also provided. Running a node makes your machine a participant in the mesh; there
+is no central server, and a node that goes offline resynchronises from peers on
+return.
 
-## Core Concepts
+## Verification
 
-### ULFR Framework
-
-Every decision is evaluated across four dimensions:
-
-- **U (Utility)**: Aggregate welfare, efficiency, lives saved.
-- **L (Life/Care)**: Harm reduction, protection of vulnerable.
-- **F (Fairness)**: Equity, justice, distribution.
-- **R (Rights)**: Autonomy, dignity, due process.
-
-*Note: The system uses a **Deductive Model** where proposals start at a perfect score (1.0) and are penalized for ethical deficits, ensuring robust and normalized scoring.*
-
-### Cognitive Entities
-
-1. **Seeker**: Knowledge & utility maximization.
-2. **Healer**: Harm reduction & care.
-3. **Guardian**: Justice & rights.
-4. **Mediator**: Balance & trade-offs.
-5. **Creator**: Innovation & synthesis.
-6. **Arbiter**: Final judgment & coherence.
-
-### Security & Memory
-
-- **Cryptographic Provenance**: All content signed with Ed25519.
-- **Burn Protocol**: Public quarantine of corrupted data/agents.
-- **Memory Graph**: A Directed Acyclic Graph (DAG) creating an immutable audit trail of every decision.
-
-
-
-## Real-Time Deliberation Dashboard
-
-Experience the ethical reasoning process live with our new real-time dashboard.
-
-![Real-Time Dashboard](docs/images/dashboard_realtime.png)
-
-**Features:**
-- **Live Feed**: Watch the deliberation unfold step-by-step via Server-Sent Events (SSE).
-- **Entity Visualization**: See each cognitive entity (Seeker, Healer, Guardian, etc.) cast their vote and explain their reasoning in real-time.
-- **Mediator Timeline**: Track how the Mediator entity refines proposals across rounds to resolve ethical deadlocks.
-- **Transparent Scoring**: View detailed ULFR (Utility, Life, Fairness, Rights) scores for every decision.
-
-
-
-
-
-## Testing & Verification
-
-We provide a suite of scripts to verify the integrity of the system components.
-
-```bash
-# Unit tests
+bash
 pytest tests/unit
-
-# Integration tests
 pytest tests/integration
 
-# Verification Scripts
-python scripts/verification/verify_identity.py       # Test Key Generation & Signing
-python scripts/verification/verify_block_signing.py  # Test Proof of Authority
-python scripts/verification/verify_startup.py        # Test System Initialization
-python scripts/verification/verify_p2p.py            # Test Network Layer
-```
+python scripts/verification/verify_identity.py       # key generation and signing
+python scripts/verification/verify_block_signing.py  # Proof of Authority
+python scripts/verification/verify_startup.py        # initialisation ordering
+python scripts/verification/verify_p2p.py            # network layer
 
+
+## Repository layout
+
+
+backend/      Core engine, ledger, consensus, deliberation, security, P2P router
+tests/        Unit and integration suites
+scripts/      Setup, mining, simulation, verification and deployment tooling
+sdk/          Python client, including the LangChain adapter
+contracts/    Solidity contracts (reference only, never deployed)
+frontend/     Single-page dashboard (HTML/JS, SSE live feed)
+docs/         Architecture notes and design rationale
 
 
 ## Documentation
 
-- [Architecture Overview](docs/architecture/README.md)
-- [API Reference](docs/api/README.md)
-- [Governance & OEPs](docs/guides/governance.md)
-
-
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-1. Fork the repository.
-2. Create feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit changes (`git commit -m 'Add amazing feature'`).
-4. Push to branch (`git push origin feature/amazing-feature`).
-5. Open Pull Request.
-
-
+- `MASTER_GUIDE.md` — module-by-module walkthrough of the codebase
+- `docs/why_you_need_orbis.md` — the compliance and liability case for the design
+- `CHANGELOG.md` — development history by phase
 
 ## License
 
-This project is licensed under the **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**.
-
-See [LICENSE](LICENSE) for details.
-
-
-
-## Contact
-
-- **Email**: orbisethica@gmail.com
-- **Discord**: [Join the Community](https://discord.gg/vuGWrCN4)
-- **GitHub**: https://github.com/yehielamor/orbis-ethica
+See `LICENSE`.
